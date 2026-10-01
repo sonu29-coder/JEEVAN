@@ -1,0 +1,121 @@
+inventory_id,blood_bank_id,blood_group,component,units,expiry_date,status,synthetic,source
+INV00001,BB0001,A+,Platelets,17,2026-10-29,available,True,synthetic_demo
+INV00002,BB0001,A-,RBC,25,2026-10-05,available,True,synthetic_demo
+INV00003,BB0001,B+,RBC,6,2026-10-21,available,True,synthetic_demo
+INV00004,BB0001,B-,RBC,24,2026-10-30,available,True,synthetic_demo
+INV00005,BB0001,AB+,Whole Blood,20,2026-11-04,available,True,synthetic_demo
+INV00006,BB0001,AB-,RBC,5,2026-10-04,available,True,synthetic_demo
+INV00007,BB0001,O+,Whole Blood,10,2026-10-22,available,True,synthetic_demo
+INV00008,BB0001,O-,Plasma,24,2026-11-02,available,True,synthetic_demo
+INV00009,BB0002,A+,RBC,20,2026-10-18,available,True,synthetic_demo
+INV00010,BB0002,A-,Whole Blood,25,2026-10-04,available,True,synthetic_demo
+INV00011,BB0002,B+,Whole Blood,0,2026-10-07,available,True,synthetic_demo
+INV00012,BB0002,B-,Platelets,14,2026-10-23,available,True,synthetic_demo
+INV00013,BB0002,AB+,Whole Blood,24,2026-11-04,available,True,synthetic_demo
+INV00014,BB0002,AB-,Whole Blood,24,2026-10-04,available,True,synthetic_demo
+INV00015,BB0002,O+,Plasma,23,2026-10-04,available,True,synthetic_demo
+INV00016,BB0002,O-,Plasma,10,2026-10-28,available,True,synthetic_demo
+INV00017,BB0003,A+,RBC,21,2026-10-06,available,True,synthetic_demo
+INV00018,BB0003,A-,RBC,0,2026-10-15,available,True,synthetic_demo
+INV00019,BB0003,B+,RBC,2,2026-10-11,available,True,synthetic_demo
+INV00020,BB0003,B-,RBC,6,2026-11-04,available,True,synthetic_demo
+INV00021,BB0003,AB+,Plasma,0,2026-10-20,available,True,synthetic_demo
+INV00022,BB0003,AB-,Platelets,2,2026-10-29,available,True,synthetic_demo
+INV00023,BB0003,O+,Whole Blood,3,2026-10-19,available,True,synthetic_demo
+INV00024,BB0003,O-,Whole Blood,7,2026-10-26,available,True,synthetic_demo
+INV00025,BB0004,A+,Plasma,21,2026-10-27,available,True,synthetic_demo
+INV00026,BB0004,A-,Plasma,15,2026-11-05,available,True,synthetic_demo
+INV00027,BB0004,B+,Plasma,8,2026-10-07,available,True,synthetic_demo
+INV00028,BB0004,B-,Plasma,4,2026-10-11,available,True,synthetic_demo
+INV00029,BB0004,AB+,RBC,17,2026-10-09,available,True,synthetic_demo
+INV00030,BB0004,AB-,Plasma,7,2026-10-09,available,True,synthetic_demo
+INV00031,BB0004,O+,RBC,11,2026-10-30,available,True,synthetic_demo
+INV00032,BB0004,O-,Whole Blood,10,2026-10-21,available,True,synthetic_demo
+INV00033,BB0005,A+,Platelets,9,2026-10-19,available,True,synthetic_demo
+INV00034,BB0005,A-,Platelets,4,2026-10-09,available,True,synthetic_demo
+INV00035,BB0005,B+,Platelets,12,2026-10-13,available,True,synthetic_demo
+INV00036,BB0005,B-,Plasma,22,2026-11-03,available,True,synthetic_demo
+INV00037,BB0005,AB+,Plasma,13,2026-10-11,available,True,synthetic_demo
+INV00038,BB0005,AB-,Plasma,23,2026-10-07,available,True,synthetic_demo
+INV00039,BB0005,O+,RBC,13,2026-10-21,available,True,synthetic_demo
+INV00040,BB0005,O-,RBC,2,2026-10-04,available,True,synthetic_demo
+INV00041,BB0006,A+,RBC,11,2026-11-04,available,True,synthetic_demo
+INV00042,BB0006,A-,RBC,10,2026-10-22,available,True,synthetic_demo
+INV00043,BB0006,B+,RBC,24,2026-10-23,available,True,synthetic_demo
+INV00044,BB0006,B-,Whole Blood,20,2026-11-02,available,True,synthetic_demo
+INV00045,BB0006,AB+,Whole Blood,5,2026-10-12,available,True,synthetic_demo
+INV00046,BB0006,AB-,RBC,20,2026-10-20,available,True,synthetic_demo
+INV00047,BB0006,O+,RBC,1,2026-10-30,available,True,synthetic_demo
+INV00048,BB0006,O-,RBC,17,2026-10-20,available,True,synthetic_demo
+INV00049,BB0007,A+,Platelets,17,2026-10-13,available,True,synthetic_demo
+INV00050,BB0007,A-,Platelets,3,2026-10-18,available,True,synthetic_demo
+INV00051,BB0007,B+,Plasma,2,2026-10-14,available,True,synthetic_demo
+INV00052,BB0007,B-,Platelets,3,2026-10-08,available,True,synthetic_demo
+INV00053,BB0007,AB+,Whole Blood,6,2026-10-22,available,True,synthetic_demo
+INV00054,BB0007,AB-,RBC,21,2026-10-19,available,True,synthetic_demo
+INV00055,BB0007,O+,Platelets,18,2026-10-31,available,True,synthetic_demo
+INV00056,BB0007,O-,Whole Blood,1,2026-10-08,available,True,synthetic_demo
+INV00057,BB0008,A+,RBC,8,2026-11-01,available,True,synthetic_demo
+INV00058,BB0008,A-,Plasma,7,2026-10-04,available,True,synthetic_demo
+INV00059,BB0008,B+,RBC,21,2026-10-14,available,True,synthetic_demo
+INV00060,BB0008,B-,Plasma,4,2026-11-01,available,True,synthetic_demo
+INV00061,BB0008,AB+,RBC,10,2026-10-07,available,True,synthetic_demo
+INV00062,BB0008,AB-,RBC,3,2026-10-25,available,True,synthetic_demo
+INV00063,BB0008,O+,RBC,0,2026-10-13,available,True,synthetic_demo
+INV00064,BB0008,O-,Platelets,21,2026-10-29,available,True,synthetic_demo
+INV00065,BB0009,A+,Plasma,18,2026-10-27,available,True,synthetic_demo
+INV00066,BB0009,A-,Whole Blood,10,2026-10-15,available,True,synthetic_demo
+INV00067,BB0009,B+,RBC,22,2026-10-08,available,True,synthetic_demo
+INV00068,BB0009,B-,Whole Blood,17,2026-10-19,available,True,synthetic_demo
+INV00069,BB0009,AB+,Whole Blood,23,2026-10-08,available,True,synthetic_demo
+INV00070,BB0009,AB-,RBC,5,2026-10-21,available,True,synthetic_demo
+INV00071,BB0009,O+,Platelets,25,2026-11-01,available,True,synthetic_demo
+INV00072,BB0009,O-,Whole Blood,8,2026-10-29,available,True,synthetic_demo
+INV00073,BB0010,A+,Platelets,0,2026-10-30,available,True,synthetic_demo
+INV00074,BB0010,A-,Platelets,22,2026-10-21,available,True,synthetic_demo
+INV00075,BB0010,B+,Platelets,5,2026-10-25,available,True,synthetic_demo
+INV00076,BB0010,B-,Plasma,25,2026-10-27,available,True,synthetic_demo
+INV00077,BB0010,AB+,Whole Blood,6,2026-10-22,available,True,synthetic_demo
+INV00078,BB0010,AB-,Plasma,13,2026-10-05,available,True,synthetic_demo
+INV00079,BB0010,O+,Plasma,5,2026-11-01,available,True,synthetic_demo
+INV00080,BB0010,O-,Plasma,23,2026-10-07,available,True,synthetic_demo
+INV00081,BB0011,A+,Whole Blood,2,2026-10-24,available,True,synthetic_demo
+INV00082,BB0011,A-,Plasma,7,2026-10-07,available,True,synthetic_demo
+INV00083,BB0011,B+,Plasma,25,2026-11-04,available,True,synthetic_demo
+INV00084,BB0011,B-,Whole Blood,10,2026-10-07,available,True,synthetic_demo
+INV00085,BB0011,AB+,Plasma,8,2026-10-06,available,True,synthetic_demo
+INV00086,BB0011,AB-,Whole Blood,23,2026-10-08,available,True,synthetic_demo
+INV00087,BB0011,O+,Plasma,14,2026-10-06,available,True,synthetic_demo
+INV00088,BB0011,O-,RBC,0,2026-10-09,available,True,synthetic_demo
+INV00089,BB0012,A+,Whole Blood,12,2026-10-27,available,True,synthetic_demo
+INV00090,BB0012,A-,RBC,14,2026-11-05,available,True,synthetic_demo
+INV00091,BB0012,B+,RBC,12,2026-10-16,available,True,synthetic_demo
+INV00092,BB0012,B-,Whole Blood,7,2026-11-04,available,True,synthetic_demo
+INV00093,BB0012,AB+,Whole Blood,12,2026-10-20,available,True,synthetic_demo
+INV00094,BB0012,AB-,RBC,22,2026-10-10,available,True,synthetic_demo
+INV00095,BB0012,O+,Plasma,6,2026-10-10,available,True,synthetic_demo
+INV00096,BB0012,O-,Platelets,15,2026-11-05,available,True,synthetic_demo
+INV00097,BB0013,A+,Whole Blood,13,2026-10-04,available,True,synthetic_demo
+INV00098,BB0013,A-,RBC,12,2026-10-18,available,True,synthetic_demo
+INV00099,BB0013,B+,Platelets,24,2026-11-03,available,True,synthetic_demo
+INV00100,BB0013,B-,Whole Blood,16,2026-10-26,available,True,synthetic_demo
+INV00101,BB0013,AB+,Platelets,7,2026-10-30,available,True,synthetic_demo
+INV00102,BB0013,AB-,Whole Blood,5,2026-10-07,available,True,synthetic_demo
+INV00103,BB0013,O+,Platelets,11,2026-10-29,available,True,synthetic_demo
+INV00104,BB0013,O-,RBC,25,2026-10-31,available,True,synthetic_demo
+INV00105,BB0014,A+,Whole Blood,10,2026-10-22,available,True,synthetic_demo
+INV00106,BB0014,A-,RBC,24,2026-10-28,available,True,synthetic_demo
+INV00107,BB0014,B+,Platelets,11,2026-10-25,available,True,synthetic_demo
+INV00108,BB0014,B-,Whole Blood,21,2026-10-09,available,True,synthetic_demo
+INV00109,BB0014,AB+,Platelets,24,2026-10-22,available,True,synthetic_demo
+INV00110,BB0014,AB-,Platelets,16,2026-10-17,available,True,synthetic_demo
+INV00111,BB0014,O+,RBC,25,2026-10-22,available,True,synthetic_demo
+INV00112,BB0014,O-,Whole Blood,3,2026-10-05,available,True,synthetic_demo
+INV00113,BB0015,A+,RBC,12,2026-10-16,available,True,synthetic_demo
+INV00114,BB0015,A-,Whole Blood,22,2026-11-04,available,True,synthetic_demo
+INV00115,BB0015,B+,RBC,12,2026-10-15,available,True,synthetic_demo
+INV00116,BB0015,B-,RBC,2,2026-10-14,available,True,synthetic_demo
+INV00117,BB0015,AB+,Platelets,10,2026-10-10,available,True,synthetic_demo
+INV00118,BB0015,AB-,Whole Blood,16,2026-10-24,available,True,synthetic_demo
+INV00119,BB0015,O+,Plasma,25,2026-10-06,available,True,synthetic_demo
+INV00120,BB0015,O-,RBC,14,2026-10-20,available,True,synthetic_demo

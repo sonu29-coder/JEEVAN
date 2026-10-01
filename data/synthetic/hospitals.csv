@@ -1,0 +1,31 @@
+hospital_id,hospital_name,city,state,latitude,longitude,phone,email,synthetic_location,source
+HOSP0001,Government Medical College Hospital Thrissur,Thrissur,Kerala,10.385703,76.137494,9896192312,hospital1@jeevan-demo.local,True,synthetic_demo
+HOSP0002,District Hospital Thrissur,Thrissur,Kerala,10.277474,76.042468,9635394463,hospital2@jeevan-demo.local,True,synthetic_demo
+HOSP0003,Jubilee Mission Medical College and Research Institute,Thrissur,Kerala,10.426299,76.41225,9834772568,hospital3@jeevan-demo.local,True,synthetic_demo
+HOSP0004,Amala Institute of Medical Sciences,Thrissur,Kerala,10.633333,76.340489,9769711762,hospital4@jeevan-demo.local,True,synthetic_demo
+HOSP0005,Westfort Hospital,Thrissur,Kerala,10.486161,76.037453,9840770937,hospital5@jeevan-demo.local,True,synthetic_demo
+HOSP0006,Elite Mission Hospital,Thrissur,Kerala,10.76656,76.2587,9872749331,hospital6@jeevan-demo.local,True,synthetic_demo
+HOSP0007,Mother Hospital,Thrissur,Kerala,10.360797,76.054831,9953715591,hospital7@jeevan-demo.local,True,synthetic_demo
+HOSP0008,Unity Hospital,Thrissur,Kerala,10.337361,76.185986,9778574882,hospital8@jeevan-demo.local,True,synthetic_demo
+HOSP0009,Daya General Hospital,Thrissur,Kerala,10.360893,76.314005,9570733808,hospital9@jeevan-demo.local,True,synthetic_demo
+HOSP0010,Aswini Hospital,Thrissur,Kerala,10.667698,76.146297,9213278432,hospital10@jeevan-demo.local,True,synthetic_demo
+HOSP0011,Saroja Hospital,Thrissur,Kerala,10.363673,76.133083,9598838242,hospital11@jeevan-demo.local,True,synthetic_demo
+HOSP0012,Royal Hospital,Thrissur,Kerala,10.311303,76.190467,9222928564,hospital12@jeevan-demo.local,True,synthetic_demo
+HOSP0013,Metropolitan Hospital,Thrissur,Kerala,10.684075,76.286652,9330960398,hospital13@jeevan-demo.local,True,synthetic_demo
+HOSP0014,St. James Hospital,Thrissur,Kerala,10.338112,76.319592,9728718855,hospital14@jeevan-demo.local,True,synthetic_demo
+HOSP0015,Holy Family Hospital,Thrissur,Kerala,10.505777,76.100417,9635350537,hospital15@jeevan-demo.local,True,synthetic_demo
+HOSP0016,Amala Cancer Hospital,Thrissur,Kerala,10.662937,76.434474,9169728559,hospital16@jeevan-demo.local,True,synthetic_demo
+HOSP0017,Government Hospital Kunnamkulam,Thrissur,Kerala,10.326991,76.017476,9492069921,hospital17@jeevan-demo.local,True,synthetic_demo
+HOSP0018,Government Hospital Kodungallur,Thrissur,Kerala,10.568209,76.140134,9732197122,hospital18@jeevan-demo.local,True,synthetic_demo
+HOSP0019,Government Hospital Irinjalakuda,Thrissur,Kerala,10.619868,76.288942,9608424603,hospital19@jeevan-demo.local,True,synthetic_demo
+HOSP0020,Government Hospital Chalakudy,Thrissur,Kerala,10.329357,76.088942,9472079219,hospital20@jeevan-demo.local,True,synthetic_demo
+HOSP0021,Government Hospital Wadakkanchery,Thrissur,Kerala,10.338867,76.277155,9207693958,hospital21@jeevan-demo.local,True,synthetic_demo
+HOSP0022,Government Hospital Chavakkad,Thrissur,Kerala,10.538118,76.061629,9305170280,hospital22@jeevan-demo.local,True,synthetic_demo
+HOSP0023,Government Hospital Ollur,Thrissur,Kerala,10.649253,76.133987,9676345774,hospital23@jeevan-demo.local,True,synthetic_demo
+HOSP0024,Government Hospital Mala,Thrissur,Kerala,10.598282,76.450804,9185615621,hospital24@jeevan-demo.local,True,synthetic_demo
+HOSP0025,Government Hospital Peringottukara,Thrissur,Kerala,10.406935,76.104058,9171093799,hospital25@jeevan-demo.local,True,synthetic_demo
+HOSP0026,Government Hospital Cherpu,Thrissur,Kerala,10.733531,76.205858,9281995427,hospital26@jeevan-demo.local,True,synthetic_demo
+HOSP0027,Government Hospital Kunnamkulam Taluk,Thrissur,Kerala,10.316309,76.430956,9815215615,hospital27@jeevan-demo.local,True,synthetic_demo
+HOSP0028,Government Hospital Chelakkara,Thrissur,Kerala,10.424485,76.31277,9978242065,hospital28@jeevan-demo.local,True,synthetic_demo
+HOSP0029,Government Hospital Pazhayannur,Thrissur,Kerala,10.389736,76.427001,9231583585,hospital29@jeevan-demo.local,True,synthetic_demo
+HOSP0030,Government Hospital Mathilakam,Thrissur,Kerala,10.626853,76.273547,9059198444,hospital30@jeevan-demo.local,True,synthetic_demo

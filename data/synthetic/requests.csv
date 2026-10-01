@@ -1,0 +1,101 @@
+request_id,request_code,hospital_name,patient_blood_group,component,units_required,urgency,hospital_latitude,hospital_longitude,status,synthetic,source
+REQ00001,JEEVAN-REQ-00001,Elite Mission Hospital,A-,Platelets,8,critical,10.781155,76.212967,pending,True,synthetic_demo
+REQ00002,JEEVAN-REQ-00002,Government Hospital Chelakkara,B-,RBC,5,normal,10.673609,76.413409,matched,True,synthetic_demo
+REQ00003,JEEVAN-REQ-00003,Jubilee Mission Medical College and Research Institute,O+,RBC,2,urgent,10.752993,75.942294,matched,True,synthetic_demo
+REQ00004,JEEVAN-REQ-00004,Government Hospital Mathilakam,O+,Platelets,1,normal,10.719515,76.277862,fulfilled,True,synthetic_demo
+REQ00005,JEEVAN-REQ-00005,Government Hospital Wadakkanchery,O+,RBC,1,urgent,10.392957,76.364659,fulfilled,True,synthetic_demo
+REQ00006,JEEVAN-REQ-00006,Government Medical College Hospital Thrissur,O-,Platelets,6,critical,10.718303,76.337767,fulfilled,True,synthetic_demo
+REQ00007,JEEVAN-REQ-00007,Government Hospital Kunnamkulam,O+,RBC,7,urgent,10.421919,76.38833,fulfilled,True,synthetic_demo
+REQ00008,JEEVAN-REQ-00008,Government Medical College Hospital Thrissur,A+,Plasma,7,critical,10.307632,76.272103,pending,True,synthetic_demo
+REQ00009,JEEVAN-REQ-00009,Government Hospital Chavakkad,O-,Whole Blood,8,critical,10.715268,76.384094,fulfilled,True,synthetic_demo
+REQ00010,JEEVAN-REQ-00010,Government Hospital Kunnamkulam Taluk,AB-,RBC,1,normal,10.536422,76.046071,matched,True,synthetic_demo
+REQ00011,JEEVAN-REQ-00011,Metropolitan Hospital,A+,Plasma,2,critical,10.621732,76.039107,pending,True,synthetic_demo
+REQ00012,JEEVAN-REQ-00012,Government Hospital Kunnamkulam Taluk,B-,RBC,8,urgent,10.676698,75.955103,matched,True,synthetic_demo
+REQ00013,JEEVAN-REQ-00013,Government Hospital Chalakudy,AB+,RBC,8,urgent,10.55236,76.347756,pending,True,synthetic_demo
+REQ00014,JEEVAN-REQ-00014,District Hospital Thrissur,AB-,Whole Blood,3,urgent,10.736262,75.956026,matched,True,synthetic_demo
+REQ00015,JEEVAN-REQ-00015,Government Hospital Wadakkanchery,O+,Plasma,1,normal,10.701016,76.184174,pending,True,synthetic_demo
+REQ00016,JEEVAN-REQ-00016,Government Hospital Irinjalakuda,O+,Whole Blood,6,normal,10.607183,76.215553,pending,True,synthetic_demo
+REQ00017,JEEVAN-REQ-00017,Aswini Hospital,O-,Plasma,1,urgent,10.779538,75.964396,fulfilled,True,synthetic_demo
+REQ00018,JEEVAN-REQ-00018,St. James Hospital,A+,Platelets,1,critical,10.429311,76.462586,matched,True,synthetic_demo
+REQ00019,JEEVAN-REQ-00019,Government Hospital Chalakudy,AB-,Platelets,2,urgent,10.466089,76.398649,matched,True,synthetic_demo
+REQ00020,JEEVAN-REQ-00020,Government Hospital Peringottukara,O-,RBC,5,critical,10.428383,76.390246,pending,True,synthetic_demo
+REQ00021,JEEVAN-REQ-00021,Aswini Hospital,AB-,Plasma,1,normal,10.32507,76.137595,fulfilled,True,synthetic_demo
+REQ00022,JEEVAN-REQ-00022,Government Hospital Mathilakam,AB+,RBC,8,urgent,10.507309,76.212574,matched,True,synthetic_demo
+REQ00023,JEEVAN-REQ-00023,Government Hospital Chelakkara,O+,Plasma,7,normal,10.746597,76.13723,pending,True,synthetic_demo
+REQ00024,JEEVAN-REQ-00024,Westfort Hospital,AB+,Plasma,8,urgent,10.770086,76.183827,matched,True,synthetic_demo
+REQ00025,JEEVAN-REQ-00025,Daya General Hospital,A+,RBC,3,urgent,10.488777,76.313434,pending,True,synthetic_demo
+REQ00026,JEEVAN-REQ-00026,Government Hospital Irinjalakuda,B-,Plasma,6,urgent,10.454236,76.427665,pending,True,synthetic_demo
+REQ00027,JEEVAN-REQ-00027,Government Hospital Cherpu,A+,Platelets,7,normal,10.595121,76.444534,matched,True,synthetic_demo
+REQ00028,JEEVAN-REQ-00028,Government Hospital Kunnamkulam,AB-,Whole Blood,3,normal,10.617182,76.326962,fulfilled,True,synthetic_demo
+REQ00029,JEEVAN-REQ-00029,Government Hospital Wadakkanchery,B+,RBC,5,normal,10.359442,75.945091,pending,True,synthetic_demo
+REQ00030,JEEVAN-REQ-00030,Government Hospital Ollur,AB-,RBC,3,urgent,10.258739,76.455744,pending,True,synthetic_demo
+REQ00031,JEEVAN-REQ-00031,Mother Hospital,AB+,RBC,6,urgent,10.625135,76.275233,pending,True,synthetic_demo
+REQ00032,JEEVAN-REQ-00032,Government Hospital Chalakudy,A-,Platelets,4,urgent,10.295141,76.116346,matched,True,synthetic_demo
+REQ00033,JEEVAN-REQ-00033,Unity Hospital,O-,Platelets,3,critical,10.429175,76.38826,fulfilled,True,synthetic_demo
+REQ00034,JEEVAN-REQ-00034,Government Hospital Cherpu,A-,Platelets,7,critical,10.439067,76.219255,pending,True,synthetic_demo
+REQ00035,JEEVAN-REQ-00035,Government Hospital Chalakudy,O-,Whole Blood,4,normal,10.618875,76.165912,fulfilled,True,synthetic_demo
+REQ00036,JEEVAN-REQ-00036,Unity Hospital,A-,Platelets,3,urgent,10.26243,76.026334,pending,True,synthetic_demo
+REQ00037,JEEVAN-REQ-00037,Government Hospital Kunnamkulam,B+,Plasma,7,urgent,10.606321,76.481512,matched,True,synthetic_demo
+REQ00038,JEEVAN-REQ-00038,Aswini Hospital,B+,Platelets,6,urgent,10.608123,76.48528,pending,True,synthetic_demo
+REQ00039,JEEVAN-REQ-00039,Government Hospital Cherpu,B-,RBC,7,urgent,10.66366,76.195722,pending,True,synthetic_demo
+REQ00040,JEEVAN-REQ-00040,Government Hospital Wadakkanchery,A-,Plasma,3,urgent,10.32804,76.284803,matched,True,synthetic_demo
+REQ00041,JEEVAN-REQ-00041,Mother Hospital,A-,Whole Blood,6,urgent,10.397074,75.949588,pending,True,synthetic_demo
+REQ00042,JEEVAN-REQ-00042,Government Hospital Kunnamkulam Taluk,AB-,RBC,6,critical,10.553699,76.4647,fulfilled,True,synthetic_demo
+REQ00043,JEEVAN-REQ-00043,Government Medical College Hospital Thrissur,AB-,Whole Blood,2,critical,10.438616,76.391237,pending,True,synthetic_demo
+REQ00044,JEEVAN-REQ-00044,Government Hospital Chelakkara,O-,Platelets,6,critical,10.513422,76.235902,matched,True,synthetic_demo
+REQ00045,JEEVAN-REQ-00045,Government Hospital Kunnamkulam,B-,Platelets,7,normal,10.601612,76.31924,pending,True,synthetic_demo
+REQ00046,JEEVAN-REQ-00046,Government Hospital Wadakkanchery,B+,Whole Blood,3,critical,10.397507,76.305627,matched,True,synthetic_demo
+REQ00047,JEEVAN-REQ-00047,Jubilee Mission Medical College and Research Institute,AB+,Whole Blood,6,normal,10.284914,76.159615,fulfilled,True,synthetic_demo
+REQ00048,JEEVAN-REQ-00048,Metropolitan Hospital,O+,RBC,1,urgent,10.52518,76.386507,matched,True,synthetic_demo
+REQ00049,JEEVAN-REQ-00049,Royal Hospital,A-,Whole Blood,6,critical,10.301257,76.231537,pending,True,synthetic_demo
+REQ00050,JEEVAN-REQ-00050,Amala Cancer Hospital,O+,Plasma,7,normal,10.48272,76.367808,fulfilled,True,synthetic_demo
+REQ00051,JEEVAN-REQ-00051,Government Hospital Cherpu,AB-,Whole Blood,4,normal,10.426343,76.012485,pending,True,synthetic_demo
+REQ00052,JEEVAN-REQ-00052,Amala Cancer Hospital,AB-,RBC,5,urgent,10.516081,76.04982,fulfilled,True,synthetic_demo
+REQ00053,JEEVAN-REQ-00053,Royal Hospital,B-,Plasma,6,urgent,10.36963,76.362585,pending,True,synthetic_demo
+REQ00054,JEEVAN-REQ-00054,Government Hospital Mathilakam,B+,RBC,8,normal,10.63345,76.102107,matched,True,synthetic_demo
+REQ00055,JEEVAN-REQ-00055,Jubilee Mission Medical College and Research Institute,AB+,Platelets,7,normal,10.364894,76.369429,pending,True,synthetic_demo
+REQ00056,JEEVAN-REQ-00056,Saroja Hospital,A+,Plasma,5,critical,10.480551,76.293926,fulfilled,True,synthetic_demo
+REQ00057,JEEVAN-REQ-00057,Government Hospital Peringottukara,A-,Whole Blood,2,urgent,10.393158,76.339186,fulfilled,True,synthetic_demo
+REQ00058,JEEVAN-REQ-00058,Mother Hospital,O-,RBC,6,critical,10.502302,76.057137,fulfilled,True,synthetic_demo
+REQ00059,JEEVAN-REQ-00059,Government Hospital Irinjalakuda,B-,RBC,1,urgent,10.744159,76.350314,matched,True,synthetic_demo
+REQ00060,JEEVAN-REQ-00060,Government Hospital Chelakkara,AB-,RBC,7,urgent,10.299213,76.036675,pending,True,synthetic_demo
+REQ00061,JEEVAN-REQ-00061,Amala Institute of Medical Sciences,O+,Plasma,4,urgent,10.623224,76.162937,fulfilled,True,synthetic_demo
+REQ00062,JEEVAN-REQ-00062,Government Hospital Kunnamkulam Taluk,B-,Whole Blood,8,normal,10.356394,76.172046,pending,True,synthetic_demo
+REQ00063,JEEVAN-REQ-00063,Government Hospital Chalakudy,AB-,RBC,4,normal,10.720555,76.409835,fulfilled,True,synthetic_demo
+REQ00064,JEEVAN-REQ-00064,Government Hospital Irinjalakuda,A+,Plasma,2,critical,10.595815,76.247348,pending,True,synthetic_demo
+REQ00065,JEEVAN-REQ-00065,Aswini Hospital,B+,Platelets,4,normal,10.546057,76.376713,pending,True,synthetic_demo
+REQ00066,JEEVAN-REQ-00066,Metropolitan Hospital,B-,Plasma,4,normal,10.483285,76.37372,pending,True,synthetic_demo
+REQ00067,JEEVAN-REQ-00067,Government Hospital Mala,A+,RBC,8,normal,10.742429,75.970373,matched,True,synthetic_demo
+REQ00068,JEEVAN-REQ-00068,Government Hospital Cherpu,B-,Plasma,8,normal,10.709751,76.070103,fulfilled,True,synthetic_demo
+REQ00069,JEEVAN-REQ-00069,Government Hospital Irinjalakuda,A-,Whole Blood,1,critical,10.466063,76.15115,pending,True,synthetic_demo
+REQ00070,JEEVAN-REQ-00070,Westfort Hospital,O+,Platelets,2,urgent,10.432933,76.203506,matched,True,synthetic_demo
+REQ00071,JEEVAN-REQ-00071,Government Hospital Pazhayannur,O+,Platelets,8,urgent,10.551427,76.246487,fulfilled,True,synthetic_demo
+REQ00072,JEEVAN-REQ-00072,Government Hospital Mathilakam,O+,Platelets,1,normal,10.660492,76.14079,fulfilled,True,synthetic_demo
+REQ00073,JEEVAN-REQ-00073,Government Hospital Wadakkanchery,B-,Whole Blood,3,urgent,10.655237,76.119824,matched,True,synthetic_demo
+REQ00074,JEEVAN-REQ-00074,Government Medical College Hospital Thrissur,A+,Plasma,7,critical,10.630119,76.135386,pending,True,synthetic_demo
+REQ00075,JEEVAN-REQ-00075,Government Hospital Kunnamkulam,O-,Whole Blood,8,critical,10.447102,76.046868,pending,True,synthetic_demo
+REQ00076,JEEVAN-REQ-00076,Government Hospital Ollur,B+,RBC,8,urgent,10.596529,76.080379,pending,True,synthetic_demo
+REQ00077,JEEVAN-REQ-00077,Government Hospital Chalakudy,B-,Whole Blood,7,critical,10.274884,76.468215,pending,True,synthetic_demo
+REQ00078,JEEVAN-REQ-00078,Elite Mission Hospital,B-,Platelets,8,critical,10.762843,76.214202,matched,True,synthetic_demo
+REQ00079,JEEVAN-REQ-00079,Government Hospital Ollur,O+,Whole Blood,4,normal,10.492664,76.316097,pending,True,synthetic_demo
+REQ00080,JEEVAN-REQ-00080,Royal Hospital,B+,RBC,5,urgent,10.492553,76.275508,pending,True,synthetic_demo
+REQ00081,JEEVAN-REQ-00081,Government Hospital Ollur,A+,Platelets,7,normal,10.762983,76.400358,pending,True,synthetic_demo
+REQ00082,JEEVAN-REQ-00082,Government Hospital Mathilakam,AB-,Platelets,3,normal,10.478995,76.015484,matched,True,synthetic_demo
+REQ00083,JEEVAN-REQ-00083,Government Hospital Kodungallur,O-,RBC,4,critical,10.788984,76.4063,pending,True,synthetic_demo
+REQ00084,JEEVAN-REQ-00084,St. James Hospital,B+,Whole Blood,6,normal,10.6122,76.235824,fulfilled,True,synthetic_demo
+REQ00085,JEEVAN-REQ-00085,Amala Cancer Hospital,A-,Plasma,4,critical,10.412344,75.981237,matched,True,synthetic_demo
+REQ00086,JEEVAN-REQ-00086,Westfort Hospital,B-,Plasma,1,critical,10.290999,76.034481,matched,True,synthetic_demo
+REQ00087,JEEVAN-REQ-00087,Government Hospital Chelakkara,A-,Whole Blood,4,critical,10.777181,76.308351,pending,True,synthetic_demo
+REQ00088,JEEVAN-REQ-00088,Government Hospital Peringottukara,B-,Whole Blood,5,normal,10.376346,76.38268,matched,True,synthetic_demo
+REQ00089,JEEVAN-REQ-00089,Holy Family Hospital,A+,RBC,7,normal,10.362327,76.48257,matched,True,synthetic_demo
+REQ00090,JEEVAN-REQ-00090,Government Hospital Cherpu,B+,Whole Blood,7,urgent,10.597717,76.1893,pending,True,synthetic_demo
+REQ00091,JEEVAN-REQ-00091,St. James Hospital,O-,RBC,8,critical,10.451524,76.030339,fulfilled,True,synthetic_demo
+REQ00092,JEEVAN-REQ-00092,St. James Hospital,A+,Whole Blood,3,normal,10.659769,76.229906,fulfilled,True,synthetic_demo
+REQ00093,JEEVAN-REQ-00093,Royal Hospital,O-,Plasma,1,urgent,10.625821,76.276703,pending,True,synthetic_demo
+REQ00094,JEEVAN-REQ-00094,Amala Cancer Hospital,O-,Whole Blood,1,urgent,10.78769,75.971435,fulfilled,True,synthetic_demo
+REQ00095,JEEVAN-REQ-00095,Aswini Hospital,O-,Platelets,3,critical,10.4245,76.125242,matched,True,synthetic_demo
+REQ00096,JEEVAN-REQ-00096,Government Hospital Chavakkad,AB+,Whole Blood,1,urgent,10.504819,76.459621,pending,True,synthetic_demo
+REQ00097,JEEVAN-REQ-00097,Royal Hospital,O+,RBC,6,urgent,10.640156,76.089662,pending,True,synthetic_demo
+REQ00098,JEEVAN-REQ-00098,Jubilee Mission Medical College and Research Institute,AB-,Plasma,2,critical,10.351341,76.286168,matched,True,synthetic_demo
+REQ00099,JEEVAN-REQ-00099,Government Hospital Kunnamkulam Taluk,O-,Whole Blood,8,critical,10.294879,76.366503,pending,True,synthetic_demo
+REQ00100,JEEVAN-REQ-00100,Government Hospital Cherpu,A+,RBC,6,urgent,10.47729,76.06434,pending,True,synthetic_demo

@@ -1,0 +1,16 @@
+blood_bank_id,blood_bank_name,address,city,state,latitude,longitude,phone,email,synthetic_location,source
+BB0001,JEEVAN Demo Blood Bank - Thrissur 1,"Demo Address 1, Thrissur",Thrissur,Kerala,10.51089,76.455911,9602547214,bloodbank1@jeevan-demo.local,True,synthetic_demo
+BB0002,JEEVAN Demo Blood Bank - Thrissur 2,"Demo Address 2, Thrissur",Thrissur,Kerala,10.330224,75.96954,9186853407,bloodbank2@jeevan-demo.local,True,synthetic_demo
+BB0003,JEEVAN Demo Blood Bank - Thrissur 3,"Demo Address 3, Thrissur",Thrissur,Kerala,10.691145,76.069274,9080698326,bloodbank3@jeevan-demo.local,True,synthetic_demo
+BB0004,JEEVAN Demo Blood Bank - Thrissur 4,"Demo Address 4, Thrissur",Thrissur,Kerala,10.233539,76.431254,9173559220,bloodbank4@jeevan-demo.local,True,synthetic_demo
+BB0005,JEEVAN Demo Blood Bank - Thrissur 5,"Demo Address 5, Thrissur",Thrissur,Kerala,10.416211,76.419501,9237468759,bloodbank5@jeevan-demo.local,True,synthetic_demo
+BB0006,JEEVAN Demo Blood Bank - Thrissur 6,"Demo Address 6, Thrissur",Thrissur,Kerala,10.627521,76.105557,9369875712,bloodbank6@jeevan-demo.local,True,synthetic_demo
+BB0007,JEEVAN Demo Blood Bank - Thrissur 7,"Demo Address 7, Thrissur",Thrissur,Kerala,10.29605,75.960007,9385098268,bloodbank7@jeevan-demo.local,True,synthetic_demo
+BB0008,JEEVAN Demo Blood Bank - Thrissur 8,"Demo Address 8, Thrissur",Thrissur,Kerala,10.655115,75.927179,9967252630,bloodbank8@jeevan-demo.local,True,synthetic_demo
+BB0009,JEEVAN Demo Blood Bank - Thrissur 9,"Demo Address 9, Thrissur",Thrissur,Kerala,10.2949,75.994301,9442564604,bloodbank9@jeevan-demo.local,True,synthetic_demo
+BB0010,JEEVAN Demo Blood Bank - Thrissur 10,"Demo Address 10, Thrissur",Thrissur,Kerala,10.661626,76.128008,9175939891,bloodbank10@jeevan-demo.local,True,synthetic_demo
+BB0011,JEEVAN Demo Blood Bank - Thrissur 11,"Demo Address 11, Thrissur",Thrissur,Kerala,10.315281,76.385149,9839215515,bloodbank11@jeevan-demo.local,True,synthetic_demo
+BB0012,JEEVAN Demo Blood Bank - Thrissur 12,"Demo Address 12, Thrissur",Thrissur,Kerala,10.469592,76.273303,9050414819,bloodbank12@jeevan-demo.local,True,synthetic_demo
+BB0013,JEEVAN Demo Blood Bank - Thrissur 13,"Demo Address 13, Thrissur",Thrissur,Kerala,10.232004,75.946973,9382980553,bloodbank13@jeevan-demo.local,True,synthetic_demo
+BB0014,JEEVAN Demo Blood Bank - Thrissur 14,"Demo Address 14, Thrissur",Thrissur,Kerala,10.634612,76.335794,9493972081,bloodbank14@jeevan-demo.local,True,synthetic_demo
+BB0015,JEEVAN Demo Blood Bank - Thrissur 15,"Demo Address 15, Thrissur",Thrissur,Kerala,10.64675,76.37892,9549319304,bloodbank15@jeevan-demo.local,True,synthetic_demo
