@@ -19,13 +19,30 @@ const ICONS: Record<MarkerKind, L.DivIcon> = {
   }),
 }
 
+const RIDER_ICON = L.divIcon({
+  className: '',
+  html: '<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;background:#059669;color:white;box-shadow:0 10px 18px -3px rgba(0,0,0,0.4);border:2.5px solid white;font-size:18px;animation:pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;">🛵</div>',
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+})
+
 interface RoutePoint {
   position: [number, number]
   label: string
   kind: MarkerKind
 }
 
-export default function RouteMap({ from, to, color }: { from: RoutePoint; to: RoutePoint; color: string }) {
+export default function RouteMap({
+  from,
+  to,
+  color,
+  progress = 0,
+}: {
+  from: RoutePoint
+  to: RoutePoint
+  color: string
+  progress?: number
+}) {
   const [path, setPath] = useState<[number, number][]>(() => curve(from.position, to.position, 0.22))
   const [roadInfo, setRoadInfo] = useState<{ distanceKm: number; durationMin: number } | null>(null)
 
@@ -35,9 +52,9 @@ export default function RouteMap({ from, to, color }: { from: RoutePoint; to: Ro
       try {
         const [lat1, lon1] = from.position
         const [lat2, lon2] = to.position
-        // Query Open Source Routing Machine driving profile for Thrissur road network
+        // Fast 1.2s timeout so map never delays or blocks
         const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`
-        const res = await fetch(url)
+        const res = await fetch(url, { signal: AbortSignal.timeout(1200) })
         if (!res.ok) throw new Error('OSRM network response was not ok')
         const data = await res.json()
         if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates && active) {
@@ -51,7 +68,7 @@ export default function RouteMap({ from, to, color }: { from: RoutePoint; to: Ro
           })
         }
       } catch {
-        // Fallback to curved trajectory if offline
+        // Instant fallback to smooth curved trajectory
         if (active) {
           setPath(curve(from.position, to.position, 0.22))
         }
@@ -65,6 +82,11 @@ export default function RouteMap({ from, to, color }: { from: RoutePoint; to: Ro
   }, [from.position, to.position])
 
   const bounds = L.latLngBounds(path.length > 0 ? path : [from.position, to.position]).pad(0.25)
+
+  // Calculate live position of courier bike along the path
+  const clampedProgress = Math.min(1, Math.max(0, progress))
+  const riderIndex = Math.min(path.length - 1, Math.max(0, Math.floor(clampedProgress * (path.length - 1))))
+  const riderPosition = path[riderIndex] || from.position
 
   return (
     <div className="relative size-full">
@@ -96,6 +118,15 @@ export default function RouteMap({ from, to, color }: { from: RoutePoint; to: Ro
             {to.label}
           </Tooltip>
         </Marker>
+        {clampedProgress > 0 && clampedProgress < 1 && (
+          <Marker position={riderPosition} icon={RIDER_ICON} zIndexOffset={600}>
+            <Tooltip permanent direction="top" offset={[0, -16]}>
+              <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                🚀 Courier In Transit ({Math.round(clampedProgress * 100)}%)
+              </span>
+            </Tooltip>
+          </Marker>
+        )}
       </MapContainer>
 
       {roadInfo && (

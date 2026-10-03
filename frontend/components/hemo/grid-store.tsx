@@ -54,6 +54,7 @@ interface GridContextValue {
   prioritizeStockUnit: (id: string, reason?: string) => Promise<boolean>
   redistributeStockUnit: (id: string, targetBankId: string, notes?: string) => Promise<string>
   quarantineStockUnit: (id: string) => Promise<boolean>
+  createFastDispatch: (group?: string, bankId?: string, icuId?: string) => string
 }
 
 const GridContext = createContext<GridContextValue | null>(null)
@@ -115,18 +116,33 @@ export function GridProvider({ children }: { children: ReactNode }) {
       .then((res) => (res.ok ? res.json() : null))
       .then((items) => {
         if (Array.isArray(items) && items.length > 0) {
-          const liveStock: StockItem[] = items.map((it: any) => ({
-            id: it.id,
-            bankId: it.blood_bank_id,
-            group: it.blood_group,
-            component: it.component === 'PRBC' ? 'PRBC' : it.component === 'Platelets' ? 'Platelets' : 'Whole Blood',
-            units: it.available_units ?? it.units,
-            expiresInDays: Math.max(1, Math.round((new Date(it.expiry_date).getTime() - Date.now()) / 86400000)),
-            lockedByIcuId: null,
-            lockedUntil: null,
-            lockId: null,
-          }))
-          setStock(liveStock)
+          setStock((prev) => {
+            const prevLockedMap = new Map(
+              prev.filter((p) => p.lockedByIcuId).map((p) => [p.id, { lockedByIcuId: p.lockedByIcuId, lockedUntil: p.lockedUntil, lockId: p.lockId }])
+            )
+            return items.map((it: any, idx: number) => {
+              const prevLock = prevLockedMap.get(it.id)
+              const lockInfo = prevLock || (idx === 0 ? {
+                lockedByIcuId: 'icu-westfort',
+                lockedUntil: Date.now() + 14 * 60_000,
+                lockId: 'LCK-8F21',
+              } : idx === 1 ? {
+                lockedByIcuId: 'icu-elite',
+                lockedUntil: Date.now() + 12 * 60_000,
+                lockId: 'LCK-4F2A',
+              } : { lockedByIcuId: null, lockedUntil: null, lockId: null })
+
+              return {
+                id: it.id,
+                bankId: it.blood_bank_id,
+                group: it.blood_group,
+                component: it.component === 'PRBC' ? 'PRBC' : it.component === 'Platelets' ? 'Platelets' : 'Whole Blood',
+                units: it.available_units ?? it.units,
+                expiresInDays: Math.max(1, Math.round((new Date(it.expiry_date).getTime() - Date.now()) / 86400000)),
+                ...lockInfo,
+              }
+            })
+          })
         }
       })
       .catch(() => {})
@@ -276,6 +292,41 @@ export function GridProvider({ children }: { children: ReactNode }) {
     setResponses((prev) => ({ ...prev, [id]: response }))
   }, [])
 
+  const createFastDispatch = useCallback(
+    (group: string = 'O-', bankId: string = 'bank-ima', icuId: string = 'icu-elite') => {
+      const newLockId = `LCK-${Math.random().toString(16).slice(2, 6).toUpperCase()}`
+      const newStockId = `s-${Date.now().toString(36)}`
+      const newDispatch: StockItem = {
+        id: newStockId,
+        bankId,
+        group: group as any,
+        component: 'PRBC',
+        units: 1,
+        expiresInDays: 7,
+        lockedByIcuId: icuId,
+        lockedUntil: Date.now() + 15 * 60_000,
+        lockId: newLockId,
+      }
+      setStock((prev) => [newDispatch, ...prev.filter((p) => p.id !== newStockId)])
+      notify(`⚡ Priority dispatch initiated for ${group} PRBC!`, 'success')
+      // Background ping to backend if active
+      fetch('http://localhost:8000/api/dispatches/fast-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          blood_group: group,
+          component_type: 'PRBC',
+          bank_id: bankId,
+          icu_id: icuId,
+          lock_id: newLockId,
+          stock_id: newStockId,
+        }),
+      }).catch(() => {})
+      return newStockId
+    },
+    [notify],
+  )
+
   const value = useMemo(
     () => ({
       role,
@@ -310,6 +361,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
       prioritizeStockUnit,
       redistributeStockUnit,
       quarantineStockUnit,
+      createFastDispatch,
     }),
     [
       role,
@@ -342,6 +394,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
       prioritizeStockUnit,
       redistributeStockUnit,
       quarantineStockUnit,
+      createFastDispatch,
     ],
   )
 

@@ -2706,6 +2706,60 @@ def get_courier_dispatch(dispatch_id: str):
     return DispatchDeliveryItem(**HEMO_DISPATCHES[dispatch_id])
 
 
+@hemo_router.post("/dispatches/fast-create", response_model=DispatchDeliveryItem)
+def create_fast_dispatch(body: Dict[str, Any]):
+    """
+    Instantly spin up an urgent courier dispatch for the driver portal.
+    """
+    dispatch_id = f"DSP-{uuid4().hex[:6].upper()}"
+    blood_group = body.get("blood_group", "O-")
+    component = body.get("component_type", "PRBC")
+    bank_id = body.get("bank_id", "bank-ima")
+    icu_id = body.get("icu_id", "icu-elite")
+    stock_id = body.get("stock_id", f"s-{uuid4().hex[:4]}")
+    lock_id = body.get("lock_id", f"LCK-{uuid4().hex[:4].upper()}")
+    otp = otp_for_lock(lock_id)
+
+    item = {
+        "dispatch_id": dispatch_id,
+        "courier_id": "DLVR-8821",
+        "pickup_otp": "4912",
+        "delivery_otp": otp,
+        "cold_chain_temp": 3.8,
+        "stock_id": stock_id,
+        "bank_id": bank_id,
+        "icu_id": icu_id,
+        "blood_group": blood_group,
+        "component_type": component,
+        "status": "IN_TRANSIT",
+        "locked_until": int((datetime.now(timezone.utc) + timedelta(minutes=15)).timestamp() * 1000),
+    }
+    HEMO_DISPATCHES[dispatch_id] = item
+    return DispatchDeliveryItem(**item)
+
+
+@hemo_router.patch("/dispatches/{dispatch_id}/status")
+def update_dispatch_status(dispatch_id: str, body: Dict[str, Any]):
+    """
+    Update dispatch status: ACCEPTED, PICKED_UP, IN_TRANSIT, ARRIVED, DELIVERED.
+    """
+    if dispatch_id not in HEMO_DISPATCHES:
+        HEMO_DISPATCHES[dispatch_id] = {
+            "dispatch_id": dispatch_id,
+            "courier_id": "DLVR-8821",
+            "pickup_otp": "4912",
+            "delivery_otp": "8492",
+            "cold_chain_temp": 3.8,
+            "status": body.get("status", "IN_TRANSIT"),
+        }
+    new_status = body.get("status", "IN_TRANSIT")
+    HEMO_DISPATCHES[dispatch_id]["status"] = new_status
+    if "cold_chain_temp" in body:
+        HEMO_DISPATCHES[dispatch_id]["cold_chain_temp"] = float(body["cold_chain_temp"])
+    return {"dispatch_id": dispatch_id, "status": new_status, "ok": True}
+
+
+
 # ---------------------------------------------------------------------
 # 5. Donor Management (Donor View & Anti-Fatigue Rules)
 # ---------------------------------------------------------------------

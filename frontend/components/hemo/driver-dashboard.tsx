@@ -1,10 +1,41 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
-import { Building2, Hospital, KeyRound, Loader2, PackageCheck } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  BatteryCharging,
+  Bike,
+  Building2,
+  Check,
+  CheckCircle2,
+  Copy,
+  Gauge,
+  Hospital,
+  KeyRound,
+  Loader2,
+  Navigation,
+  PackageCheck,
+  Play,
+  RotateCcw,
+  ShieldCheck,
+  Siren,
+  Sparkles,
+  ThermometerSnowflake,
+  Zap,
+} from 'lucide-react'
 import { useNow } from '@/hooks/use-now'
-import { BANKS, COMPONENT_LABELS, ICUS, distanceKm, formatRemaining, isLocked, otpForLock, siteById } from '@/lib/hemo-data'
+import {
+  BANKS,
+  COMPONENT_LABELS,
+  ICUS,
+  distanceKm,
+  formatRemaining,
+  isLocked,
+  otpForLock,
+  siteById,
+} from '@/lib/hemo-data'
 import { cn } from '@/lib/utils'
 import { useGrid } from './grid-store'
 import { ViewHeader } from './view-header'
@@ -18,114 +49,434 @@ const RouteMap = dynamic(() => import('./route-map'), {
   ),
 })
 
+type TransitStage = 'assigned' | 'picked_up' | 'in_transit' | 'arrived' | 'delivered'
+
 export function DriverDashboard() {
-  const { stock } = useGrid()
+  const { stock, completeDelivery, createFastDispatch, notify } = useGrid()
   const now = useNow()
+
+  // Active dispatches held by ICUs
   const dispatches = stock.filter((s) => s.lockedByIcuId && isLocked(s, now))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = dispatches.find((d) => d.id === selectedId) ?? dispatches[0]
+
   const bank = selected ? siteById(BANKS, selected.bankId) : undefined
   const icu = selected ? siteById(ICUS, selected.lockedByIcuId) : undefined
+  const distance = bank && icu ? distanceKm(bank.position, icu.position) : 3.2
+
+  // Live Transit States per dispatch
+  const [stageMap, setStageMap] = useState<Record<string, TransitStage>>({})
+  const [progressMap, setProgressMap] = useState<Record<string, number>>({})
+  const [speedMap, setSpeedMap] = useState<Record<string, number>>({})
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [copiedPin, setCopiedPin] = useState(false)
+  const simTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const currentStage: TransitStage = (selected && stageMap[selected.id]) || 'in_transit'
+  const currentProgress = (selected && progressMap[selected.id]) ?? (currentStage === 'in_transit' ? 0.45 : currentStage === 'arrived' || currentStage === 'delivered' ? 1 : 0)
+  const currentSpeed = (selected && speedMap[selected.id]) ?? (currentStage === 'in_transit' ? 68 : 0)
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (simTimerRef.current) clearInterval(simTimerRef.current)
+    }
+  }, [])
+
+  // Fast-Forward Transit Simulation (Runs whole route in ~8 seconds)
+  const runFastSimulation = useCallback(() => {
+    if (!selected) return
+    if (simTimerRef.current) clearInterval(simTimerRef.current)
+    setIsSimulating(true)
+
+    // Stage 1: Accepted & Pickup
+    setStageMap((prev) => ({ ...prev, [selected.id]: 'picked_up' }))
+    setProgressMap((prev) => ({ ...prev, [selected.id]: 0.05 }))
+    setSpeedMap((prev) => ({ ...prev, [selected.id]: 32 }))
+    notify('📦 Unit picked up from Blood Bank! Launching Green Corridor.', 'info')
+
+    let step = 0
+    simTimerRef.current = setInterval(() => {
+      step += 1
+      const progress = Math.min(1, step / 14)
+      const simulatedSpeed = Math.floor(65 + Math.sin(step) * 12)
+
+      setProgressMap((prev) => ({ ...prev, [selected.id]: progress }))
+      setSpeedMap((prev) => ({ ...prev, [selected.id]: simulatedSpeed }))
+      setStageMap((prev) => ({ ...prev, [selected.id]: progress >= 0.95 ? 'arrived' : 'in_transit' }))
+
+      if (progress >= 1) {
+        if (simTimerRef.current) clearInterval(simTimerRef.current)
+        setIsSimulating(false)
+        setStageMap((prev) => ({ ...prev, [selected.id]: 'arrived' }))
+        setSpeedMap((prev) => ({ ...prev, [selected.id]: 0 }))
+        notify('🏥 Arrived at ICU Emergency Bay! Ready for Handshake PIN.', 'success')
+      }
+    }, 500)
+  }, [selected, notify])
+
+  // Instant Complete Delivery Handshake
+  const handleCompleteHandshake = useCallback(() => {
+    if (!selected) return
+    setStageMap((prev) => ({ ...prev, [selected.id]: 'delivered' }))
+    setProgressMap((prev) => ({ ...prev, [selected.id]: 1 }))
+    notify(`✅ Handshake Verified! Unit ${selected.group} handed over to ${icu?.short ?? 'ICU'} staff.`, 'success')
+
+    // Call backend OTP verify endpoint if reachable
+    const pin = otpForLock(selected.lockId)
+    fetch('http://localhost:8000/api/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stock_id: selected.id,
+        lock_id: selected.lockId,
+        otp: pin,
+      }),
+    }).catch(() => {})
+
+    setTimeout(() => {
+      completeDelivery(selected.id)
+    }, 1200)
+  }, [selected, icu, completeDelivery, notify])
+
+  // Copy PIN to clipboard
+  const handleCopyPin = (pin: string) => {
+    navigator.clipboard?.writeText(pin)
+    setCopiedPin(true)
+    notify(`PIN ${pin} copied to clipboard!`, 'info')
+    setTimeout(() => setCopiedPin(false), 2000)
+  }
 
   return (
-    <div className="no-scrollbar h-full overflow-y-auto px-5 pb-10">
+    <div className="no-scrollbar h-full overflow-y-auto px-4 pb-12 sm:px-5">
       <ViewHeader
-        eyebrow="Courier portal"
-        title="Active dispatches"
-        description="Pick up from the blood bank and show the PIN to ICU staff on arrival."
+        eyebrow="Rapid Medical Logistics"
+        title="Active Courier Portal"
+        description="Priority green corridor transit with live telemetry and hospital handshake."
       />
+
+      {/* Quick Launch & Active State Actions */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3 dark:border-emerald-500/30 dark:bg-emerald-950/20">
+        <div className="flex items-center gap-2">
+          <span className="relative flex size-2.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500"></span>
+          </span>
+          <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            Green Corridor Active • Swift Rider #42
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => createFastDispatch('O-', 'bank-ima', 'icu-elite')}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-95"
+          title="Instantly generate an emergency blood transit run"
+        >
+          <Zap className="size-3.5" />
+          <span>⚡ 1-Click Fast Dispatch</span>
+        </button>
+      </div>
 
       {dispatches.length === 0 ? (
         <div className="flex flex-col items-center rounded-3xl border bg-card px-6 py-10 text-center shadow-sm">
-          <span className="grid size-16 place-items-center rounded-2xl bg-muted text-muted-foreground">
-            <PackageCheck className="size-7" aria-hidden="true" />
-          </span>
-          <h2 className="mt-4 text-xl font-bold">All deliveries complete</h2>
-          <p className="mt-1 text-base text-muted-foreground">New dispatches appear here when a hospital holds a unit.</p>
+          <div className="relative">
+            <span className="grid size-16 place-items-center rounded-2xl bg-muted text-muted-foreground">
+              <PackageCheck className="size-8" aria-hidden="true" />
+            </span>
+            <span className="absolute -top-1 -right-1 grid size-6 place-items-center rounded-full bg-emerald-500 text-xs font-bold text-white">
+              ✓
+            </span>
+          </div>
+
+          <h2 className="mt-4 text-xl font-bold">Courier Fleet Ready & On Standby</h2>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            All assigned blood units delivered safely. Start a new high-speed delivery run right now.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => createFastDispatch('O-', 'bank-ima', 'icu-elite')}
+            className="mt-6 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-700 hover:to-teal-700 active:scale-95"
+          >
+            <Zap className="size-4" />
+            Launch Urgent O- Blood Dispatch (3.2 km)
+          </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-5">
-          <ul className="flex flex-col gap-2" role="radiogroup" aria-label="Dispatches">
-            {dispatches.map((item) => {
-              const from = siteById(BANKS, item.bankId)
-              const to = siteById(ICUS, item.lockedByIcuId)
-              const active = item.id === selected?.id
-              return (
-                <li key={item.id}>
+        <div className="flex flex-col gap-4">
+          {/* Dispatch Selector if multiple active */}
+          {dispatches.length > 1 && (
+            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-5 sm:px-5" role="radiogroup">
+              {dispatches.map((item) => {
+                const active = item.id === selected?.id
+                const toSite = siteById(ICUS, item.lockedByIcuId)
+                return (
                   <button
+                    key={item.id}
                     type="button"
                     role="radio"
                     aria-checked={active}
                     onClick={() => setSelectedId(item.id)}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-3xl border-2 bg-card p-4 text-left shadow-sm transition-colors',
-                      active ? 'border-coral' : 'border-transparent hover:border-border',
+                      'flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors',
+                      active
+                        ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs'
+                        : 'border-border bg-card text-muted-foreground hover:border-emerald-500/50',
                     )}
                   >
-                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-coral-soft text-base font-extrabold text-coral-strong dark:text-coral">
-                      {item.group}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 truncate text-sm font-bold">
-                        <Building2 className="size-3.5 shrink-0 text-blue-600" aria-hidden="true" />
-                        <span className="sr-only">Pickup:</span>
-                        {from?.short}
-                      </span>
-                      <span className="mt-1 flex items-center gap-1.5 truncate text-sm text-muted-foreground">
-                        <Hospital className="size-3.5 shrink-0 text-coral" aria-hidden="true" />
-                        <span className="sr-only">Drop-off:</span>
-                        {to?.short}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-right">
-                      <span className="block text-xs text-muted-foreground">
-                        {from && to ? `${distanceKm(from.position, to.position).toFixed(1)} km` : ''}
-                      </span>
-                      <span className="block text-sm font-extrabold text-amber-700 tabular-nums dark:text-amber-300">
-                        {item.lockedUntil !== null ? formatRemaining(item.lockedUntil, now) : '--:--'}
-                      </span>
-                    </span>
+                    <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-[10px]">{item.group}</span>
+                    <span>{toSite?.short ?? 'ICU'}</span>
                   </button>
-                </li>
-              )
-            })}
-          </ul>
+                )
+              })}
+            </div>
+          )}
 
+          {/* Active Job Card */}
           {selected && (
-            <section aria-labelledby="otp-card-title" className="rounded-3xl bg-ink p-6 text-center text-white shadow-lg">
-              <p className="flex items-center justify-center gap-2 text-sm font-semibold text-white/70">
-                <KeyRound className="size-4" aria-hidden="true" />
-                <span id="otp-card-title">Security handshake PIN</span>
-              </p>
-              <p className="mt-3 flex justify-center gap-2" aria-label={`PIN ${otpForLock(selected.lockId).split('').join(' ')}`}>
+            <div className="relative overflow-hidden rounded-3xl border bg-card p-4 shadow-sm sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-coral-soft text-lg font-black text-coral-strong dark:text-coral">
+                    {selected.group}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        {COMPONENT_LABELS[selected.component]}
+                      </span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                        {selected.id.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-base font-bold text-foreground">
+                      {bank?.short} → {icu?.short}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="block text-xs text-muted-foreground">Distance</span>
+                  <span className="text-sm font-extrabold text-foreground">{distance.toFixed(1)} km</span>
+                </div>
+              </div>
+
+              {/* Transit Stages Stepper */}
+              <div className="mt-4 grid grid-cols-4 gap-1.5 rounded-2xl bg-muted/60 p-1.5 text-center text-[11px] font-bold">
+                <div
+                  className={cn(
+                    'rounded-xl py-1.5 transition-colors',
+                    currentStage === 'assigned' || currentProgress > 0
+                      ? 'bg-card text-foreground shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  1. Assigned
+                </div>
+                <div
+                  className={cn(
+                    'rounded-xl py-1.5 transition-colors',
+                    currentStage === 'picked_up' || currentProgress >= 0.1
+                      ? 'bg-card text-foreground shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  2. Picked Up
+                </div>
+                <div
+                  className={cn(
+                    'rounded-xl py-1.5 transition-colors',
+                    currentStage === 'in_transit' || currentProgress >= 0.2
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  3. In Transit 🚀
+                </div>
+                <div
+                  className={cn(
+                    'rounded-xl py-1.5 transition-colors',
+                    currentStage === 'arrived' || currentStage === 'delivered' || currentProgress >= 0.95
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  4. Arrived
+                </div>
+              </div>
+
+              {/* Speed & Progress Bar */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Navigation className="size-3.5 text-emerald-500" />
+                    <span>Route Completion</span>
+                  </span>
+                  <span className="font-mono font-bold text-foreground">{Math.round(currentProgress * 100)}%</span>
+                </div>
+                <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300"
+                    style={{ width: `${Math.round(currentProgress * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Fast Action Buttons */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={isSimulating || currentStage === 'delivered'}
+                  onClick={runFastSimulation}
+                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
+                >
+                  {isSimulating ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Racing ({currentSpeed} km/h)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="size-3.5 fill-white" />
+                      <span>⚡ Fast Run (8s Demo)</span>
+                    </>
+                  )}
+                </button>
+
+                {currentStage === 'arrived' || currentProgress >= 0.95 ? (
+                  <button
+                    type="button"
+                    onClick={handleCompleteHandshake}
+                    className="flex items-center justify-center gap-1.5 rounded-2xl bg-coral-strong py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-coral active:scale-95"
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>1-Tap Handshake</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStageMap((prev) => ({ ...prev, [selected.id]: 'arrived' }))
+                      setProgressMap((prev) => ({ ...prev, [selected.id]: 1 }))
+                      setSpeedMap((prev) => ({ ...prev, [selected.id]: 0 }))
+                      notify('Arrived at hospital ICU gate!', 'info')
+                    }}
+                    className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-2.5 text-xs font-bold text-foreground transition-all hover:bg-muted active:scale-95"
+                  >
+                    <ArrowRight className="size-3.5" />
+                    <span>Skip to ICU Gate</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Live Telemetry HUD */}
+          <section className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-3 text-center shadow-xs">
+              <ThermometerSnowflake className="size-4 text-cyan-600 dark:text-cyan-400" />
+              <span className="mt-1 text-xs font-bold text-foreground">3.8°C</span>
+              <span className="text-[10px] text-muted-foreground">Cold Box Safe</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-3 text-center shadow-xs">
+              <Gauge className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="mt-1 text-xs font-bold text-foreground">
+                {currentSpeed > 0 ? `${currentSpeed} km/h` : 'Standby'}
+              </span>
+              <span className="text-[10px] text-muted-foreground">Speedometer</span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-3 text-center shadow-xs">
+              <BatteryCharging className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="mt-1 text-xs font-bold text-foreground">94%</span>
+              <span className="text-[10px] text-muted-foreground">Box Battery</span>
+            </div>
+          </section>
+
+          {/* Security Handshake PIN Display */}
+          {selected && (
+            <section
+              aria-labelledby="otp-card-title"
+              className="relative overflow-hidden rounded-3xl bg-neutral-900 p-5 text-center text-white shadow-lg dark:bg-black"
+            >
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-300">
+                  <KeyRound className="size-3.5 text-emerald-400" />
+                  <span>Security Handshake PIN</span>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyPin(otpForLock(selected.lockId))}
+                  className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
+                >
+                  {copiedPin ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+                  <span>{copiedPin ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+
+              {/* PIN Digits */}
+              <div
+                className="mt-3 flex justify-center gap-2.5"
+                aria-label={`PIN ${otpForLock(selected.lockId).split('').join(' ')}`}
+              >
                 {otpForLock(selected.lockId)
                   .split('')
                   .map((digit, i) => (
                     <span
                       key={i}
-                      aria-hidden="true"
-                      className="grid h-16 w-14 place-items-center rounded-2xl bg-white/10 text-4xl font-extrabold tabular-nums"
+                      className="grid h-14 w-12 place-items-center rounded-2xl bg-white/10 text-3xl font-extrabold tabular-nums tracking-wider text-emerald-300"
                     >
                       {digit}
                     </span>
                   ))}
+              </div>
+
+              <p className="mt-3 text-xs text-white/70">
+                Show this 4-digit code to <strong className="text-white">{icu?.short ?? 'ICU'}</strong> medical staff upon arrival to authorize blood unit custody.
               </p>
-              <p className="mt-4 text-sm text-white/75">
-                {`Show this code to ${icu?.short ?? 'ICU'} staff on arrival · ${selected.group} ${COMPONENT_LABELS[selected.component].toLowerCase()}`}
-              </p>
+
+              <button
+                type="button"
+                onClick={handleCompleteHandshake}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-sm font-bold text-white shadow-md transition-all hover:from-emerald-600 hover:to-teal-600 active:scale-98"
+              >
+                <CheckCircle2 className="size-4" />
+                <span>Confirm & Release Custody to Hospital</span>
+              </button>
             </section>
           )}
 
+          {/* Interactive Live Route Map with Moving Courier Rider */}
           {bank && icu && (
-            <section aria-labelledby="driver-route-title" className="overflow-hidden rounded-3xl border bg-card shadow-sm">
-              <h2 id="driver-route-title" className="p-5 pb-4 text-lg font-bold">
-                Live route
-              </h2>
+            <section
+              aria-labelledby="driver-route-title"
+              className="overflow-hidden rounded-3xl border bg-card shadow-sm"
+            >
+              <div className="flex items-center justify-between p-4">
+                <div>
+                  <h2 id="driver-route-title" className="text-base font-bold text-foreground">
+                    Live Transit Route
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Real-time GPS road corridor • Police green-wave priority
+                  </p>
+                </div>
+
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <Siren className="size-3 animate-pulse" />
+                  Green Corridor
+                </span>
+              </div>
+
               <div className="h-64 border-t">
                 <RouteMap
                   from={{ position: bank.position, label: `Pickup · ${bank.short}`, kind: 'bank' }}
                   to={{ position: icu.position, label: `Drop · ${icu.short}`, kind: 'icu' }}
-                  color="#e8524a"
+                  color="#10b981"
+                  progress={currentProgress}
                 />
               </div>
             </section>

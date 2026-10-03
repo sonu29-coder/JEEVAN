@@ -8,3 +8,6 @@ backend/tests/__pycache__/
 venv/
 __pycache__/
 *.py[cod]
+frontend/node_modules
+frontend/.next
+frontend/.turbo
