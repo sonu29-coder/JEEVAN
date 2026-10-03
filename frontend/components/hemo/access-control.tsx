@@ -1,22 +1,39 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { FlaskConical, KeyRound, Loader2, Lock, ShieldAlert, ShieldCheck, X } from 'lucide-react'
+import { ArrowRight, ExternalLink, FlaskConical, KeyRound, Loader2, Lock, ShieldAlert, ShieldCheck, X } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect } from 'react'
 import { useGridPost } from '@/hooks/use-grid-post'
 import { API_BASE } from '@/lib/hemo-api'
-import { CREDENTIALS, CREDENTIAL_LIST, PORTAL_ACCESS, type AuthRole } from '@/lib/hemo-auth'
+import { CREDENTIALS, CREDENTIAL_LIST, PORTAL_ACCESS, type AuthRole, type Portal } from '@/lib/hemo-auth'
 import { useGrid } from './grid-store'
 
+const LOGIN_URLS: Record<Portal, string> = {
+  hospital: '/login/icu',
+  donor: '/login/donor',
+  driver: '/login/driver',
+}
+
 export function SessionBar() {
-  const { session, setSession, notify } = useGrid()
+  const { session, setSession, role, notify } = useGrid()
+  const targetLoginUrl = LOGIN_URLS[role] || '/login'
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b bg-slate-100 px-4 py-1.5 dark:bg-slate-900">
+    <div className="flex shrink-0 items-center gap-2 border-b bg-slate-100 px-3 py-1.5 dark:bg-slate-900">
       <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">
         <FlaskConical className="size-3.5" aria-hidden="true" />
-        Simulated session
+        Session
       </span>
+
+      <Link
+        href={targetLoginUrl}
+        className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-card px-2 py-0.5 text-[11px] font-bold text-coral hover:border-coral transition-colors dark:border-slate-700"
+      >
+        <KeyRound className="size-3" />
+        <span>{role === 'hospital' ? 'ICU' : role === 'donor' ? 'Donor' : 'Driver'} Login</span>
+      </Link>
+
       <label htmlFor="session-select" className="sr-only">
         Logged-in credentials
       </label>
@@ -59,6 +76,7 @@ export function AccessDenied() {
   const required = CREDENTIALS[portal.required]
   const current = CREDENTIALS[session]
   const { trigger, isLoading } = useGridPost<{ portal: string }, { granted: boolean }>(portal.probePath)
+  const dedicatedLoginUrl = LOGIN_URLS[role]
 
   return (
     <div className="h-full overflow-y-auto bg-slate-50 px-5 py-8 dark:bg-slate-950">
@@ -86,24 +104,31 @@ export function AccessDenied() {
           </div>
         </dl>
 
-        <div className="mt-5 flex flex-col gap-2">
+        <div className="mt-5 flex flex-col gap-2.5">
+          <Link
+            href={dedicatedLoginUrl}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-coral py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-coral-strong focus-visible:ring-2 focus-visible:ring-coral focus-visible:outline-none"
+          >
+            <KeyRound className="size-4" aria-hidden="true" />
+            {`Go to ${role === 'hospital' ? 'ICU' : role === 'donor' ? 'Donor' : 'Driver'} Login Page`}
+          </Link>
+
           <button
             type="button"
             onClick={() => setSession(portal.required)}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-coral focus-visible:outline-none dark:bg-slate-100 dark:text-slate-900"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-coral focus-visible:outline-none dark:bg-slate-100 dark:text-slate-900"
           >
             <KeyRound className="size-4" aria-hidden="true" />
-            {`Sign in as ${required.label}`}
+            {`Quick Switch to ${required.label}`}
           </button>
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={() => trigger({ portal: role }, () => ({ status: 200, data: { granted: true } }))}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-slate-300 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+
+          <Link
+            href="/login"
+            className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
           >
-            {isLoading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-            Try with current credentials
-          </button>
+            <span>View All 3 Role Login Portals</span>
+            <ArrowRight className="size-3" />
+          </Link>
         </div>
       </section>
     </div>

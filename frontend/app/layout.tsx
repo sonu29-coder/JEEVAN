@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist_Mono, Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
       <body className="antialiased">
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

@@ -157,14 +157,20 @@ def import_data(
     counts: dict[str, int] = {}
     with SessionLocal() as session:
         with session.begin():
+            current_file = None
             for file_name, model, row in synthetic_records(data_dir):
+                if current_file is not None and file_name != current_file:
+                    session.flush()
+                current_file = file_name
                 session.merge(model(**row))
                 counts[file_name] = counts.get(file_name, 0) + 1
-            if raw_banks_csv is not None:
+            session.flush()
+            if raw_banks_csv is not None and raw_banks_csv.is_file():
                 legacy_records = licensed_bank_records(raw_banks_csv)
                 for record in legacy_records:
                     session.merge(BloodBank(**record))
                 counts[raw_banks_csv.name] = len(legacy_records)
+                session.flush()
     return counts
 
 

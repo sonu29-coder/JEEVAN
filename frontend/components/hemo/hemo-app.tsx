@@ -15,6 +15,8 @@ import { HomeView } from './home-view'
 import { MapView } from './map-view'
 import { OtpView } from './otp-view'
 import { StockView } from './stock-view'
+import { NccEmergencyModal } from './ncc-emergency-modal'
+import { BloodExpiryRadarModal } from './blood-expiry-radar-modal'
 
 const VIEWS = {
   home: HomeView,
@@ -64,6 +66,8 @@ function AppShell() {
       </main>
       {role === 'hospital' && authorized && <BottomDock />}
       <ForbiddenModal />
+      <NccEmergencyModal />
+      <BloodExpiryRadarModal />
     </div>
   )
 }

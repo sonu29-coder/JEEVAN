@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-jeevan}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.example or your shell}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.local or your environment}
       POSTGRES_DB: ${POSTGRES_DB:-jeevan}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -31,14 +31,46 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jeevan}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-jeevan}
       REDIS_URL: redis://redis:6379/0
-      JEEVAN_API_KEY: ${JEEVAN_API_KEY:?Set JEEVAN_API_KEY in .env.example or your shell}
-    ports:
-      - "8000:8000"
+      JEEVAN_API_KEY: ${JEEVAN_API_KEY:?Set JEEVAN_API_KEY in .env.local or your environment}
+      IDENTITY_PROVIDER_MODE: ${IDENTITY_PROVIDER_MODE:-demo}
+      IDENTITY_WEBHOOK_SECRET: ${IDENTITY_WEBHOOK_SECRET:-}
+      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY:-}
+      FAST2SMS_ROUTE: ${FAST2SMS_ROUTE:-otp}
+      FAST2SMS_OTP_ID: ${FAST2SMS_OTP_ID:-}
+      TWOFACTOR_API_KEY: ${TWOFACTOR_API_KEY:-}
+      SMS_PROVIDER: ${SMS_PROVIDER:-fast2sms}
+      SMS_PROVIDER_API_KEY: ${SMS_PROVIDER_API_KEY:-}
+      SMS_PROVIDER_SECRET: ${SMS_PROVIDER_SECRET:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-}
+      SMS_TEMPLATE_ID: ${SMS_TEMPLATE_ID:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  web:
+    image: caddy:2-alpine
+    ports:
+      - "${JEEVAN_HOST_IP:-127.0.0.1}:${JEEVAN_HOST_PORT:-8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - api
+      - frontend
     restart: unless-stopped
 
 volumes:

@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle2, MapPin, Plus } from 'lucide-react'
+import { CheckCircle2, MapPin, Plus, ShieldAlert } from 'lucide-react'
 import {
   COMPONENT_LABELS,
   ICUS,
@@ -21,7 +21,7 @@ const URGENCY_CHIP: Record<Urgency, string> = {
 }
 
 export function AlertsView() {
-  const { emergencies, responses, respond, notify, setTab } = useGrid()
+  const { emergencies, responses, respond, notify, setTab, openNccAlert } = useGrid()
 
   return (
     <div className="no-scrollbar h-full overflow-y-auto px-5 pb-10">
@@ -30,6 +30,32 @@ export function AlertsView() {
         title="People near you need blood"
         description="Say yes only if you are healthy and can reach the hospital soon."
       />
+
+      {/* Single Verified Blood Club / NCC Coordinator Emergency Trigger */}
+      <div className="mb-4 rounded-3xl border border-red-500/30 bg-gradient-to-r from-red-500/10 via-amber-500/10 to-transparent p-4 flex items-center justify-between gap-3 shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-coral text-white shadow-sm">
+            <ShieldAlert className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black uppercase tracking-wider text-coral">Direct Protocol</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                1 Verified Leader
+              </span>
+            </div>
+            <p className="text-xs font-bold text-foreground truncate">Capt. Dr. Arun Balakrishnan</p>
+            <p className="text-[10px] text-muted-foreground truncate">23 Kerala Bn NCC • 128 Cadets on standby</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => openNccAlert(emergencies[0])}
+          className="shrink-0 px-3 py-2 rounded-xl bg-coral hover:bg-coral-strong text-white text-xs font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-1"
+        >
+          <span>Dispatch</span>
+        </button>
+      </div>
 
       <ul className="flex flex-col gap-3">
         {emergencies.map((e) => {

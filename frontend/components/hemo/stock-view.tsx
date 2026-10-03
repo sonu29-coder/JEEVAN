@@ -1,6 +1,6 @@
 'use client'
 
-import { Building2, SearchX, X } from 'lucide-react'
+import { Building2, ChevronRight, Compass, SearchX, X } from 'lucide-react'
 import { useState } from 'react'
 import { useGridPost } from '@/hooks/use-grid-post'
 import { useNow } from '@/hooks/use-now'
@@ -50,7 +50,7 @@ function matches(item: StockItem, query: string) {
 }
 
 export function StockView() {
-  const { stock, lockStock, notify, query, setQuery } = useGrid()
+  const { stock, lockStock, notify, query, setQuery, openExpiryRadar } = useGrid()
   const now = useNow()
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [conflict, setConflict] = useState<ConflictInfo | null>(null)
@@ -110,6 +110,32 @@ export function StockView() {
           title="Find blood"
           description="Tap a blood group to filter. Hold a unit for 15 minutes while it is collected."
         />
+
+        {/* Blood Expiry Radar Action Banner */}
+        <div className="mb-4 flex items-center justify-between rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-coral/10 p-3 shadow-xs dark:border-amber-800/60 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300">
+              <Compass className="size-5 animate-spin" style={{ animationDuration: '16s' }} />
+            </span>
+            <div>
+              <p className="text-xs font-black text-amber-950 dark:text-amber-100 flex items-center gap-1.5">
+                <span>Blood Expiry Radar</span>
+                <span className="size-2 rounded-full bg-coral animate-ping" />
+              </p>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                FEFO clinical rules & inter-hospital redistribution
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={openExpiryRadar}
+            className="flex items-center gap-1 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-amber-600 active:scale-95 dark:bg-amber-600"
+          >
+            <span>Scan Radar</span>
+            <ChevronRight className="size-3.5" />
+          </button>
+        </div>
 
         <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Filter by blood group">
           {['All', ...BLOOD_GROUPS].map((g) => {

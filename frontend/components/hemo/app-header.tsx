@@ -1,6 +1,7 @@
 'use client'
 
-import { Bell, Menu, Moon, Search, Sun } from 'lucide-react'
+import { Bell, KeyRound, Menu, Moon, Search, Sun } from 'lucide-react'
+import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
 import { hasPortalAccess } from '@/lib/hemo-auth'
 import { useGrid } from './grid-store'
@@ -55,7 +56,17 @@ export function AppHeader() {
       </div>
 
       {(!hasPortalAccess(session, role) || !(role === 'hospital' && tab === 'home')) && (
-        <RoleSwitcher className="mt-3" />
+        <div className="flex items-center justify-between gap-2 mt-3">
+          <RoleSwitcher className="flex-1" />
+          <Link
+            href={role === 'donor' ? '/login/donor' : role === 'driver' ? '/login/driver' : '/login/icu'}
+            className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-coral bg-coral-soft hover:bg-coral/20 px-2.5 py-1.5 rounded-full transition-colors"
+            title="Open Dedicated Login Page"
+          >
+            <KeyRound className="size-3" />
+            <span>Login Page</span>
+          </Link>
+        </div>
       )}
 
       <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />

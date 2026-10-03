@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { CheckCircle2, Loader2, MapPin, Minus, Plus, Siren } from 'lucide-react'
+import { Building2, CheckCircle2, Loader2, MapPin, Minus, Plus, Siren } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useGridPost } from '@/hooks/use-grid-post'
 import { extractDetail } from '@/lib/hemo-api'
@@ -21,6 +21,13 @@ import {
 import { cn } from '@/lib/utils'
 import { useGrid } from './grid-store'
 import { SimulatedBadge, ViewHeader } from './view-header'
+
+export const CLINICAL_REASONS = [
+  { id: 'trauma', label: '🚨 Acute Trauma / Hemorrhage', desc: 'Road accident / polytrauma bleed' },
+  { id: 'surgery', label: '🔪 Emergency Surgery (OT)', desc: 'Intraoperative resuscitation' },
+  { id: 'maternal', label: '👶 Postpartum Hemorrhage (PPH)', desc: 'Obstetric emergency delivery' },
+  { id: 'shock', label: '🫀 ICU Sepsis & Shock', desc: 'Critical care / severe anemia' },
+] as const
 
 interface DispatchPayload {
   icu_id: string
@@ -47,6 +54,7 @@ const URGENCY_ACTIVE: Record<Urgency, string> = {
 export function DispatchView() {
   const { addEmergency, notify, setTab } = useGrid()
   const [icuId, setIcuId] = useState(OUR_ICU_ID)
+  const [clinicalReason, setClinicalReason] = useState<string>('trauma')
   const [group, setGroup] = useState<BloodGroup>('O-')
   const [component, setComponent] = useState<ComponentType>('PRBC')
   const [urgency, setUrgency] = useState<Urgency>('CRITICAL')
@@ -80,7 +88,8 @@ export function DispatchView() {
       return
     }
     setResult({ ...res.data, simulated: res.simulated })
-    addEmergency({ id: res.data.request_id, icuId, group, component, urgency, units })
+    const activeReason = CLINICAL_REASONS.find((r) => r.id === clinicalReason)?.label ?? 'Acute Trauma / Hemorrhage'
+    addEmergency({ id: res.data.request_id, icuId, group, component, urgency, units, clinicalReason: activeReason })
     notify('Request sent to nearby donors and blood banks', 'success')
   }
 
@@ -94,13 +103,26 @@ export function DispatchView() {
       />
 
       <div className="flex flex-col gap-4">
-        <Step number={1} title="Which hospital is the patient in?">
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Hospital">
-            {ICUS.map((item) => (
-              <Choice key={item.id} active={item.id === icuId} onClick={() => setIcuId(item.id)}>
-                {item.short}
+        <Step number={1} title="Clinical reason for emergency blood">
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Clinical emergency reason">
+            {CLINICAL_REASONS.map((item) => (
+              <Choice
+                key={item.id}
+                active={item.id === clinicalReason}
+                onClick={() => setClinicalReason(item.id)}
+                className="flex flex-col items-start text-left p-3"
+              >
+                <span className="text-xs font-bold leading-tight">{item.label}</span>
+                <span className="text-[10px] text-muted-foreground mt-1">{item.desc}</span>
               </Choice>
             ))}
+          </div>
+          <div className="mt-2.5 flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2 text-xs">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Building2 className="size-3.5 text-coral" />
+              Requesting Hospital:
+            </span>
+            <span className="font-bold text-foreground">{icu.name} (Verified ICU)</span>
           </div>
         </Step>
 
@@ -188,7 +210,7 @@ export function DispatchView() {
         {isLoading ? 'Sending request…' : 'Send emergency request'}
       </motion.button>
       <p className="mt-3 text-center text-sm text-muted-foreground">
-        {`${group} · ${COMPONENT_LABELS[component]} · ${units} ${units === 1 ? 'unit' : 'units'} to ${icu.short}`}
+        {`${group} · ${COMPONENT_LABELS[component]} · ${units} ${units === 1 ? 'unit' : 'units'} · ${icu.short}`}
       </p>
 
       <AnimatePresence>

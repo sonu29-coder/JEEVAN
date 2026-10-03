@@ -160,6 +160,36 @@
   }
 }
 
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes radar-blip {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.8;
+  }
+}
+
+.radar-sweep-beam {
+  animation: radar-sweep 4s linear infinite;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(232, 82, 74, 0.05) 300deg, rgba(232, 82, 74, 0.35) 360deg);
+}
+
+.radar-blip-pulse {
+  animation: radar-blip 1.8s ease-in-out infinite;
+}
+
+
 .hg-icu-idle {
   width: 16px;
   height: 16px;

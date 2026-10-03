@@ -2,6 +2,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -63,6 +64,7 @@ class Donor(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     blood_group: Mapped[str] = mapped_column(String(3), nullable=False)
     phone: Mapped[str] = mapped_column(String(40), nullable=False)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     email: Mapped[str | None] = mapped_column(String(254))
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
@@ -177,3 +179,57 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source: Mapped[str] = mapped_column(String(80), default="api", nullable=False)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    role: Mapped[str] = mapped_column(String(40), nullable=False, default="donor")  # admin, hospital, blood_bank, donor
+    entity_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    phone_number: Mapped[str | None] = mapped_column(String(40), index=True, nullable=True)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    source: Mapped[str] = mapped_column(String(80), default="api", nullable=False)
+
+
+class DonorIdentityVerification(Base):
+    __tablename__ = "donor_identity_verifications"
+    __table_args__ = (
+        CheckConstraint(
+            "verification_status IN ('pending', 'verified', 'failed')",
+            name="ck_donor_identity_verification_status",
+        ),
+    )
+
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    verification_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    provider: Mapped[str] = mapped_column(String(40), nullable=False)
+    provider_reference: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PhoneVerification(Base):
+    __tablename__ = "phone_verifications"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    phone_number: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
+    otp_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    otp_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    otp_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    last_otp_sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    send_count_hour: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verification_token: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True, index=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)

@@ -79,6 +79,7 @@ export interface Emergency {
   component: ComponentType
   urgency: Urgency
   units: number
+  clinicalReason?: string
 }
 
 export function seedStock(now: number): StockItem[] {
@@ -146,3 +147,170 @@ export const TIERS = [
 export function tierFor(km: number) {
   return TIERS.find((t) => km <= t.max) ?? TIERS[2]
 }
+
+export interface ClinicalRuleBadge {
+  id: string
+  title: string
+  severity: 'critical' | 'warning' | 'info'
+  description: string
+  clinicalAction: string
+  badge: string
+}
+
+export interface ExpiryRadarUnit {
+  id: string
+  bankId: string
+  bankName: string
+  group: BloodGroup
+  component: ComponentType
+  units: number
+  availableUnits: number
+  expiresInDays: number
+  expiresInHours: number
+  expiryDateStr: string
+  urgencyTier: 'CRITICAL' | 'WARNING' | 'MONITORING' | 'SAFE' | 'EXPIRED'
+  fefoPriorityRank: number
+  pediatricSafe: boolean
+  traumaCandidate: boolean
+  clinicalRules: ClinicalRuleBadge[]
+  suggestedAction: string
+  recommendedTransferTargetId?: string
+  recommendedTransferTargetName?: string
+  radarAngleDeg: number
+  radarRadiusNorm: number
+}
+
+export function computeExpiryRadarUnits(stock: StockItem[], now: number): ExpiryRadarUnit[] {
+  const sorted = [...stock].sort((a, b) => a.expiresInDays - b.expiresInDays)
+
+  return sorted.map((s, index) => {
+    const bank = siteById(BANKS, s.bankId)
+    const days = s.expiresInDays
+    const hours = Math.max(0, days * 24)
+    const targetDate = new Date(now + days * 86400000)
+    const expiryDateStr = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+    let urgencyTier: ExpiryRadarUnit['urgencyTier'] = 'SAFE'
+    let suggestedAction = 'Standard storage reserve.'
+    if (days <= 0) {
+      urgencyTier = 'EXPIRED'
+      suggestedAction = 'Biohazard Quarantine: Discard unit and update regulatory audit log.'
+    } else if (days <= 2 || (s.component === 'Platelets' && days <= 3)) {
+      urgencyTier = 'CRITICAL'
+      suggestedAction = "Immediate FEFO Issue: Prioritize today's urgent surgery, MTP, or dispatch emergency transfer."
+    } else if (days <= 5) {
+      urgencyTier = 'WARNING'
+      suggestedAction = 'FEFO Priority Queue: Allocate to scheduled elective surgeries or high-turnover procedures.'
+    } else if (days <= 10) {
+      urgencyTier = 'MONITORING'
+      suggestedAction = 'Active Shelf-Life Watch: Monitor inventory burn rate.'
+    }
+
+    const rules: ClinicalRuleBadge[] = []
+    let pediatricSafe = true
+    let traumaCandidate = false
+    let targetId: string | undefined = undefined
+    let targetName: string | undefined = undefined
+
+    // 1. FEFO Rule
+    if (days >= 0 && days <= 5 && s.units > 0) {
+      rules.push({
+        id: 'FEFO_PRIORITY',
+        title: 'FEFO Priority Allocation',
+        severity: days <= 2 ? 'critical' : 'warning',
+        description: 'First Expiring First Out protocol: must be dispensed before newer stock to prevent spoilage.',
+        clinicalAction: 'Pre-assign to imminent surgical cases or urgent trauma request.',
+        badge: 'FEFO Priority',
+      })
+    }
+
+    // 2. Platelet Shelf-Life Rule
+    if (s.component === 'Platelets') {
+      if (days <= 2) {
+        rules.push({
+          id: 'PLATELET_URGENT_CYCLE',
+          title: 'Platelet Rapid Spoilage Alert',
+          severity: 'critical',
+          description: 'Platelets have a maximum 5-day shelf life with continuous agitation. Bacterial proliferation risk increases sharply.',
+          clinicalAction: 'Immediate issue to oncology, hematology, or surgical ward with active thrombocytopenia.',
+          badge: 'Platelet Alert',
+        })
+      }
+    }
+
+    // 3. Pediatric & Neonatal Safety Exclusion Rule
+    if (s.component === 'PRBC' || s.component === 'Whole Blood') {
+      if (days <= 28) {
+        pediatricSafe = false
+        rules.push({
+          id: 'PEDIATRIC_RESTRICTION',
+          title: 'Pediatric / Neonatal Restriction',
+          severity: 'warning',
+          description: 'Storage duration >7 days. Stored red cells accumulate extracellular potassium and lose 2,3-DPG; contraindicated for neonatal exchange.',
+          clinicalAction: 'Restrict utilization strictly to adult surgical and medical recipients.',
+          badge: 'Adults Only',
+        })
+      }
+    }
+
+    // 4. Immediate Trauma / Massive Transfusion Match
+    if ((s.component === 'PRBC' || s.component === 'Whole Blood') && days >= 0 && days <= 7 && s.units > 0) {
+      traumaCandidate = true
+      rules.push({
+        id: 'TRAUMA_MASSIVE_MATCH',
+        title: 'Trauma / MTP Candidate',
+        severity: 'info',
+        description: 'Approved for immediate acute trauma resuscitation or Massive Transfusion Protocol (MTP), where immediate infusion eliminates shelf-life risk.',
+        clinicalAction: 'Hold ready for emergency trauma bay activation.',
+        badge: 'Trauma MTP',
+      })
+    }
+
+    // 5. Inter-Facility Redistribution Recommendation
+    if (days >= 0 && days <= 4 && s.units > 0) {
+      if (s.bankId !== 'bank-gmc') {
+        targetId = 'bank-gmc'
+        targetName = 'Govt Medical College Blood Bank'
+      } else {
+        targetId = 'bank-jubilee'
+        targetName = 'Jubilee Mission Blood Centre'
+      }
+      rules.push({
+        id: 'INTER_FACILITY_TRANSFER_RECOMMENDED',
+        title: 'Inter-Hospital Redistribution Recommended',
+        severity: days <= 2 ? 'warning' : 'info',
+        description: `Local surplus approaching expiry. Inter-facility transfer to ${targetName} prevents discarding.`,
+        clinicalAction: 'Initiate Green Corridor cold-chain transfer dispatch.',
+        badge: 'Transfer Rec',
+      })
+    }
+
+    const radarAngleDeg = (index * 47) % 360
+    const clampedDays = Math.max(0, Math.min(20, days))
+    const radarRadiusNorm = 0.18 + (clampedDays / 20) * 0.72
+
+    return {
+      id: s.id,
+      bankId: s.bankId,
+      bankName: bank?.name ?? 'Regional Blood Centre',
+      group: s.group,
+      component: s.component,
+      units: s.units,
+      availableUnits: s.units,
+      expiresInDays: days,
+      expiresInHours: hours,
+      expiryDateStr,
+      urgencyTier,
+      fefoPriorityRank: index + 1,
+      pediatricSafe,
+      traumaCandidate,
+      clinicalRules: rules,
+      suggestedAction,
+      recommendedTransferTargetId: targetId,
+      recommendedTransferTargetName: targetName,
+      radarAngleDeg,
+      radarRadiusNorm,
+    }
+  })
+}
+
