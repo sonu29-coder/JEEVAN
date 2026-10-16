@@ -36,7 +36,7 @@ export function NccEmergencyModal() {
   const handleMobilize = async () => {
     setIsMobilizing(true)
     try {
-      const res = await fetch('http://localhost:8000/api/emergency/dispatch-ncc-coordinator', {
+      const res = await fetch('/api/emergency/dispatch-ncc-coordinator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,7 +141,7 @@ export function NccEmergencyModal() {
                   College NCC & Red Cross Blood Club Officer
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                  23 Kerala Bn NCC • St. Thomas & GEC Thrissur
+                  1 Tamil Nadu Armoured Sqn NCC • Loyola & Anna University Blood Corps, Chennai
                 </p>
               </div>
             </div>

@@ -154,7 +154,7 @@ export function DonorDashboard() {
   // Fetch ML Acceptance Probability & ETA from backend
   const fetchMlPrediction = () => {
     setIsMlLoading(true)
-    fetch('http://localhost:8000/api/ml/predict-donor-response', {
+    fetch('/api/ml/predict-donor-response', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

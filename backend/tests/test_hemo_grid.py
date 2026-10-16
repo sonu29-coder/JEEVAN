@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from backend.database import Base, SessionLocal, engine
 from backend.main import app
-from backend.routing import RoadGraph, RouteType, build_default_thrissur_graph, haversine_distance, optimize_route
+from backend.routing import RoadGraph, RouteType, build_default_chennai_graph, haversine_distance, optimize_route
 
 
 @pytest.fixture()
@@ -30,15 +30,15 @@ def client():
 # =====================================================================
 
 def test_haversine_formula():
-    # IMA Thrissur to Elite Mission Hospital
-    ima = (10.5262, 76.2138)
-    elite = (10.5089, 76.2052)
-    dist = haversine_distance(ima, elite)
-    assert 1.5 < dist < 3.0, f"Expected approx 2.1km, got {dist}"
+    # Red Cross Chennai to Kilpauk Medical College Hospital
+    redcross = (13.0680, 80.2480)
+    kilpauk = (13.0784, 80.2415)
+    dist = haversine_distance(redcross, kilpauk)
+    assert 1.0 < dist < 2.0, f"Expected approx 1.3km, got {dist}"
 
 
 def test_dijkstra_vs_a_star_green_corridor():
-    graph = build_default_thrissur_graph()
+    graph = build_default_chennai_graph()
 
     # Standard route with Dijkstra (traffic lights + congestion delay)
     dijkstra_path, d_dist, d_time = graph.dijkstra("bank-ima", "icu-elite")
@@ -79,10 +79,10 @@ def test_route_optimize_endpoint_green_corridor(client):
     response = client.post(
         "/api/route/optimize",
         json={
-            "origin_lat": 10.5262,
-            "origin_lng": 76.2138,
-            "dest_lat": 10.5089,
-            "dest_lng": 76.2052,
+            "origin_lat": 13.0680,
+            "origin_lng": 80.2480,
+            "dest_lat": 13.0827,
+            "dest_lng": 80.2707,
             "route_type": "GREEN_CORRIDOR",
         },
     )

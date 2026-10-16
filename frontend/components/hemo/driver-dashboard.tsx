@@ -124,7 +124,7 @@ export function DriverDashboard() {
 
     // Call backend OTP verify endpoint if reachable
     const pin = otpForLock(selected.lockId)
-    fetch('http://localhost:8000/api/verify-otp', {
+    fetch('/api/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

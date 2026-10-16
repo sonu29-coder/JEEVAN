@@ -11,8 +11,8 @@ declare global {
 }
 
 interface GoogleAuthButtonProps {
-  portal: Portal
-  onSuccess: (message: string) => void
+  portal?: Portal
+  onSuccess: (result: { message: string; user?: any; role?: any }) => void
   onError: (error: string) => void
   className?: string
 }
@@ -40,7 +40,7 @@ export function GoogleIcon({ className = 'size-4' }: { className?: string }) {
   )
 }
 
-export function GoogleAuthButton({ portal, onSuccess, onError, className = '' }: GoogleAuthButtonProps) {
+export function GoogleAuthButton({ portal = 'hospital', onSuccess, onError, className = '' }: GoogleAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [gmailInput, setGmailInput] = useState('')
@@ -49,7 +49,7 @@ export function GoogleAuthButton({ portal, onSuccess, onError, className = '' }:
 
   // 1. Fetch configured Google Client ID from backend
   useEffect(() => {
-    fetch('http://localhost:8000/api/auth/google/client-id')
+    fetch('/api/auth/google/client-id')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.client_id && !data.client_id.includes('789234891234')) {
@@ -72,7 +72,7 @@ export function GoogleAuthButton({ portal, onSuccess, onError, className = '' }:
           try {
             const res = await loginWithGoogle(portal, response.credential)
             if (res.success) {
-              onSuccess(res.message)
+              onSuccess(res)
             } else {
               onError(res.message)
             }
@@ -125,7 +125,7 @@ export function GoogleAuthButton({ portal, onSuccess, onError, className = '' }:
     try {
       const res = await loginWithGoogle(portal, gmailInput.trim())
       if (res.success) {
-        onSuccess(res.message)
+        onSuccess(res)
       } else {
         onError(res.message)
       }

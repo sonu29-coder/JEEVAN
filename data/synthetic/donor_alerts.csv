@@ -1,201 +1,201 @@
-alert_id,donor_id,request_id,message,status,sent_at,synthetic,source
-ALERT00001,DON00179,REQ00039,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00002,DON00279,REQ00056,Urgent A+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00003,DON00102,REQ00046,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00004,DON00156,REQ00057,Urgent A- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00005,DON00177,REQ00013,Urgent AB+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00006,DON00093,REQ00023,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00007,DON00166,REQ00030,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00008,DON00262,REQ00048,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00009,DON00280,REQ00041,Urgent A- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00010,DON00052,REQ00015,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00011,DON00096,REQ00040,Urgent A- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00012,DON00096,REQ00032,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00013,DON00224,REQ00072,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00014,DON00033,REQ00019,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00015,DON00035,REQ00051,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00016,DON00294,REQ00024,Urgent AB+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00017,DON00186,REQ00076,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00018,DON00052,REQ00030,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00019,DON00271,REQ00071,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00020,DON00035,REQ00077,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00021,DON00046,REQ00003,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00022,DON00143,REQ00007,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00023,DON00297,REQ00050,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00024,DON00144,REQ00062,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00025,DON00187,REQ00089,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00026,DON00081,REQ00070,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00027,DON00161,REQ00049,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00028,DON00025,REQ00053,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00029,DON00100,REQ00014,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00030,DON00143,REQ00075,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00031,DON00204,REQ00021,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00032,DON00197,REQ00083,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00033,DON00249,REQ00065,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00034,DON00081,REQ00003,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00035,DON00088,REQ00073,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00036,DON00177,REQ00040,Urgent A- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00037,DON00205,REQ00047,Urgent AB+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00038,DON00285,REQ00027,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00039,DON00166,REQ00066,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00040,DON00251,REQ00024,Urgent AB+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00041,DON00206,REQ00066,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00042,DON00199,REQ00015,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00043,DON00293,REQ00042,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00044,DON00177,REQ00012,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00045,DON00009,REQ00087,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00046,DON00211,REQ00089,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00047,DON00230,REQ00083,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00048,DON00232,REQ00026,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00049,DON00120,REQ00084,Urgent B+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00050,DON00029,REQ00070,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00051,DON00245,REQ00027,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00052,DON00138,REQ00076,Urgent B+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00053,DON00110,REQ00015,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00054,DON00244,REQ00086,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00055,DON00145,REQ00095,Urgent O- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00056,DON00117,REQ00041,Urgent A- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00057,DON00012,REQ00032,Urgent A- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00058,DON00113,REQ00056,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00059,DON00281,REQ00013,Urgent AB+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00060,DON00008,REQ00050,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00061,DON00289,REQ00077,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00062,DON00254,REQ00093,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00063,DON00191,REQ00081,Urgent A+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00064,DON00225,REQ00004,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00065,DON00238,REQ00022,Urgent AB+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00066,DON00042,REQ00079,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00067,DON00001,REQ00016,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00068,DON00147,REQ00054,Urgent B+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00069,DON00209,REQ00011,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00070,DON00228,REQ00073,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00071,DON00139,REQ00092,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00072,DON00045,REQ00019,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00073,DON00045,REQ00019,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00074,DON00131,REQ00034,Urgent A- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00075,DON00106,REQ00046,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00076,DON00143,REQ00025,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00077,DON00052,REQ00063,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00078,DON00169,REQ00045,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00079,DON00076,REQ00074,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00080,DON00047,REQ00079,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00081,DON00235,REQ00005,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00082,DON00123,REQ00085,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00083,DON00262,REQ00027,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00084,DON00048,REQ00033,Urgent O- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00085,DON00154,REQ00018,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00086,DON00244,REQ00069,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00087,DON00025,REQ00095,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00088,DON00101,REQ00078,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00089,DON00076,REQ00096,Urgent AB+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00090,DON00134,REQ00061,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00091,DON00252,REQ00028,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00092,DON00202,REQ00017,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00093,DON00139,REQ00086,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00094,DON00125,REQ00079,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00095,DON00147,REQ00002,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00096,DON00205,REQ00004,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00097,DON00205,REQ00071,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00098,DON00252,REQ00071,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00099,DON00195,REQ00072,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00100,DON00106,REQ00019,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00101,DON00252,REQ00017,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00102,DON00125,REQ00051,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00103,DON00283,REQ00032,Urgent A- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00104,DON00270,REQ00082,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00105,DON00270,REQ00080,Urgent B+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00106,DON00057,REQ00020,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00107,DON00162,REQ00044,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00108,DON00294,REQ00076,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00109,DON00197,REQ00032,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00110,DON00069,REQ00007,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00111,DON00024,REQ00053,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00112,DON00207,REQ00052,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00113,DON00191,REQ00038,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00114,DON00092,REQ00059,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00115,DON00116,REQ00056,Urgent A+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00116,DON00035,REQ00005,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00117,DON00116,REQ00087,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00118,DON00182,REQ00001,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00119,DON00034,REQ00007,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00120,DON00204,REQ00068,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00121,DON00080,REQ00009,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00122,DON00105,REQ00046,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00123,DON00240,REQ00019,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00124,DON00122,REQ00001,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00125,DON00055,REQ00090,Urgent B+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00126,DON00125,REQ00065,Urgent B+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00127,DON00059,REQ00081,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00128,DON00047,REQ00079,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00129,DON00212,REQ00090,Urgent B+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00130,DON00018,REQ00020,Urgent O- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00131,DON00153,REQ00002,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00132,DON00299,REQ00042,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00133,DON00272,REQ00074,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00134,DON00223,REQ00014,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00135,DON00020,REQ00056,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00136,DON00071,REQ00028,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00137,DON00057,REQ00015,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00138,DON00071,REQ00006,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00139,DON00035,REQ00024,Urgent AB+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00140,DON00113,REQ00084,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00141,DON00211,REQ00005,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00142,DON00079,REQ00051,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00143,DON00037,REQ00067,Urgent A+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00144,DON00069,REQ00042,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00145,DON00212,REQ00021,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00146,DON00211,REQ00016,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00147,DON00259,REQ00082,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00148,DON00295,REQ00036,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00149,DON00259,REQ00098,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00150,DON00259,REQ00064,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00151,DON00283,REQ00048,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00152,DON00249,REQ00060,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00153,DON00227,REQ00076,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00154,DON00045,REQ00061,Urgent O+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00155,DON00020,REQ00073,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00156,DON00237,REQ00080,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00157,DON00251,REQ00044,Urgent O- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00158,DON00165,REQ00085,Urgent A- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00159,DON00251,REQ00035,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00160,DON00156,REQ00043,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00161,DON00105,REQ00002,Urgent B- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00162,DON00134,REQ00082,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00163,DON00090,REQ00058,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00164,DON00094,REQ00052,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00165,DON00242,REQ00006,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00166,DON00228,REQ00037,Urgent B+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00167,DON00260,REQ00030,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00168,DON00099,REQ00021,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00169,DON00008,REQ00043,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00170,DON00115,REQ00069,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00171,DON00170,REQ00028,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00172,DON00070,REQ00052,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00173,DON00110,REQ00028,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00174,DON00149,REQ00075,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00175,DON00220,REQ00008,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00176,DON00109,REQ00041,Urgent A- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00177,DON00261,REQ00052,Urgent AB- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00178,DON00001,REQ00008,Urgent A+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00179,DON00113,REQ00010,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00180,DON00259,REQ00058,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00181,DON00132,REQ00057,Urgent A- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00182,DON00202,REQ00072,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00183,DON00140,REQ00004,Urgent O+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00184,DON00093,REQ00067,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00185,DON00276,REQ00078,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00186,DON00078,REQ00022,Urgent AB+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00187,DON00150,REQ00078,Urgent B- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00188,DON00202,REQ00027,Urgent A+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00189,DON00043,REQ00071,Urgent O+ blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00190,DON00121,REQ00020,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00191,DON00049,REQ00018,Urgent A+ blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00192,DON00129,REQ00078,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00193,DON00032,REQ00052,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00194,DON00138,REQ00009,Urgent O- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00195,DON00207,REQ00094,Urgent O- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00196,DON00083,REQ00052,Urgent AB- blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
-ALERT00197,DON00214,REQ00082,Urgent AB- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00198,DON00139,REQ00075,Urgent O- blood requirement near Thrissur.,acknowledged,2026-10-01,True,synthetic_demo
-ALERT00199,DON00201,REQ00053,Urgent B- blood requirement near Thrissur.,sent,2026-10-01,True,synthetic_demo
-ALERT00200,DON00127,REQ00055,Urgent AB+ blood requirement near Thrissur.,pending,2026-10-01,True,synthetic_demo
+alert_id,donor_id,request_id,message,status,delivery_status,sent_at,synthetic,source
+ALERT00001,DON00212,REQ00066,"Emergency requisition: B- blood needed near Velachery, Chennai.",acknowledged,published,2026-10-15T09:44:00.256520+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00002,DON00036,REQ00068,"Emergency requisition: O+ blood needed near Guindy, Chennai.",pending,pending,2026-10-15T17:44:00.256542+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00003,DON00337,REQ00093,"Emergency requisition: AB+ blood needed near Ambattur, Chennai.",sent,published,2026-10-15T07:44:00.256552+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00004,DON00150,REQ00058,"Emergency requisition: O+ blood needed near Anna Nagar, Chennai.",pending,pending,2026-10-15T13:44:00.256557+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00005,DON00192,REQ00057,"Emergency requisition: B- blood needed near Kodambakkam, Chennai.",sent,published,2026-10-15T15:44:00.256560+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00006,DON00043,REQ00018,"Emergency requisition: B- blood needed near Kilpauk, Chennai.",pending,pending,2026-10-15T11:44:00.256565+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00007,DON00480,REQ00045,"Emergency requisition: B- blood needed near Kilpauk, Chennai.",sent,published,2026-10-15T05:44:00.256570+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00008,DON00417,REQ00012,"Emergency requisition: B- blood needed near Adyar, Chennai.",sent,published,2026-10-15T18:44:00.256582+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00009,DON00327,REQ00088,"Emergency requisition: A+ blood needed near Mylapore, Chennai.",sent,published,2026-10-15T14:44:00.256588+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00010,DON00229,REQ00085,"Emergency requisition: O+ blood needed near Royapuram, Chennai.",sent,published,2026-10-16T00:44:00.256593+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00011,DON00021,REQ00009,"Emergency requisition: A- blood needed near T. Nagar, Chennai.",pending,pending,2026-10-15T15:44:00.256600+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00012,DON00084,REQ00084,"Emergency requisition: AB+ blood needed near Sholinganallur, Chennai.",sent,published,2026-10-14T22:44:00.256609+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00013,DON00423,REQ00055,"Emergency requisition: A+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T12:44:00.256615+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00014,DON00434,REQ00036,"Emergency requisition: B+ blood needed near Royapuram, Chennai.",pending,pending,2026-10-15T07:44:00.256620+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00015,DON00485,REQ00073,"Emergency requisition: A+ blood needed near Tambaram, Chennai.",acknowledged,published,2026-10-16T01:44:00.256630+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00016,DON00194,REQ00087,"Emergency requisition: B- blood needed near Anna Nagar, Chennai.",sent,published,2026-10-15T22:44:00.256636+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00017,DON00261,REQ00034,"Emergency requisition: O- blood needed near Velachery, Chennai.",pending,pending,2026-10-16T02:44:00.256641+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00018,DON00121,REQ00065,"Emergency requisition: AB- blood needed near Royapuram, Chennai.",sent,published,2026-10-16T01:44:00.256651+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00019,DON00223,REQ00079,"Emergency requisition: AB+ blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T19:44:00.256657+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00020,DON00442,REQ00002,"Emergency requisition: AB+ blood needed near Porur, Chennai.",sent,published,2026-10-15T14:44:00.256663+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00021,DON00113,REQ00018,"Emergency requisition: B- blood needed near Mylapore, Chennai.",sent,published,2026-10-15T13:44:00.256668+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00022,DON00080,REQ00088,"Emergency requisition: A+ blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-15T18:44:00.256678+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00023,DON00125,REQ00013,"Emergency requisition: A+ blood needed near Adyar, Chennai.",sent,published,2026-10-14T21:44:00.256683+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00024,DON00428,REQ00026,"Emergency requisition: B+ blood needed near Velachery, Chennai.",pending,pending,2026-10-16T03:44:00.256688+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00025,DON00197,REQ00039,"Emergency requisition: A- blood needed near Alwarpet, Chennai.",pending,pending,2026-10-15T10:44:00.256694+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00026,DON00156,REQ00053,"Emergency requisition: O+ blood needed near Chromepet, Chennai.",pending,pending,2026-10-14T17:44:00.256700+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00027,DON00325,REQ00009,"Emergency requisition: A- blood needed near Guindy, Chennai.",pending,pending,2026-10-15T20:44:00.256719+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00028,DON00087,REQ00002,"Emergency requisition: AB+ blood needed near Perungudi, Chennai.",acknowledged,published,2026-10-15T16:44:00.256724+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00029,DON00342,REQ00030,"Emergency requisition: O+ blood needed near Egmore, Chennai.",acknowledged,published,2026-10-14T18:44:00.256730+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00030,DON00372,REQ00084,"Emergency requisition: AB+ blood needed near Adyar, Chennai.",pending,pending,2026-10-15T22:44:00.256735+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00031,DON00061,REQ00003,"Emergency requisition: O- blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-15T04:44:00.256740+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00032,DON00186,REQ00033,"Emergency requisition: A+ blood needed near Perungudi, Chennai.",pending,pending,2026-10-15T11:44:00.256746+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00033,DON00305,REQ00055,"Emergency requisition: A+ blood needed near Velachery, Chennai.",acknowledged,published,2026-10-15T12:44:00.256752+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00034,DON00013,REQ00010,"Emergency requisition: AB+ blood needed near Porur, Chennai.",pending,pending,2026-10-15T01:44:00.256758+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00035,DON00205,REQ00058,"Emergency requisition: O+ blood needed near Perungudi, Chennai.",sent,published,2026-10-14T23:44:00.256765+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00036,DON00350,REQ00071,"Emergency requisition: AB- blood needed near Egmore, Chennai.",pending,pending,2026-10-15T17:44:00.256771+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00037,DON00085,REQ00040,"Emergency requisition: B- blood needed near T. Nagar, Chennai.",acknowledged,published,2026-10-15T19:44:00.256776+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00038,DON00245,REQ00100,"Emergency requisition: A- blood needed near Egmore, Chennai.",acknowledged,published,2026-10-16T03:44:00.256790+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00039,DON00194,REQ00059,"Emergency requisition: A- blood needed near Anna Nagar, Chennai.",sent,published,2026-10-15T05:44:00.256795+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00040,DON00431,REQ00096,"Emergency requisition: O- blood needed near Alwarpet, Chennai.",acknowledged,published,2026-10-15T17:44:00.256802+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00041,DON00479,REQ00069,"Emergency requisition: AB+ blood needed near Porur, Chennai.",sent,published,2026-10-16T02:44:00.256808+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00042,DON00013,REQ00059,"Emergency requisition: A- blood needed near Porur, Chennai.",acknowledged,published,2026-10-14T16:44:00.256814+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00043,DON00331,REQ00063,"Emergency requisition: A- blood needed near Anna Nagar, Chennai.",sent,published,2026-10-15T00:44:00.256819+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00044,DON00437,REQ00089,"Emergency requisition: A- blood needed near Chromepet, Chennai.",acknowledged,published,2026-10-15T07:44:00.256826+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00045,DON00104,REQ00076,"Emergency requisition: AB+ blood needed near Porur, Chennai.",pending,pending,2026-10-14T20:44:00.256832+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00046,DON00394,REQ00040,"Emergency requisition: B- blood needed near Adyar, Chennai.",sent,published,2026-10-14T21:44:00.256838+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00047,DON00332,REQ00003,"Emergency requisition: O- blood needed near Sholinganallur, Chennai.",acknowledged,published,2026-10-15T18:44:00.256844+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00048,DON00356,REQ00018,"Emergency requisition: B- blood needed near Porur, Chennai.",sent,published,2026-10-15T17:44:00.256849+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00049,DON00279,REQ00023,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",acknowledged,published,2026-10-14T18:44:00.256853+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00050,DON00350,REQ00074,"Emergency requisition: B- blood needed near Egmore, Chennai.",sent,published,2026-10-15T09:44:00.256858+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00051,DON00009,REQ00062,"Emergency requisition: A+ blood needed near Sholinganallur, Chennai.",sent,published,2026-10-15T05:44:00.256863+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00052,DON00003,REQ00001,"Emergency requisition: B- blood needed near Royapuram, Chennai.",acknowledged,published,2026-10-14T16:44:00.256868+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00053,DON00206,REQ00005,"Emergency requisition: B- blood needed near Ambattur, Chennai.",sent,published,2026-10-16T00:44:00.256873+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00054,DON00296,REQ00060,"Emergency requisition: B+ blood needed near Ambattur, Chennai.",acknowledged,published,2026-10-15T08:44:00.256879+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00055,DON00091,REQ00002,"Emergency requisition: AB+ blood needed near Porur, Chennai.",acknowledged,published,2026-10-14T22:44:00.256884+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00056,DON00159,REQ00067,"Emergency requisition: AB+ blood needed near Royapuram, Chennai.",sent,published,2026-10-15T09:44:00.256889+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00057,DON00360,REQ00037,"Emergency requisition: A+ blood needed near Nungambakkam, Chennai.",sent,published,2026-10-15T03:44:00.256893+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00058,DON00219,REQ00092,"Emergency requisition: A+ blood needed near Ambattur, Chennai.",pending,pending,2026-10-15T11:44:00.256898+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00059,DON00373,REQ00087,"Emergency requisition: B- blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-15T12:44:00.256903+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00060,DON00194,REQ00069,"Emergency requisition: AB+ blood needed near Anna Nagar, Chennai.",acknowledged,published,2026-10-15T18:44:00.256908+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00061,DON00482,REQ00072,"Emergency requisition: A- blood needed near Ambattur, Chennai.",pending,pending,2026-10-15T21:44:00.256913+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00062,DON00215,REQ00003,"Emergency requisition: O- blood needed near Guindy, Chennai.",acknowledged,published,2026-10-16T00:44:00.256919+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00063,DON00452,REQ00010,"Emergency requisition: AB+ blood needed near Perungudi, Chennai.",sent,published,2026-10-15T18:44:00.256924+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00064,DON00207,REQ00047,"Emergency requisition: B+ blood needed near Sholinganallur, Chennai.",sent,published,2026-10-14T20:44:00.256927+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00065,DON00434,REQ00031,"Emergency requisition: B- blood needed near Royapuram, Chennai.",sent,published,2026-10-15T21:44:00.256931+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00066,DON00266,REQ00025,"Emergency requisition: AB+ blood needed near Nungambakkam, Chennai.",sent,published,2026-10-15T13:44:00.256935+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00067,DON00258,REQ00061,"Emergency requisition: O+ blood needed near Royapuram, Chennai.",sent,published,2026-10-14T17:44:00.256938+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00068,DON00449,REQ00066,"Emergency requisition: B- blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-15T07:44:00.256942+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00069,DON00181,REQ00053,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T14:44:00.256951+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00070,DON00475,REQ00027,"Emergency requisition: AB- blood needed near Adyar, Chennai.",pending,pending,2026-10-15T18:44:00.256954+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00071,DON00095,REQ00019,"Emergency requisition: B- blood needed near Chromepet, Chennai.",sent,published,2026-10-15T05:44:00.256958+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00072,DON00456,REQ00067,"Emergency requisition: AB+ blood needed near Velachery, Chennai.",acknowledged,published,2026-10-14T18:44:00.256961+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00073,DON00335,REQ00073,"Emergency requisition: A+ blood needed near Kilpauk, Chennai.",sent,published,2026-10-15T11:44:00.256964+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00074,DON00465,REQ00020,"Emergency requisition: AB- blood needed near Adyar, Chennai.",acknowledged,published,2026-10-14T18:44:00.256969+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00075,DON00212,REQ00017,"Emergency requisition: O+ blood needed near Velachery, Chennai.",sent,published,2026-10-15T20:44:00.256972+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00076,DON00277,REQ00038,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-16T00:44:00.256976+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00077,DON00081,REQ00065,"Emergency requisition: AB- blood needed near Velachery, Chennai.",acknowledged,published,2026-10-15T09:44:00.256979+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00078,DON00185,REQ00059,"Emergency requisition: A- blood needed near Velachery, Chennai.",pending,pending,2026-10-15T12:44:00.256983+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00079,DON00076,REQ00027,"Emergency requisition: AB- blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-15T01:44:00.256986+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00080,DON00301,REQ00098,"Emergency requisition: B- blood needed near Royapuram, Chennai.",acknowledged,published,2026-10-15T19:44:00.256989+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00081,DON00303,REQ00089,"Emergency requisition: A- blood needed near Royapuram, Chennai.",pending,pending,2026-10-15T05:44:00.256994+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00082,DON00352,REQ00012,"Emergency requisition: B- blood needed near Sholinganallur, Chennai.",sent,published,2026-10-14T19:44:00.256998+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00083,DON00402,REQ00090,"Emergency requisition: A- blood needed near Velachery, Chennai.",pending,pending,2026-10-15T17:44:00.257003+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00084,DON00263,REQ00099,"Emergency requisition: O- blood needed near Tambaram, Chennai.",pending,pending,2026-10-15T07:44:00.257008+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00085,DON00471,REQ00086,"Emergency requisition: O+ blood needed near Velachery, Chennai.",sent,published,2026-10-15T23:44:00.257013+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00086,DON00079,REQ00039,"Emergency requisition: A- blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T08:44:00.257016+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00087,DON00307,REQ00061,"Emergency requisition: O+ blood needed near Adyar, Chennai.",acknowledged,published,2026-10-15T16:44:00.257019+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00088,DON00030,REQ00087,"Emergency requisition: B- blood needed near Alwarpet, Chennai.",sent,published,2026-10-15T10:44:00.257023+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00089,DON00498,REQ00053,"Emergency requisition: O+ blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-16T02:44:00.257029+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00090,DON00038,REQ00036,"Emergency requisition: B+ blood needed near Royapuram, Chennai.",sent,published,2026-10-16T01:44:00.257032+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00091,DON00148,REQ00099,"Emergency requisition: O- blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-14T22:44:00.257035+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00092,DON00009,REQ00068,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",sent,published,2026-10-14T19:44:00.257039+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00093,DON00291,REQ00003,"Emergency requisition: O- blood needed near T. Nagar, Chennai.",acknowledged,published,2026-10-16T00:44:00.257044+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00094,DON00170,REQ00026,"Emergency requisition: B+ blood needed near Ambattur, Chennai.",acknowledged,published,2026-10-15T20:44:00.257047+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00095,DON00299,REQ00083,"Emergency requisition: O+ blood needed near Royapuram, Chennai.",acknowledged,published,2026-10-16T01:44:00.257050+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00096,DON00496,REQ00055,"Emergency requisition: A+ blood needed near Porur, Chennai.",sent,published,2026-10-15T23:44:00.257053+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00097,DON00307,REQ00095,"Emergency requisition: AB- blood needed near Adyar, Chennai.",sent,published,2026-10-15T15:44:00.257057+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00098,DON00249,REQ00027,"Emergency requisition: AB- blood needed near Royapuram, Chennai.",pending,pending,2026-10-15T12:44:00.257061+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00099,DON00378,REQ00091,"Emergency requisition: A- blood needed near Velachery, Chennai.",sent,published,2026-10-15T05:44:00.257065+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00100,DON00068,REQ00077,"Emergency requisition: A+ blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T16:44:00.257068+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00101,DON00457,REQ00045,"Emergency requisition: B- blood needed near Velachery, Chennai.",pending,pending,2026-10-16T03:44:00.257071+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00102,DON00115,REQ00076,"Emergency requisition: AB+ blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T18:44:00.257074+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00103,DON00264,REQ00079,"Emergency requisition: AB+ blood needed near Tambaram, Chennai.",pending,pending,2026-10-15T23:44:00.257077+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00104,DON00411,REQ00024,"Emergency requisition: AB+ blood needed near Ambattur, Chennai.",pending,pending,2026-10-14T17:44:00.257080+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00105,DON00343,REQ00031,"Emergency requisition: B- blood needed near Perungudi, Chennai.",sent,published,2026-10-14T23:44:00.257083+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00106,DON00467,REQ00048,"Emergency requisition: O+ blood needed near Chromepet, Chennai.",pending,pending,2026-10-16T03:44:00.257087+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00107,DON00405,REQ00022,"Emergency requisition: AB- blood needed near T. Nagar, Chennai.",sent,published,2026-10-15T08:44:00.257090+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00108,DON00377,REQ00085,"Emergency requisition: O+ blood needed near Perungudi, Chennai.",acknowledged,published,2026-10-15T14:44:00.257093+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00109,DON00403,REQ00084,"Emergency requisition: AB+ blood needed near Tambaram, Chennai.",sent,published,2026-10-15T04:44:00.257096+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00110,DON00002,REQ00008,"Emergency requisition: AB+ blood needed near Adyar, Chennai.",sent,published,2026-10-14T20:44:00.257100+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00111,DON00067,REQ00029,"Emergency requisition: A+ blood needed near Kilpauk, Chennai.",acknowledged,published,2026-10-15T19:44:00.257103+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00112,DON00035,REQ00020,"Emergency requisition: AB- blood needed near Kodambakkam, Chennai.",pending,pending,2026-10-15T19:44:00.257106+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00113,DON00300,REQ00080,"Emergency requisition: B- blood needed near Anna Nagar, Chennai.",pending,pending,2026-10-15T15:44:00.257110+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00114,DON00497,REQ00007,"Emergency requisition: B+ blood needed near Alwarpet, Chennai.",acknowledged,published,2026-10-14T22:44:00.257113+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00115,DON00369,REQ00035,"Emergency requisition: AB+ blood needed near Kodambakkam, Chennai.",acknowledged,published,2026-10-15T09:44:00.257116+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00116,DON00491,REQ00044,"Emergency requisition: A+ blood needed near Kodambakkam, Chennai.",pending,pending,2026-10-15T22:44:00.257119+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00117,DON00244,REQ00027,"Emergency requisition: AB- blood needed near Anna Nagar, Chennai.",sent,published,2026-10-15T11:44:00.257122+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00118,DON00307,REQ00036,"Emergency requisition: B+ blood needed near Adyar, Chennai.",pending,pending,2026-10-15T16:44:00.257125+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00119,DON00069,REQ00042,"Emergency requisition: B- blood needed near Adyar, Chennai.",sent,published,2026-10-15T13:44:00.257128+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00120,DON00429,REQ00045,"Emergency requisition: B- blood needed near Kilpauk, Chennai.",sent,published,2026-10-15T17:44:00.257131+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00121,DON00484,REQ00011,"Emergency requisition: AB+ blood needed near Velachery, Chennai.",acknowledged,published,2026-10-14T21:44:00.257134+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00122,DON00236,REQ00040,"Emergency requisition: B- blood needed near Egmore, Chennai.",acknowledged,published,2026-10-15T05:44:00.257137+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00123,DON00156,REQ00034,"Emergency requisition: O- blood needed near Chromepet, Chennai.",sent,published,2026-10-15T05:44:00.257140+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00124,DON00440,REQ00082,"Emergency requisition: AB- blood needed near Alwarpet, Chennai.",acknowledged,published,2026-10-15T21:44:00.257143+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00125,DON00214,REQ00077,"Emergency requisition: A+ blood needed near Guindy, Chennai.",pending,pending,2026-10-15T15:44:00.257147+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00126,DON00376,REQ00083,"Emergency requisition: O+ blood needed near Alwarpet, Chennai.",acknowledged,published,2026-10-15T12:44:00.257150+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00127,DON00291,REQ00026,"Emergency requisition: B+ blood needed near T. Nagar, Chennai.",sent,published,2026-10-16T01:44:00.257153+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00128,DON00406,REQ00020,"Emergency requisition: AB- blood needed near Nungambakkam, Chennai.",pending,pending,2026-10-16T01:44:00.257157+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00129,DON00147,REQ00061,"Emergency requisition: O+ blood needed near Kilpauk, Chennai.",pending,pending,2026-10-14T16:44:00.257160+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00130,DON00192,REQ00029,"Emergency requisition: A+ blood needed near Kodambakkam, Chennai.",pending,pending,2026-10-15T19:44:00.257164+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00131,DON00353,REQ00014,"Emergency requisition: B- blood needed near Ambattur, Chennai.",sent,published,2026-10-15T23:44:00.257167+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00132,DON00181,REQ00012,"Emergency requisition: B- blood needed near Sholinganallur, Chennai.",acknowledged,published,2026-10-16T00:44:00.257171+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00133,DON00390,REQ00015,"Emergency requisition: AB- blood needed near Nungambakkam, Chennai.",sent,published,2026-10-15T12:44:00.257174+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00134,DON00213,REQ00076,"Emergency requisition: AB+ blood needed near Perungudi, Chennai.",acknowledged,published,2026-10-14T16:44:00.257177+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00135,DON00255,REQ00023,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",acknowledged,published,2026-10-15T10:44:00.257180+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00136,DON00216,REQ00019,"Emergency requisition: B- blood needed near Royapuram, Chennai.",pending,pending,2026-10-15T14:44:00.257183+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00137,DON00477,REQ00053,"Emergency requisition: O+ blood needed near Adyar, Chennai.",pending,pending,2026-10-15T10:44:00.257186+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00138,DON00072,REQ00029,"Emergency requisition: A+ blood needed near T. Nagar, Chennai.",sent,published,2026-10-16T02:44:00.257189+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00139,DON00210,REQ00007,"Emergency requisition: B+ blood needed near Guindy, Chennai.",acknowledged,published,2026-10-15T09:44:00.257192+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00140,DON00316,REQ00048,"Emergency requisition: O+ blood needed near Tambaram, Chennai.",sent,published,2026-10-15T03:44:00.257195+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00141,DON00123,REQ00027,"Emergency requisition: AB- blood needed near Royapuram, Chennai.",sent,published,2026-10-16T02:44:00.257198+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00142,DON00482,REQ00077,"Emergency requisition: A+ blood needed near Ambattur, Chennai.",sent,published,2026-10-15T12:44:00.257205+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00143,DON00406,REQ00078,"Emergency requisition: A- blood needed near Nungambakkam, Chennai.",pending,pending,2026-10-15T15:44:00.257208+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00144,DON00404,REQ00033,"Emergency requisition: A+ blood needed near Kodambakkam, Chennai.",sent,published,2026-10-15T11:44:00.257211+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00145,DON00439,REQ00031,"Emergency requisition: B- blood needed near T. Nagar, Chennai.",acknowledged,published,2026-10-16T01:44:00.257214+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00146,DON00034,REQ00030,"Emergency requisition: O+ blood needed near Kodambakkam, Chennai.",acknowledged,published,2026-10-15T23:44:00.257217+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00147,DON00185,REQ00052,"Emergency requisition: B+ blood needed near Velachery, Chennai.",pending,pending,2026-10-15T06:44:00.257220+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00148,DON00250,REQ00071,"Emergency requisition: AB- blood needed near Egmore, Chennai.",pending,pending,2026-10-16T03:44:00.257223+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00149,DON00019,REQ00086,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T18:44:00.257226+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00150,DON00037,REQ00092,"Emergency requisition: A+ blood needed near Mylapore, Chennai.",pending,pending,2026-10-15T12:44:00.257230+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00151,DON00483,REQ00039,"Emergency requisition: A- blood needed near Egmore, Chennai.",sent,published,2026-10-14T20:44:00.257233+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00152,DON00332,REQ00048,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T04:44:00.257239+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00153,DON00112,REQ00079,"Emergency requisition: AB+ blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T16:44:00.257242+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00154,DON00287,REQ00088,"Emergency requisition: A+ blood needed near Porur, Chennai.",sent,published,2026-10-14T22:44:00.257245+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00155,DON00332,REQ00068,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T21:44:00.257248+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00156,DON00151,REQ00063,"Emergency requisition: A- blood needed near Sholinganallur, Chennai.",sent,published,2026-10-16T02:44:00.257251+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00157,DON00051,REQ00014,"Emergency requisition: B- blood needed near Nungambakkam, Chennai.",sent,published,2026-10-15T00:44:00.257254+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00158,DON00208,REQ00083,"Emergency requisition: O+ blood needed near Chromepet, Chennai.",sent,published,2026-10-16T03:44:00.257257+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00159,DON00440,REQ00071,"Emergency requisition: AB- blood needed near Alwarpet, Chennai.",sent,published,2026-10-14T17:44:00.257260+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00160,DON00299,REQ00056,"Emergency requisition: B- blood needed near Royapuram, Chennai.",sent,published,2026-10-14T17:44:00.257263+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00161,DON00070,REQ00056,"Emergency requisition: B- blood needed near Anna Nagar, Chennai.",sent,published,2026-10-15T05:44:00.257266+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00162,DON00364,REQ00097,"Emergency requisition: O- blood needed near Guindy, Chennai.",sent,published,2026-10-15T14:44:00.257269+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00163,DON00194,REQ00096,"Emergency requisition: O- blood needed near Anna Nagar, Chennai.",sent,published,2026-10-16T01:44:00.257272+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00164,DON00042,REQ00014,"Emergency requisition: B- blood needed near Porur, Chennai.",sent,published,2026-10-15T11:44:00.257275+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00165,DON00210,REQ00051,"Emergency requisition: B+ blood needed near Guindy, Chennai.",acknowledged,published,2026-10-15T03:44:00.257278+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00166,DON00395,REQ00085,"Emergency requisition: O+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T11:44:00.257281+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00167,DON00365,REQ00029,"Emergency requisition: A+ blood needed near T. Nagar, Chennai.",pending,pending,2026-10-15T07:44:00.257284+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00168,DON00178,REQ00037,"Emergency requisition: A+ blood needed near Mylapore, Chennai.",acknowledged,published,2026-10-15T11:44:00.257287+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00169,DON00012,REQ00096,"Emergency requisition: O- blood needed near Ambattur, Chennai.",pending,pending,2026-10-15T12:44:00.257290+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00170,DON00287,REQ00065,"Emergency requisition: AB- blood needed near Porur, Chennai.",pending,pending,2026-10-16T02:44:00.257293+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00171,DON00153,REQ00087,"Emergency requisition: B- blood needed near Adyar, Chennai.",sent,published,2026-10-15T05:44:00.257297+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00172,DON00031,REQ00082,"Emergency requisition: AB- blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T23:44:00.257300+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00173,DON00333,REQ00032,"Emergency requisition: B- blood needed near Chromepet, Chennai.",pending,pending,2026-10-15T04:44:00.257303+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00174,DON00184,REQ00006,"Emergency requisition: A+ blood needed near Mylapore, Chennai.",pending,pending,2026-10-15T14:44:00.257306+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00175,DON00332,REQ00092,"Emergency requisition: A+ blood needed near Sholinganallur, Chennai.",pending,pending,2026-10-15T01:44:00.257309+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00176,DON00267,REQ00082,"Emergency requisition: AB- blood needed near Adyar, Chennai.",acknowledged,published,2026-10-15T18:44:00.257312+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00177,DON00230,REQ00016,"Emergency requisition: O+ blood needed near Porur, Chennai.",acknowledged,published,2026-10-15T07:44:00.257316+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00178,DON00049,REQ00064,"Emergency requisition: AB+ blood needed near Perungudi, Chennai.",sent,published,2026-10-15T19:44:00.257320+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00179,DON00257,REQ00026,"Emergency requisition: B+ blood needed near T. Nagar, Chennai.",sent,published,2026-10-14T22:44:00.257323+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00180,DON00106,REQ00048,"Emergency requisition: O+ blood needed near Alwarpet, Chennai.",acknowledged,published,2026-10-15T21:44:00.257326+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00181,DON00193,REQ00005,"Emergency requisition: B- blood needed near Guindy, Chennai.",acknowledged,published,2026-10-16T00:44:00.257329+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00182,DON00275,REQ00025,"Emergency requisition: AB+ blood needed near Nungambakkam, Chennai.",acknowledged,published,2026-10-15T05:44:00.257332+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00183,DON00142,REQ00046,"Emergency requisition: B- blood needed near Mylapore, Chennai.",acknowledged,published,2026-10-14T22:44:00.257335+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00184,DON00157,REQ00034,"Emergency requisition: O- blood needed near Egmore, Chennai.",pending,pending,2026-10-15T03:44:00.257339+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00185,DON00251,REQ00090,"Emergency requisition: A- blood needed near Ambattur, Chennai.",sent,published,2026-10-14T18:44:00.257343+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00186,DON00450,REQ00005,"Emergency requisition: B- blood needed near Adyar, Chennai.",acknowledged,published,2026-10-15T01:44:00.257346+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00187,DON00017,REQ00043,"Emergency requisition: O- blood needed near Ambattur, Chennai.",acknowledged,published,2026-10-15T16:44:00.257349+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00188,DON00338,REQ00068,"Emergency requisition: O+ blood needed near Anna Nagar, Chennai.",pending,pending,2026-10-16T03:44:00.257352+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00189,DON00222,REQ00098,"Emergency requisition: B- blood needed near Kilpauk, Chennai.",acknowledged,published,2026-10-14T21:44:00.257355+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00190,DON00407,REQ00044,"Emergency requisition: A+ blood needed near Ambattur, Chennai.",pending,pending,2026-10-15T18:44:00.257358+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00191,DON00368,REQ00006,"Emergency requisition: A+ blood needed near T. Nagar, Chennai.",pending,pending,2026-10-14T21:44:00.257362+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00192,DON00071,REQ00019,"Emergency requisition: B- blood needed near T. Nagar, Chennai.",acknowledged,published,2026-10-15T02:44:00.257365+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00193,DON00128,REQ00086,"Emergency requisition: O+ blood needed near Kodambakkam, Chennai.",sent,published,2026-10-15T00:44:00.257369+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00194,DON00140,REQ00021,"Emergency requisition: AB+ blood needed near T. Nagar, Chennai.",sent,published,2026-10-15T03:44:00.257372+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00195,DON00283,REQ00044,"Emergency requisition: A+ blood needed near Royapuram, Chennai.",pending,pending,2026-10-15T22:44:00.257375+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00196,DON00324,REQ00095,"Emergency requisition: AB- blood needed near Kilpauk, Chennai.",sent,published,2026-10-15T07:44:00.257378+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00197,DON00158,REQ00031,"Emergency requisition: B- blood needed near T. Nagar, Chennai.",sent,published,2026-10-14T18:44:00.257381+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00198,DON00390,REQ00018,"Emergency requisition: B- blood needed near Nungambakkam, Chennai.",sent,published,2026-10-16T02:44:00.257384+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00199,DON00202,REQ00005,"Emergency requisition: B- blood needed near Tambaram, Chennai.",sent,published,2026-10-15T23:44:00.257387+00:00,True,SYNTHETIC_CHENNAI_DEMO
+ALERT00200,DON00456,REQ00022,"Emergency requisition: AB- blood needed near Velachery, Chennai.",sent,published,2026-10-15T23:44:00.257390+00:00,True,SYNTHETIC_CHENNAI_DEMO

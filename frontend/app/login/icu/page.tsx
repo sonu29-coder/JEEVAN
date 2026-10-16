@@ -89,7 +89,7 @@ export default function IcuLoginPage() {
 
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40 px-2 py-0.5 rounded-full">
             <ShieldCheck className="size-3" />
-            NABH Node
+            NABH Accredited
           </span>
         </header>
 
@@ -113,8 +113,8 @@ export default function IcuLoginPage() {
             <GoogleAuthButton
               portal="hospital"
               className="mb-3"
-              onSuccess={(msg) => {
-                setSuccessMsg(msg)
+              onSuccess={(res) => {
+                setSuccessMsg(res.message)
                 setTimeout(() => router.push('/?role=hospital'), 500)
               }}
               onError={(err) => setErrorMsg(err)}
@@ -237,7 +237,7 @@ export default function IcuLoginPage() {
                 ) : (
                   <KeyRound className="size-4" />
                 )}
-                <span>{isLoading ? 'Verifying Hospital Node...' : 'Sign In to ICU Desk'}</span>
+                <span>{isLoading ? 'Authenticating Physician...' : 'Sign In to ICU Desk'}</span>
               </button>
             </form>
           </div>

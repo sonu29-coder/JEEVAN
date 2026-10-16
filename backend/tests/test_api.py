@@ -76,10 +76,10 @@ def seeded(client):
                 Hospital(
                     id="H1",
                     name="Central Hospital",
-                    city="Thrissur",
-                    state="Kerala",
-                    latitude=10.52,
-                    longitude=76.21,
+                    city="Chennai",
+                    state="Tamil Nadu",
+                    latitude=13.08,
+                    longitude=80.26,
                     synthetic=True,
                     source="synthetic_demo",
                 ),
@@ -87,10 +87,10 @@ def seeded(client):
                     id="BB1",
                     name="Central Blood Bank",
                     address="Main road",
-                    city="Thrissur",
-                    state="Kerala",
-                    latitude=10.53,
-                    longitude=76.22,
+                    city="Chennai",
+                    state="Tamil Nadu",
+                    latitude=13.07,
+                    longitude=80.25,
                     synthetic=True,
                     source="synthetic_demo",
                 ),
@@ -100,8 +100,8 @@ def seeded(client):
                     name="Eligible Donor",
                     blood_group="O-",
                     phone="9000000001",
-                    latitude=10.521,
-                    longitude=76.211,
+                    latitude=13.071,
+                    longitude=80.251,
                     response_rate=90,
                     eligible=True,
                     synthetic=True,
@@ -113,8 +113,8 @@ def seeded(client):
                     name="Incompatible Donor",
                     blood_group="B-",
                     phone="9000000002",
-                    latitude=10.522,
-                    longitude=76.212,
+                    latitude=13.072,
+                    longitude=80.252,
                     response_rate=80,
                     eligible=True,
                     synthetic=True,
@@ -148,8 +148,8 @@ def make_request(client, **overrides):
         "component": "RBC",
         "units_required": 2,
         "urgency": "critical",
-        "hospital_latitude": 10.52,
-        "hospital_longitude": 76.21,
+        "hospital_latitude": 13.07,
+        "hospital_longitude": 80.25,
     }
     body.update(overrides)
     response = client.post("/api/requests", headers=headers(), json=body)
@@ -328,9 +328,9 @@ def test_historic_blood_bank_csv_keeps_provenance_without_fabricated_coordinates
     assert records[0]["licence_valid_until"] == date(2015, 12, 31)
 
 
-def test_generated_csv_importer_converts_all_nine_files():
+def test_generated_csv_importer_converts_all_ten_files():
     records = list(synthetic_records(SYNTHETIC_DIR))
-    assert len(records) == 1_315
+    assert len(records) == 1_707
     files = {file_name for file_name, _, _ in records}
     assert files == {
         "hospitals.csv",
@@ -342,6 +342,7 @@ def test_generated_csv_importer_converts_all_nine_files():
         "reservations.csv",
         "donor_alerts.csv",
         "audit_logs.csv",
+        "deliveries.csv",
     }
     reservation = next(row for _, model, row in records if model.__name__ == "Reservation")
     assert reservation["expires_at"].tzinfo is not None
@@ -352,8 +353,9 @@ def test_csv_import_is_transactional_and_idempotent():
     counts = import_data(SYNTHETIC_DIR, RAW_BANKS_CSV)
     second_counts = import_data(SYNTHETIC_DIR, RAW_BANKS_CSV)
     assert counts == second_counts
-    assert counts["donors.csv"] == 300
+    assert counts["donors.csv"] == 500
     assert counts["private_bloodbanks_0.csv"] == 199
+    assert counts["deliveries.csv"] == 150
     with SessionLocal() as session:
-        assert session.scalar(select(func.count()).select_from(Donor)) == 300
-        assert session.scalar(select(func.count()).select_from(BloodBank)) == 214
+        assert session.scalar(select(func.count()).select_from(Donor)) == 500
+        assert session.scalar(select(func.count()).select_from(BloodBank)) == 219

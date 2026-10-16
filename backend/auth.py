@@ -59,14 +59,14 @@ FRONTEND_CREDENTIALS: Dict[str, Dict[str, str]] = {
     "BANK-5501": {
         "role": "BLOOD_BANK",
         "user_id": "bank-ima",
-        "label": "IMA Blood Bank Thrissur",
-        "badge": "Verified Blood Bank • IMA Thrissur",
+        "label": "Red Cross Blood Centre Chennai",
+        "badge": "Verified Blood Bank • Red Cross Chennai",
     },
     "ADMIN-0001": {
         "role": "ADMIN",
         "user_id": "admin-jeevan",
         "label": "Jeevan Administrator",
-        "badge": "Verified Network Administrator • Thrissur Grid HQ",
+        "badge": "Verified Network Administrator • Chennai Grid HQ",
     },
 }
 
@@ -248,7 +248,7 @@ def verify_google_token(credential: str, target_role: str = "ICU_HOSPITAL") -> D
         except Exception:
             pass
 
-    # 2. Known Google Profiles for Thrissur medical grid
+    # 2. Known Google Profiles for Chennai medical grid
     demo_profiles = {
         "dr.rajesh@jubileemission.org": {
             "google_id": "google-1092837465",
@@ -256,15 +256,15 @@ def verify_google_token(credential: str, target_role: str = "ICU_HOSPITAL") -> D
             "email": "dr.rajesh@jubileemission.org",
             "picture": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150",
             "role": "ICU_HOSPITAL",
-            "badge": "Google Verified Physician • Jubilee Mission Trauma ICU",
+            "badge": "Google Verified Physician • Chennai Central Trauma ICU",
         },
-        "ima.admin@imathrissur.org": {
+        "redcross.admin@redcrosschennai.org": {
             "google_id": "google-2083918273",
-            "name": "IMA Blood Bank Admin",
-            "email": "ima.admin@imathrissur.org",
+            "name": "Red Cross Blood Bank Admin",
+            "email": "redcross.admin@redcrosschennai.org",
             "picture": "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=150",
             "role": "BLOOD_BANK",
-            "badge": "Google Verified Authority • IMA Central Complex",
+            "badge": "Google Verified Authority • Red Cross Chennai Complex",
         },
         "sneha.donor@gmail.com": {
             "google_id": "google-3094827162",
@@ -317,7 +317,7 @@ EXAMPLE_ACCOUNTS = [
         "role": "REGISTERED_DONOR",
         "blood_group": "O-",
         "badge": "Verified Donor • O- Universal Donor",
-        "description": "Pre-cleared volunteer donor in Thrissur ready for immediate emergency calls.",
+        "description": "Pre-cleared volunteer donor in Chennai ready for immediate emergency calls.",
         "avatar": "🩸",
     },
     {
@@ -329,7 +329,7 @@ EXAMPLE_ACCOUNTS = [
         "role": "REGISTERED_DONOR",
         "blood_group": "B+",
         "badge": "Verified Donor • B+ Emergency Donor",
-        "description": "Loyal donor with 8 previous lifetime donations at Jubilee Mission.",
+        "description": "Loyal donor with 8 previous lifetime donations in Chennai.",
         "avatar": "🩸",
     },
     {
@@ -340,7 +340,7 @@ EXAMPLE_ACCOUNTS = [
         "token": "DLVR-8821",
         "role": "DELIVERY_PARTNER",
         "vehicle": "Emergency Medical Transport Scooter",
-        "badge": "Verified Courier • Swift Rider #42",
+        "badge": "Verified Courier • Swift Rider #42 (Chennai)",
         "description": "Licensed active cold-chain courier certified for temperature-monitored blood boxes.",
         "avatar": "🛵",
     },
@@ -351,20 +351,20 @@ EXAMPLE_ACCOUNTS = [
         "email": "dr.rajesh@jubileemission.org",
         "token": "HOSP-9042",
         "role": "ICU_HOSPITAL",
-        "hospital": "Jubilee Mission Hospital ICU",
-        "badge": "Verified Physician • Jubilee Mission Trauma ICU",
+        "hospital": "Chennai Central Trauma ICU",
+        "badge": "Verified Physician • Chennai Central Trauma ICU",
         "description": "Emergency ICU Department Chief authorized to order critical emergency units.",
         "avatar": "🏥",
     },
     {
         "id": "bank-example-1",
         "category": "BLOOD_BANK",
-        "name": "IMA Blood Bank Admin",
-        "email": "ima.admin@imathrissur.org",
+        "name": "Red Cross Blood Bank Admin",
+        "email": "redcross.admin@redcrosschennai.org",
         "token": "BANK-5501",
         "role": "BLOOD_BANK",
-        "hub": "IMA Blood Bank Complex & Research Centre",
-        "badge": "Verified Authority • IMA Central Complex",
+        "hub": "Red Cross Blood Centre Chennai",
+        "badge": "Verified Authority • Red Cross Chennai Complex",
         "description": "Central blood bank administrator managing real-time regional blood reserves.",
         "avatar": "🏦",
     },

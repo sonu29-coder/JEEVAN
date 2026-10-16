@@ -4,12 +4,14 @@ import re
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 
-from backend.database import Base, SessionLocal, engine
+from sqlalchemy import inspect
+from backend.database import Base, SessionLocal, engine, ensure_column_migrations
 from backend.models import (
     AuditLog,
     BloodBank,
     BloodMatch,
     BloodRequest,
+    DeliveryRecord,
     Donor,
     DonorAlert,
     Hospital,
@@ -37,20 +39,27 @@ def parse_date(value: str | None, formats: tuple[str, ...] = ("%Y-%m-%d",)) -> d
     return None
 
 
-def parse_datetime(value: str, *, end_of_day: bool = False) -> datetime:
-    parsed = parse_date(value)
-    if parsed is None:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00")).date()
-    moment = time.max if end_of_day else time.min
-    return datetime.combine(parsed, moment, tzinfo=timezone.utc)
+def parse_datetime(value: str, *, end_of_day: bool = False) -> datetime | None:
+    if not value or not str(value).strip():
+        return None
+    val_str = str(value).strip()
+    try:
+        return datetime.fromisoformat(val_str.replace("Z", "+00:00"))
+    except Exception:
+        pass
+    parsed = parse_date(val_str)
+    if parsed is not None:
+        moment = time.max if end_of_day else time.min
+        return datetime.combine(parsed, moment, tzinfo=timezone.utc)
+    return None
 
 
 def parse_bool(value: str | bool | None, default: bool = False) -> bool:
     if isinstance(value, bool):
         return value
-    if value is None or not value.strip():
+    if value is None or not str(value).strip():
         return default
-    return value.strip().casefold() in {"true", "1", "yes", "y"}
+    return str(value).strip().casefold() in {"true", "1", "yes", "y"}
 
 
 def read_csv(path: Path, encoding: str = "utf-8-sig") -> list[dict[str, str]]:
@@ -69,6 +78,7 @@ def synthetic_records(data_dir: Path) -> list[tuple[str, type, dict[str, str]]]:
         ("donors.csv", Donor, {"donor_id": "id"}),
         ("inventory.csv", Inventory, {"inventory_id": "id"}),
         ("requests.csv", BloodRequest, {"request_id": "id"}),
+        ("deliveries.csv", DeliveryRecord, {"delivery_id": "id"}),
         ("matches.csv", BloodMatch, {"match_id": "id", "request_id": "request_id"}),
         ("reservations.csv", Reservation, {"reservation_id": "id", "request_id": "request_id", "inventory_id": "inventory_id"}),
         ("donor_alerts.csv", DonorAlert, {"alert_id": "id", "donor_id": "donor_id", "request_id": "request_id"}),
@@ -78,40 +88,63 @@ def synthetic_records(data_dir: Path) -> list[tuple[str, type, dict[str, str]]]:
         path = data_dir / file_name
         if not path.is_file():
             raise FileNotFoundError(f"Required generated data file not found: {path}")
+        
+        valid_columns = {c.key for c in inspect(model).mapper.column_attrs}
         for source in read_csv(path):
             row = remap(source, key_map)
             row.pop("synthetic_location", None)
             row["synthetic"] = parse_bool(row.get("synthetic"), default=True)
             if row.get("source"):
-                row["source"] = row["source"].strip()
-            for field in ("latitude", "longitude", "hospital_latitude", "hospital_longitude"):
-                if field in row and row[field]:
-                    row[field] = float(row[field])
-            for field in ("units", "units_required", "units_reserved", "donation_count", "entity_id", "units_available"):
-                if field in row and row[field]:
-                    row[field] = int(row[field])
-            for field in ("response_rate", "score", "distance_km"):
-                if field in row and row[field]:
-                    row[field] = float(row[field])
-            for field in ("eligible",):
+                row["source"] = str(row["source"]).strip()
+            
+            float_fields = (
+                "latitude", "longitude", "hospital_latitude", "hospital_longitude",
+                "response_rate", "score", "distance_km", "estimated_distance_km",
+                "estimated_delivery_minutes", "cold_chain_temp",
+            )
+            for field in float_fields:
+                if field in row:
+                    row[field] = float(row[field]) if row[field] not in (None, "") else None
+
+            int_fields = (
+                "units", "units_required", "units_reserved", "donation_count",
+                "units_available", "age", "donation_history_count",
+            )
+            for field in int_fields:
+                if field in row:
+                    row[field] = int(row[field]) if row[field] not in (None, "") else None
+
+            for field in ("eligible", "phone_verified"):
                 if field in row:
                     row[field] = parse_bool(row[field])
-            for field in ("expiry_date", "last_donation_date"):
+
+            for field in ("expiry_date", "last_donation_date", "licence_issued", "licence_valid_until"):
                 if field in row:
                     row[field] = parse_date(row[field])
-            if "created_at" in row:
-                row["created_at"] = parse_datetime(row["created_at"])
-            if "sent_at" in row:
-                row["sent_at"] = parse_datetime(row["sent_at"])
+
+            dt_fields = (
+                "created_at", "sent_at", "approved_at", "dispatched_at", "delivered_at",
+                "pickup_timestamp", "dispatch_timestamp", "arrival_timestamp",
+                "picked_up_at", "last_inventory_update",
+            )
+            for field in dt_fields:
+                if field in row:
+                    row[field] = parse_datetime(row[field])
+
             if "expires_at" in row:
                 row["expires_at"] = parse_datetime(row["expires_at"], end_of_day=True)
+
             if model is DonorAlert:
-                row["delivery_status"] = "published" if row.get("status") == "sent" else "pending"
-                row["sent_at"] = parse_datetime(source.get("sent_at", ""))
+                row["delivery_status"] = "published" if row.get("status") in ("sent", "acknowledged") else "pending"
+                if "sent_at" in source:
+                    row["sent_at"] = parse_datetime(source.get("sent_at", ""))
+
             if model is AuditLog:
                 row["user_id"] = str(row["user_id"]) if row.get("user_id") else None
                 row["entity_id"] = str(row["entity_id"])
-            yield file_name, model, row
+
+            filtered_row = {k: v for k, v in row.items() if k in valid_columns}
+            yield file_name, model, filtered_row
 
 
 def licensed_bank_records(path: Path) -> list[dict]:
@@ -154,6 +187,7 @@ def import_data(
     raw_banks_csv: Path | None = RAW_BANKS_CSV,
 ) -> dict[str, int]:
     Base.metadata.create_all(bind=engine)
+    ensure_column_migrations(engine)
     counts: dict[str, int] = {}
     with SessionLocal() as session:
         with session.begin():

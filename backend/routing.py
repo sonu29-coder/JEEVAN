@@ -1,7 +1,7 @@
 """
 HEMO-GRID AI - GIS Routing Engine
 Modular graph-based routing with Dijkstra and A* (A-Star) search algorithms.
-Optimized for Thrissur medical grid: Blood Banks, Donors, and ICU Hospitals.
+Optimized for Chennai medical grid: Blood Banks, Donors, and ICU Hospitals.
 """
 
 from __future__ import annotations
@@ -116,7 +116,7 @@ class Edge:
 
 class RoadGraph:
     """
-    Weighted directed road graph representing the Thrissur GIS network
+    Weighted directed road graph representing the Chennai GIS network
     connecting ICUs, Blood Banks, Donors, and key arterial road intersections.
     """
 
@@ -303,93 +303,89 @@ class RoadGraph:
         return path, round(total_distance_km, 2), round(total_time_mins, 1)
 
 
-def build_default_thrissur_graph() -> RoadGraph:
+def build_default_chennai_graph() -> RoadGraph:
     """
-    Build the default Thrissur medical GIS road network connecting
-    ICUs, Blood Banks, Donors, and road junctions.
+    Constructs the standard arterial road network graph for Chennai medical corridor.
+    Includes major ICUs, Blood Banks, Donors, and key intersections along
+    Anna Salai, Poonamallee High Road, Inner Ring Road, and OMR.
     """
     g = RoadGraph()
 
-    # 1. ICUs (from frontend/lib/hemo-data.ts)
-    g.add_node(Node("icu-elite", "Elite Mission Hospital", 10.5089, 76.2052, "icu"))
-    g.add_node(Node("icu-westfort", "West Fort Hospital", 10.5268, 76.1993, "icu"))
-    g.add_node(Node("icu-daya", "Daya General Hospital", 10.5376, 76.1764, "icu"))
-    g.add_node(Node("icu-jubilee", "Jubilee Mission Hospital", 10.5149, 76.2291, "icu"))
+    # 1. ICUs (Chennai Synthetic Hubs)
+    g.add_node(Node("icu-elite", "Kilpauk Medical & Critical Care [SYNTHETIC DEMO]", 13.0784, 80.2415, "icu"))
+    g.add_node(Node("icu-westfort", "Anna Nagar Multispecialty Hospital [SYNTHETIC DEMO]", 13.0850, 80.2101, "icu"))
+    g.add_node(Node("icu-daya", "Porur Surgical Institute [SYNTHETIC DEMO]", 13.0382, 80.1565, "icu"))
+    g.add_node(Node("icu-jubilee", "Apollo-Greams Corridor Care [SYNTHETIC DEMO]", 13.0610, 80.2510, "icu"))
 
-    # 2. Blood Banks (from frontend/lib/hemo-data.ts)
-    g.add_node(Node("bank-gmc", "Govt Medical College Blood Bank", 10.6186, 76.2016, "bank"))
-    g.add_node(Node("bank-jubilee", "Jubilee Mission Blood Centre", 10.5181, 76.2248, "bank"))
-    g.add_node(Node("bank-ima", "IMA Blood Bank Thrissur", 10.5262, 76.2138, "bank"))
-    g.add_node(Node("bank-amala", "Amala Blood Centre", 10.5673, 76.1652, "bank"))
-    g.add_node(Node("bank-district", "District Hospital Blood Bank", 10.5195, 76.2189, "bank"))
+    # 2. Blood Banks (Chennai Synthetic Hubs)
+    g.add_node(Node("bank-gmc", "Madras Govt Medical College Blood Centre [SYNTHETIC DEMO]", 13.0833, 80.2783, "bank"))
+    g.add_node(Node("bank-jubilee", "Mylapore Community Blood Centre [SYNTHETIC DEMO]", 13.0368, 80.2676, "bank"))
+    g.add_node(Node("bank-ima", "Red Cross Blood Centre Chennai [SYNTHETIC DEMO]", 13.0680, 80.2480, "bank"))
+    g.add_node(Node("bank-amala", "Ambattur Regional Blood Bank [SYNTHETIC DEMO]", 13.1143, 80.1548, "bank"))
+    g.add_node(Node("bank-district", "Guindy Apex Blood Bank [SYNTHETIC DEMO]", 13.0067, 80.2025, "bank"))
 
-    # 3. Donors (from frontend/lib/hemo-data.ts)
-    g.add_node(Node("d1", "Aarav (Donor 1 - O-)", 10.5402, 76.2311, "donor"))
-    g.add_node(Node("d2", "Sneha (Donor 2 - O-)", 10.4961, 76.2262, "donor"))
-    g.add_node(Node("d3", "Rahul (Donor 3 - B+)", 10.5531, 76.2042, "donor"))
-    g.add_node(Node("d4", "Diya (Donor 4 - B+)", 10.5092, 76.1826, "donor"))
+    # 3. Donors (Chennai Locations)
+    g.add_node(Node("d1", "Aarav (Donor 1 - O-)", 13.0569, 80.2425, "donor"))
+    g.add_node(Node("d2", "Sneha (Donor 2 - O-)", 13.0418, 80.2341, "donor"))
+    g.add_node(Node("d3", "Rahul (Donor 3 - B+)", 13.0850, 80.2101, "donor"))
+    g.add_node(Node("d4", "Diya (Donor 4 - B+)", 13.0382, 80.1565, "donor"))
 
-    # 4. Key Arterial Junctions
-    g.add_node(Node("junc-swaraj-round", "Swaraj Round", 10.5276, 76.2144, "junction"))
-    g.add_node(Node("junc-east-fort", "East Fort Junction", 10.5230, 76.2235, "junction"))
-    g.add_node(Node("junc-west-fort", "West Fort Junction", 10.5255, 76.2010, "junction"))
-    g.add_node(Node("junc-north-bus", "North Bus Stand Junction", 10.5320, 76.2150, "junction"))
-    g.add_node(Node("junc-south-bus", "South Bus Stand Junction", 10.5215, 76.2135, "junction"))
-    g.add_node(Node("junc-punkunnam", "Punkunnam Junction", 10.5420, 76.2025, "junction"))
-    g.add_node(Node("junc-amala", "Amala Nagar Junction", 10.5650, 76.1680, "junction"))
-    g.add_node(Node("junc-medical-college", "Mulamkunnathukavu Junction", 10.6120, 76.2030, "junction"))
-    g.add_node(Node("junc-kuriachira", "Kuriachira Junction", 10.5050, 76.2180, "junction"))
-    g.add_node(Node("junc-mannuthy", "Mannuthy Bypass", 10.5300, 76.2600, "junction"))
-    g.add_node(Node("junc-koorkenchery", "Koorkenchery Junction", 10.5070, 76.2110, "junction"))
+    # 4. Key Arterial Junctions across Chennai
+    g.add_node(Node("junc-gemini", "Gemini Flyover / Anna Salai", 13.0528, 80.2508, "junction"))
+    g.add_node(Node("junc-kathipara", "Kathipara Grade Separator", 13.0067, 80.2025, "junction"))
+    g.add_node(Node("junc-madhya-kailash", "Madhya Kailash Junction / OMR", 13.0062, 80.2520, "junction"))
+    g.add_node(Node("junc-t-nagar", "T. Nagar Panagal Park", 13.0418, 80.2341, "junction"))
+    g.add_node(Node("junc-anna-arch", "Anna Arch Junction", 13.0850, 80.2101, "junction"))
+    g.add_node(Node("junc-koyambedu", "Koyambedu Roundabout", 13.0694, 80.1948, "junction"))
+    g.add_node(Node("junc-kilpauk", "Kilpauk Garden Junction", 13.0784, 80.2415, "junction"))
+    g.add_node(Node("junc-central", "Chennai Central / EVR Salai", 13.0827, 80.2707, "junction"))
+    g.add_node(Node("junc-guindy", "Guindy Race Course Link", 13.0100, 80.2120, "junction"))
+    g.add_node(Node("junc-porur", "Porur Tollgate Junction", 13.0382, 80.1565, "junction"))
 
-    # 5. Edges with realistic distances, speeds, traffic factors, and signals
-    # Swaraj Round Core Connections
-    g.add_edge("bank-ima", "junc-swaraj-round", distance_km=0.25, base_speed_kmh=35.0, traffic_factor=1.2, signals_count=1, road_name="Round West")
-    g.add_edge("junc-swaraj-round", "junc-north-bus", distance_km=0.6, base_speed_kmh=40.0, traffic_factor=1.3, signals_count=1, road_name="Round North")
-    g.add_edge("junc-swaraj-round", "junc-south-bus", distance_km=0.7, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=1, road_name="Round South")
-    g.add_edge("junc-swaraj-round", "junc-east-fort", distance_km=1.2, base_speed_kmh=45.0, traffic_factor=1.4, signals_count=2, road_name="High Road")
-    g.add_edge("junc-swaraj-round", "junc-west-fort", distance_km=1.5, base_speed_kmh=45.0, traffic_factor=1.3, signals_count=2, road_name="MG Road")
+    # 5. Edges with realistic distances, speeds, traffic factors, and road names
+    # Central & Kilpauk Corridor
+    g.add_edge("bank-gmc", "junc-central", distance_km=1.2, base_speed_kmh=35.0, traffic_factor=1.2, signals_count=1, road_name="EVR Periyar Salai")
+    g.add_edge("junc-central", "bank-ima", distance_km=2.8, base_speed_kmh=40.0, traffic_factor=1.3, signals_count=2, road_name="Poonamallee High Road")
+    g.add_edge("bank-ima", "junc-kilpauk", distance_km=1.4, base_speed_kmh=40.0, traffic_factor=1.1, signals_count=1, road_name="Kilpauk Garden Road")
+    g.add_edge("junc-kilpauk", "icu-elite", distance_km=0.4, base_speed_kmh=30.0, traffic_factor=1.0, signals_count=0, road_name="Kilpauk Medical Access")
+    g.add_edge("junc-kilpauk", "junc-anna-arch", distance_km=3.2, base_speed_kmh=45.0, traffic_factor=1.2, signals_count=2, road_name="New Avadi Road")
 
-    # East Fort & Jubilee Hub
-    g.add_edge("junc-east-fort", "bank-district", distance_km=0.6, base_speed_kmh=40.0, traffic_factor=1.1, signals_count=1, road_name="District Hospital Road")
-    g.add_edge("junc-east-fort", "bank-jubilee", distance_km=0.7, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=1, road_name="Jubilee Station Road")
-    g.add_edge("bank-jubilee", "icu-jubilee", distance_km=0.6, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=0, road_name="Jubilee Campus Link")
-    g.add_edge("junc-east-fort", "icu-jubilee", distance_km=1.1, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=1, road_name="East Fort - Jubilee Link")
-    g.add_edge("junc-east-fort", "junc-mannuthy", distance_km=4.2, base_speed_kmh=55.0, traffic_factor=1.1, signals_count=2, road_name="Palakkad Highway")
+    # Anna Nagar & Koyambedu Corridor
+    g.add_edge("junc-anna-arch", "icu-westfort", distance_km=0.5, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="2nd Avenue Anna Nagar")
+    g.add_edge("junc-anna-arch", "junc-koyambedu", distance_km=2.4, base_speed_kmh=45.0, traffic_factor=1.3, signals_count=2, road_name="100 Feet Road")
+    g.add_edge("junc-koyambedu", "junc-porur", distance_km=5.6, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Poonamallee Bypass")
+    g.add_edge("junc-porur", "icu-daya", distance_km=0.6, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=0, road_name="Mount-Poonamallee Road")
 
-    # West Fort & Daya Hub
-    g.add_edge("junc-west-fort", "icu-westfort", distance_km=0.2, base_speed_kmh=30.0, traffic_factor=1.0, signals_count=0, road_name="West Fort Approach")
-    g.add_edge("junc-west-fort", "icu-daya", distance_km=3.1, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Kanjany Road")
-    g.add_edge("junc-west-fort", "junc-punkunnam", distance_km=1.9, base_speed_kmh=45.0, traffic_factor=1.2, signals_count=1, road_name="Poothole - Punkunnam Link")
+    # Gemini & Central Spine Corridor
+    g.add_edge("bank-ima", "junc-gemini", distance_km=2.1, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=1, road_name="Anna Salai (Mount Road)")
+    g.add_edge("junc-gemini", "icu-jubilee", distance_km=0.9, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=1, road_name="Greams Road")
+    g.add_edge("junc-gemini", "junc-t-nagar", distance_km=1.8, base_speed_kmh=40.0, traffic_factor=1.3, signals_count=2, road_name="G.N. Chetty Road")
+    g.add_edge("junc-t-nagar", "junc-kathipara", distance_km=4.8, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Anna Salai Expressway")
 
-    # South Bus Stand, Koorkenchery & Elite Mission
-    g.add_edge("junc-south-bus", "junc-koorkenchery", distance_km=1.8, base_speed_kmh=45.0, traffic_factor=1.2, signals_count=1, road_name="Kodungallur Road")
-    g.add_edge("junc-koorkenchery", "icu-elite", distance_km=0.7, base_speed_kmh=40.0, traffic_factor=1.1, signals_count=1, road_name="Elite Hospital Link")
-    g.add_edge("junc-koorkenchery", "junc-kuriachira", distance_km=0.9, base_speed_kmh=45.0, traffic_factor=1.1, signals_count=1, road_name="NH Bye-pass Connection")
-    g.add_edge("junc-kuriachira", "icu-elite", distance_km=1.5, base_speed_kmh=45.0, traffic_factor=1.1, signals_count=1, road_name="Kuriachira - Elite Way")
-    g.add_edge("junc-kuriachira", "junc-east-fort", distance_km=2.2, base_speed_kmh=45.0, traffic_factor=1.3, signals_count=2, road_name="Ollur - East Fort Road")
+    # South Corridor: Guindy, Kathipara & Mylapore
+    g.add_edge("junc-kathipara", "bank-district", distance_km=0.5, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="Guindy Industrial Estate Link")
+    g.add_edge("junc-kathipara", "junc-guindy", distance_km=1.2, base_speed_kmh=45.0, traffic_factor=1.1, signals_count=1, road_name="GST Road")
+    g.add_edge("junc-guindy", "junc-madhya-kailash", distance_km=4.6, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Sardar Patel Road")
+    g.add_edge("junc-madhya-kailash", "bank-jubilee", distance_km=3.8, base_speed_kmh=45.0, traffic_factor=1.2, signals_count=2, road_name="Kamarajar Salai / Mylapore Link")
 
-    # North Corridor: Punkunnam, Amala & Govt Medical College
-    g.add_edge("junc-north-bus", "junc-punkunnam", distance_km=1.7, base_speed_kmh=45.0, traffic_factor=1.3, signals_count=2, road_name="Shornur Road")
-    g.add_edge("junc-punkunnam", "junc-amala", distance_km=4.6, base_speed_kmh=55.0, traffic_factor=1.1, signals_count=2, road_name="Kunnamkulam Arterial Road")
-    g.add_edge("junc-amala", "bank-amala", distance_km=0.5, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=0, road_name="Amala Campus Road")
-    g.add_edge("junc-amala", "icu-daya", distance_km=3.3, base_speed_kmh=50.0, traffic_factor=1.1, signals_count=1, road_name="Sobha City Bypass")
-    g.add_edge("junc-punkunnam", "junc-medical-college", distance_km=7.9, base_speed_kmh=60.0, traffic_factor=1.1, signals_count=3, road_name="Medical College Highway")
-    g.add_edge("junc-medical-college", "bank-gmc", distance_km=0.8, base_speed_kmh=40.0, traffic_factor=1.0, signals_count=1, road_name="GMC Campus Approach")
+    # Ambattur North-West Link
+    g.add_edge("junc-anna-arch", "bank-amala", distance_km=6.8, base_speed_kmh=55.0, traffic_factor=1.1, signals_count=2, road_name="Ambattur Industrial Arterial")
 
-    # Donor Links to Nearest Road Network Nodes
-    g.add_edge("d1", "junc-mannuthy", distance_km=3.2, base_speed_kmh=45.0, traffic_factor=1.0, signals_count=1, road_name="Mannuthy Local Link")
-    g.add_edge("d1", "junc-east-fort", distance_km=2.4, base_speed_kmh=40.0, traffic_factor=1.1, signals_count=1, road_name="East Link")
-    g.add_edge("d2", "junc-kuriachira", distance_km=1.4, base_speed_kmh=40.0, traffic_factor=1.0, signals_count=1, road_name="South Residential Link")
-    g.add_edge("d3", "junc-punkunnam", distance_km=1.3, base_speed_kmh=40.0, traffic_factor=1.0, signals_count=1, road_name="Punkunnam North Link")
-    g.add_edge("d4", "icu-elite", distance_km=2.3, base_speed_kmh=45.0, traffic_factor=1.0, signals_count=1, road_name="West Suburban Road")
-    g.add_edge("d4", "junc-koorkenchery", distance_km=3.1, base_speed_kmh=45.0, traffic_factor=1.1, signals_count=1, road_name="Koorkenchery Link")
+    # Donor Links to Nearest Nodes
+    g.add_edge("d1", "junc-gemini", distance_km=1.5, base_speed_kmh=40.0, traffic_factor=1.0, signals_count=1, road_name="Nungambakkam High Road")
+    g.add_edge("d2", "junc-t-nagar", distance_km=0.7, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=1, road_name="Thyagaraya Road")
+    g.add_edge("d3", "junc-anna-arch", distance_km=0.8, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="Anna Nagar East Access")
+    g.add_edge("d4", "junc-porur", distance_km=0.9, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="Porur Residential Link")
 
     return g
 
 
+# Compatibility alias so existing tests and callers resolve seamlessly
+build_default_thrissur_graph = build_default_chennai_graph
+
 # Global graph instance
-GRAPH = build_default_thrissur_graph()
+GRAPH = build_default_chennai_graph()
+
 
 
 def generate_turn_by_turn(

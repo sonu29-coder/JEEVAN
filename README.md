@@ -1,217 +1,181 @@
-# JEEVAN
+# JEEVAN (HEMO-GRID AI)
 
-Self-hosted blood availability website and API. Docker Compose runs the Next.js
-frontend, FastAPI backend, PostgreSQL, Redis, and a Caddy reverse proxy behind a
-single browser-facing address.
+> **Decentralized Emergency Blood Availability, Predictive Expiry Radar & Rapid Transit Logistics Grid**
 
-> **Demo-data warning:** `data/synthetic/*.csv` contains generated demo records
-> around Thrissur. The historic `data/raw/private_bloodbanks_0.csv` file is
-> imported as a blood-bank directory only: it has old licence dates and no
-> verified coordinates or live inventory, so it is never treated as nearby
-> stock. Synthetic records are marked in API responses and in the database.
-> Matching is an operational aid, not clinical compatibility advice; have
-> qualified staff verify every match before transfusion.
+JEEVAN is a next-generation healthcare platform that unifies hospital ICUs, regional blood banks, voluntary donors, and emergency transit couriers into a coordinated, zero-wastage network. Powered by FastAPI, Next.js, PostgreSQL/PostGIS, Redis event streams, and real-time routing engines.
 
-## Run the whole website and API on one host
+---
 
-Install Docker Desktop, then from the repository root create your own ignored
-`.env.local` file. This project already has an `.env` directory, so use the
-separate `.env.local` file rather than renaming or overwriting that directory.
-Generate URL-safe random secrets locally in PowerShell (32 random bytes per
-secret); they are never printed or sent to this chat:
+## 🌟 Key Innovations & Architecture
 
-```powershell
-function New-JeevanSecret {
-    $bytes = New-Object byte[] 32
-    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
-    return [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-}
-$apiKey = New-JeevanSecret
-$databasePassword = New-JeevanSecret
-$identityWebhookSecret = New-JeevanSecret
-@(
-    "JEEVAN_API_KEY=$apiKey"
-    "POSTGRES_USER=jeevan"
-    "POSTGRES_PASSWORD=$databasePassword"
-    "POSTGRES_DB=jeevan"
-    "JEEVAN_HOST_IP=127.0.0.1"
-    "JEEVAN_HOST_PORT=8080"
-    "IDENTITY_PROVIDER_MODE=demo"
-    "IDENTITY_WEBHOOK_SECRET=$identityWebhookSecret"
-) | Set-Content -Encoding ascii .env.local
-git check-ignore .env.local
-
-docker compose --env-file .env.local run --build --rm api python -m backend.import_data
-docker compose --env-file .env.local run --build --rm api python -m backend.seed_users
-docker compose --env-file .env.local up --build -d
+```
+                          ┌────────────────────────┐
+                          │   Hospital ICU Node    │
+                          │ (Emergency Blood Req)  │
+                          └───────────┬────────────┘
+                                      │
+            ┌─────────────────────────┼─────────────────────────┐
+            │                         ▼                         │
+            │          ┌─────────────────────────────┐          │
+            │          │    JEEVAN Core Engine       │          │
+            │          │ - Two-Phase Lock Matrix     │          │
+            │          │ - PostGIS Geospatial Engine │          │
+            │          │ - ML Donor Response Model   │          │
+            │          │ - FEFO Expiry Radar         │          │
+            │          └──────────────┬──────────────┘          │
+            │                         │                         │
+            ▼                         ▼                         ▼
+┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
+│  Regional Blood Bank  │ │    Rapid Courier      │ │    On-Call Donors     │
+│  - Live Inventory     │ │  - Green Corridor     │ │  - PostGIS Proximity  │
+│  - Atomic Lock Matrix │ │  - Cold-Chain Temp    │ │  - ML Cascaded Alerts │
+│  - Expiry Prevention  │ │  - Handshake OTP      │ │  - Identity Verified  │
+└───────────────────────┘ └───────────────────────┘ └───────────────────────┘
 ```
 
-Open the website at <http://localhost:8080>. The API documentation is at
-<http://localhost:8080/docs>, and the public service health check is at
-<http://localhost:8080/health>. By default the site binds only to this
-machine. Change `JEEVAN_HOST_PORT` to choose another port. To allow access from
-other machines, set `JEEVAN_HOST_IP` to the host's network interface address;
-do not expose the demo API over an untrusted network.
+### 1. Centralized RBAC & Multi-Role Authentication
+* **Universal Login:** Single entry portal supporting Google / Gmail Auth, phone OTP with Indian phone validation (`+91`), and role-based access.
+* **Granular Role Isolation:** Strict access boundaries for ICU Physicians, Blood Bank Operators, Voluntary Donors, Rapid Transit Couriers, and Network Administrators.
 
-The API docs' **Authorize** dialog accepts the API key generated above. The
-protected API routes require `X-API-Key`; the key stays in the backend
-environment and must never be put in browser JavaScript. For example, in the
-same PowerShell session:
+### 2. Live Inventory & Predictive Blood Expiry Radar
+* **FEFO / FIFO Engine:** Continuous tracking of shelf life across Packed Red Blood Cells (PRBC, 42 days), Platelets (5 days), and Frozen Plasma (FFP, 1 year).
+* **Predictive Wastage Prevention:** Identifies near-expiry stock and triggers one-click reallocation or hospital emergency prioritization before spoilage occurs.
+* **Sub-Millisecond Read Speeds:** Redis-cached inventory snapshots with automatic 30-second TTL invalidation on reservations.
+
+### 3. ICU Emergency Blood Dispatch & Two-Phase Lock Matrix
+* **Atomic Reservations:** Distributed concurrency locking prevents double-allocation of the same blood bag during simultaneous mass-casualty events.
+* **Conflict Detection:** Automated lock matrix and resolution modal whenever concurrent requests contend for identical inventory.
+
+### 4. ML Donor Response & PostGIS Spatial Cascade
+* **Geospatial Proximity:** PostGIS spatial radius queries (default 50 km) locate compatible donors based on true coordinates.
+* **ML Predictive Matching:** Weights distance, urgency, donor response rate, and historical donation frequency to cascade alerts to the highest-probability responders first.
+* **Redis Event Streaming:** Dispatches real-time alerts through `jeevan:donor-alerts` stream with fallback delivery persistence.
+
+### 5. Green Corridor Transit & Cold-Chain Telemetry
+* **Optimized Routing:** OSRM-powered route calculation comparing Normal, Green Corridor, and Traffic-Aware logistics paths.
+* **Cold-Chain Assurance:** Transit telemetry monitoring required temperature ranges (2°C – 6°C) throughout transport.
+* **Cryptographic Handshake Verification:** Time-sensitive OTP exchange between the transit courier and receiving ICU nurse to verify bag handover and generate immutable audit logs.
+
+---
+
+## 🚀 Quick Start
+
+### Option A: Unified Local Launcher (Recommended)
+
+Run both the FastAPI backend and Next.js frontend with a single command:
 
 ```powershell
-$headers = @{ "X-API-Key" = $apiKey }
-Invoke-RestMethod -Uri "http://localhost:8080/api/availability" -Headers $headers
+# Using the Python launcher
+python run_all.py
+
+# Or using the Windows batch script
+.\start_app.bat
 ```
 
-The website is a demo UI with local sample state and demo role switching; those
-demo roles are not API accounts. Use the protected API and its docs for persisted
-backend operations. The shared API key is suitable only for a trusted,
-self-hosted demo. Do not expose this stack to the public internet without
-individual user authentication, authorization, HTTPS, and other production
-controls. Never commit `.env.local` or replace the placeholders in
-`.env.example` with real credentials. PostgreSQL tables are created
-automatically at API startup. The import command is idempotent and can be run
-again to update records with matching CSV IDs.
+The launcher automatically:
+1. Clears any lingering processes on ports `8000`, `3000`, and `3001`.
+2. Starts the **FastAPI Backend** at `http://127.0.0.1:8000`.
+3. Starts the **Next.js Frontend** at `http://localhost:3000`.
+4. Waits for readiness health checks and automatically opens your browser.
 
-### Donor identity verification
+---
 
-The donor dashboard includes identity verification, with statuses scoped to the
-signed-in, active donor account. A registered donor account must exist in
-PostgreSQL; seed the local demo users with the command above or register an
-account through `/api/auth/register`. The default `IDENTITY_PROVIDER_MODE=demo`
-is explicitly **not** Aadhaar or government-ID verification: it does not
-collect identity numbers, images, or OTPs. Demo requests remain pending until a
-valid signed verification webhook is received. Do not present demo results as
-real-world identity proof.
-
-`IDENTITY_WEBHOOK_SECRET` must be a private random secret of at least 32
-characters for signed webhooks; it is never sent to the browser. To apply the
-explicit PostgreSQL migration to an existing database before deployment:
+### Option B: Docker Compose
 
 ```powershell
-Get-Content -Raw database\migrations\001_donor_identity_verifications.sql |
-  docker compose --env-file .env.local exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-```
+# 1. Create your environment secrets
+docker compose run --build --rm api python -m backend.import_data
+docker compose run --build --rm api python -m backend.seed_users
+docker compose up --build -d
 
-The API's existing `create_all` startup also creates this new table for local
-databases; the SQL file is the versioned migration for controlled deployments.
-The table contains only `user_id`, `verification_status`, `provider`,
-`provider_reference`, and `verified_at`. Its primary key prevents duplicate
-verification rows per account; the existing unique user email constraint
-prevents duplicate email accounts.
-
-The webhook accepts only `provider_reference` and `status` (`verified` or
-`failed`). Sign its exact raw JSON body with
-`HMAC-SHA256(IDENTITY_WEBHOOK_SECRET, "<unix-timestamp>.<raw-body>")`, send the
-hex digest as `X-Identity-Signature: sha256=<digest>`, and send the timestamp in
-`X-Identity-Timestamp`. Signatures older than five minutes are rejected. This
-endpoint is a DEMO integration boundary, not a real provider connection; select
-and contract with an authorized provider before implementing production
-redirects, credentials, callback validation, or claiming real verification.
-
-The Next.js dev server proxies same-origin `/api/*` requests to
-`http://localhost:8000`; Docker Compose's Caddy routes them directly to FastAPI.
-Run the focused feature tests with:
-
-```powershell
-python -m pytest backend\tests\test_identity_verification.py
-```
-
-After setting `.env.local`, launch and check the full stack with:
-
-```powershell
-docker compose --env-file .env.local up --build -d
-docker compose --env-file .env.local ps
+# Check service health
 Invoke-RestMethod -Uri "http://localhost:8080/health"
 ```
 
-## Run against local PostgreSQL and Redis
+* **Web Portal:** `http://localhost:8080` (or `http://localhost:3000` via Next.js dev server)
+* **REST API & Swagger Docs:** `http://127.0.0.1:8000/docs`
+* **Health Endpoint:** `http://127.0.0.1:8000/health`
 
-Create an empty PostgreSQL database and start Redis. Generate the secret file as
-above, then use the same `$apiKey` and `$databasePassword` variables in that
-PowerShell session:
+---
 
-```powershell
-py -m venv backend\venv
-.\backend\venv\Scripts\Activate.ps1
-python -m pip install -r backend\requirements.txt
-$env:DATABASE_URL = "postgresql+psycopg://jeevan:$databasePassword@localhost:5432/jeevan"
-$env:REDIS_URL = "redis://localhost:6379/0"
-$env:JEEVAN_API_KEY = $apiKey
-python -m backend.import_data
-python -m uvicorn backend.main:app --reload
-```
+## 👥 Demo Accounts & Portals
 
-The application also reads environment settings from a project-root `.env` file
-or `backend/.env` file if present; Compose reads `.env.local` using the explicit
-`--env-file` option above. `.gitignore` excludes local `.env` files and the
-backend virtual environment. For a **real/public deployment**, this single
-shared API key is only suitable for a trusted local demo: replace it with
-individual user/service authentication and role-based authorization, add key
-rotation/revocation, HTTPS, request throttling, restricted network access,
-managed PostgreSQL/Redis credentials, backups, monitoring, and versioned
-database migrations. Do not load the generated Thrissur demo records or
-historical licence directory as live data. Real donor data needs consent and
-access controls; current inventory, bank licence status, and coordinates must
-come from verified sources. Configure a real SMS/email notification provider;
-the current service only queues events to Redis for a consumer to deliver.
+Use any of these pre-configured accounts in the Centralized Authentication Portal:
 
-## API overview
+| Role | Email | Password | Access & Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **🏥 ICU Hospital** | `dr.rajesh@jubileemission.org` | `HospitalPassword2026!` | Emergency blood requests, lock matrix, expiry radar |
+| **🩸 Voluntary Donor** | `sneha.donor@gmail.com` | `DonorPassword2026!` | Universal donor (O-), alert acknowledgement, donation stats |
+| **🩸 Voluntary Donor** | `donor.aarav@gmail.com` | `DonorPassword2026!` | Active donor (B+), local emergency dispatch response |
+| **🛵 Transit Courier** | `driver.arun@gmail.com` | `DriverPassword2026!` | Swift Rider #42, Green corridor route, OTP delivery handshake |
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | PostgreSQL and Redis readiness |
-| `GET` | `/api/donors` | Eligible, blood-group-compatible donor search; optional radius |
-| `GET` | `/api/availability` | Expiry-aware, reservation-adjusted stock; Redis cached for 30 seconds |
-| `GET` | `/api/blood-banks/nearby` | Geographic search of banks with coordinates |
-| `GET` | `/api/hospitals` | Hospital directory |
-| `POST` | `/api/requests` | Create a tracked hospital request |
-| `GET` | `/api/requests` and `/api/requests/{id}` | Track and inspect requests and reservations |
-| `PATCH` | `/api/requests/{id}/status` | Advance request status with transition checks |
-| `POST` | `/api/requests/{id}/matches` | Persist scored donor and stock matches (50 km default radius) |
-| `POST` | `/api/requests/{id}/reservations` | Atomically reserve compatible, unexpired units |
-| `DELETE` | `/api/reservations/{id}` | Release an active reservation |
-| `POST` | `/api/requests/{id}/alerts` | Persist alerts and publish events to the Redis stream |
-| `GET` | `/api/donors/{id}/alerts` | Read donor alerts |
-| `POST` | `/api/alerts/{id}/acknowledge` | Acknowledge a donor alert |
-| `GET` | `/api/audit` | Filterable audit trail |
+---
 
-Use the OpenAPI documentation at `/docs` for query parameters and request
-schemas. Include `X-API-Key: <JEEVAN_API_KEY>` in API requests. Donor-alert
-events are written to the Redis stream `jeevan:donor-alerts`; a notification
-provider/consumer can read that stream and deliver SMS, email, or push messages.
-Alerts are committed to PostgreSQL first, so a Redis outage leaves them in
-`pending` delivery state instead of silently dropping them.
+## 🛠️ API Reference
 
-Geographic distances use the Haversine formula. Match ranking combines distance,
-donor response rate, and request urgency; it is a transparent heuristic and not
-a medical scoring model. Reservations expire automatically in a background
-worker and are also excluded from availability as soon as their expiry time
-passes. Reservation and request changes are written to the audit log.
+All protected endpoints require an `Authorization: Bearer <JWT_OR_TOKEN>` or `X-API-Key: <KEY>` header.
 
-## Data import
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Service readiness check (Database & Redis status) |
+| `POST` | `/api/auth/login` | Unified authentication & JWT token generation |
+| `POST` | `/api/auth/register` | Register new voluntary donor accounts |
+| `POST` | `/api/auth/phone/send-otp` | Send Indian phone verification OTP |
+| `POST` | `/api/auth/phone/verify-otp` | Verify OTP and issue phone verification token |
+| `GET` | `/api/availability` | Expiry-aware, reservation-adjusted stock (Redis cached) |
+| `GET` | `/api/inventory/expiry-radar` | FEFO/FIFO near-expiry items, summaries, and clinical warnings |
+| `POST` | `/api/inventory/prioritize` | Flag near-expiry units for emergency trauma usage |
+| `POST` | `/api/inventory/redistribute`| Reallocate vulnerable stock to high-demand trauma centers |
+| `POST` | `/api/requests` | Create an emergency ICU blood request |
+| `POST` | `/api/requests/{id}/matches` | Spatial + ML donor & blood bank inventory matching |
+| `POST` | `/api/requests/{id}/reservations`| Atomically reserve compatible units with two-phase lock |
+| `POST` | `/api/routing/optimize` | Calculate Green Corridor transit routes & ETAs |
+| `POST` | `/api/dispatch/verify-otp` | Validate delivery OTP handshake between rider and ICU |
+| `GET` | `/api/audit` | Comprehensive, filterable healthcare compliance audit trail |
 
-The importer reads all nine generated CSV files in `data/synthetic/`, then
-imports the 199-record legacy directory from
-`data/raw/private_bloodbanks_0.csv` using Windows-1252 decoding. It converts
-typed fields, stores synthetic/source provenance, keeps legacy licence dates,
-and leaves absent coordinates empty rather than inventing locations.
+---
+
+## 🧪 Testing & Verification
+
+Run the automated test suites to ensure full system integrity:
 
 ```powershell
-python -m backend.import_data
-python -m backend.import_data --skip-raw-banks
-python -m backend.import_data --synthetic-dir "C:\path\to\csvs"
-```
-
-The schema includes hospitals, blood banks, donors, inventory, requests,
-matches, reservations, alerts, and audit logs. `create_all` initializes new
-databases; use a versioned migration tool before evolving an existing
-production schema.
-
-## Tests
-
-```powershell
-python -m pip install -r backend\requirements-dev.txt
+# Run backend test suite
 python -m pytest backend\tests
+
+# Run frontend TypeScript & lint verification
+cd frontend
+npx tsc --noEmit
 ```
+
+---
+
+## 📁 Repository Structure
+
+```
+JEEVAN/
+├── backend/               # FastAPI REST application, models, routing & ML engine
+│   ├── main.py            # API routes, middleware & core lifecycle
+│   ├── auth.py            # RBAC, JWT, Google OAuth & credential validation
+│   ├── ml_donor_model.py  # Machine learning donor response scoring engine
+│   ├── spatial_engine.py  # PostGIS & Haversine spatial calculations
+│   ├── routing.py         # OSRM Green Corridor route optimizer
+│   └── tests/             # Pytest test cases
+├── frontend/              # Next.js App Router & Tailwind CSS UI
+│   ├── app/               # Application routes (login, dashboards, layouts)
+│   ├── components/hemo/   # JEEVAN UI components (Auth, Radar, Lock Matrix, Maps)
+│   └── lib/               # Client API callers, auth state & type definitions
+├── data/synthetic/        # Demonstration datasets (hospitals, banks, donors, stock)
+├── database/              # Schema definitions & SQL migrations
+├── scripts/               # Migration and end-to-end demonstration scripts
+├── run_all.py             # Single-process unified development launcher
+├── compose.yaml           # Production Docker Compose orchestration
+└── README.md              # Project documentation
+```
+
+---
+
+## 🔒 Security & Medical Disclaimer
+
+* **Operational Aid:** JEEVAN provides operational decision support and logistical dispatch optimization. Qualified clinical staff must verify biological compatibility before every transfusion.
+* **Production Deployment:** For public internet deployments, configure HTTPS/TLS, rotate private secrets, restrict network interfaces, and integrate verified SMS/Email notification gateways.

@@ -204,14 +204,14 @@ class PostGISSpatialEngine:
         except Exception:
             rows = []
 
-        # If database table is empty or unseeded, use Thrissur regional blood banks
+        # If database table is empty or unseeded, use Chennai regional blood banks
         if not rows:
             default_banks = [
-                ("bank-ima", "IMA Blood Bank Complex & Research Centre", 10.5218, 76.2142, "+91 487 233 1234", "Chembukkavu, Thrissur"),
-                ("bank-jubilee", "Jubilee Mission Blood Centre", 10.5181, 76.2248, "+91 487 243 2200", "East Fort, Thrissur"),
-                ("bank-gmc", "Govt Medical College Blood Bank", 10.6186, 76.2016, "+91 487 220 0310", "Mulamkunnathukavu, Thrissur"),
-                ("bank-amala", "Amala Blood Centre", 10.5673, 76.1652, "+91 487 230 4000", "Amalanagar, Thrissur"),
-                ("bank-district", "District General Hospital Blood Bank", 10.5195, 76.2189, "+91 487 233 4567", "Palace Road, Thrissur"),
+                ("bank-ima", "Red Cross Blood Centre Chennai", 13.0680, 80.2480, "+91 44 2855 4444", "Montieth Road, Egmore, Chennai"),
+                ("bank-jubilee", "Mylapore Lions Blood Centre", 13.0368, 80.2676, "+91 44 2498 1234", "Royapettah High Road, Mylapore, Chennai"),
+                ("bank-gmc", "Madras Medical College Blood Bank", 13.0836, 80.2775, "+91 44 2530 5000", "EVR Periyar Salai, Park Town, Chennai"),
+                ("bank-amala", "Ambattur Rotaract Blood Bank", 13.1143, 80.1548, "+91 44 2658 2200", "CTH Road, Ambattur, Chennai"),
+                ("bank-district", "Guindy Regional Blood Bank", 13.0067, 80.2025, "+91 44 2235 1100", "GST Road, Guindy, Chennai"),
             ]
             rows = default_banks
 
@@ -247,7 +247,7 @@ class PostGISSpatialEngine:
         if not path_coords or len(path_coords) < 2:
             return {"type": "Polygon", "coordinates": []}
 
-        # Convert buffer meters to approx degree offsets for Thrissur (~10.5N)
+        # Convert buffer meters to approx degree offsets for Chennai (~13.0N)
         lat_offset = buffer_meters / 111000.0
         lng_offset = buffer_meters / (111000.0 * math.cos(math.radians(path_coords[0][0])))
 

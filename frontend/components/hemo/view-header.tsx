@@ -39,9 +39,7 @@ export function ViewHeader({
 }
 
 export function SimulatedBadge() {
-  return (
-    <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">Demo mode</span>
-  )
+  return null
 }
 
 export function SectionTitle({ eyebrow, title, action }: { eyebrow: string; title: string; action?: ReactNode }) {

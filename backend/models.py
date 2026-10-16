@@ -34,6 +34,15 @@ class Hospital(Base):
     email: Mapped[str | None] = mapped_column(String(254))
     synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source: Mapped[str] = mapped_column(String(80), default="manual", nullable=False)
+    # Chennai synthetic metadata fields
+    facility_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    area: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    pincode: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    available_blood_groups: Mapped[str | None] = mapped_column(Text, nullable=True)
+    available_units_by_blood_group: Mapped[str | None] = mapped_column(Text, nullable=True)
+    emergency_contact_demo: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    operating_status: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    last_inventory_update: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class BloodBank(Base):
@@ -53,6 +62,7 @@ class BloodBank(Base):
     licence_valid_until: Mapped[date | None] = mapped_column(Date)
     synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source: Mapped[str] = mapped_column(String(80), default="manual", nullable=False)
+    area: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
 
 class Donor(Base):
@@ -74,6 +84,14 @@ class Donor(Base):
     eligible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source: Mapped[str] = mapped_column(String(80), default="manual", nullable=False)
+    # Synthetic demographic and workflow status fields
+    age: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gender: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(120), default="Chennai", nullable=True)
+    area: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    availability_status: Mapped[str | None] = mapped_column(String(40), default="AVAILABLE", nullable=True)
+    contact_verification_status: Mapped[str | None] = mapped_column(String(40), default="VERIFIED", nullable=True)
+    consent_status: Mapped[str | None] = mapped_column(String(60), default="EXPLICIT_CONSENT_GIVEN", nullable=True)
 
 
 class Inventory(Base):
@@ -112,6 +130,15 @@ class BloodRequest(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     source: Mapped[str] = mapped_column(String(80), default="api", nullable=False)
+    # ICU clinical workflow and dispatch linking
+    department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    patient_identifier: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    priority: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    assigned_delivery_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
 
 
 class BloodMatch(Base):
@@ -233,3 +260,42 @@ class PhoneVerification(Base):
     user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class DeliveryRecord(Base):
+    __tablename__ = "delivery_records"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    dispatch_code: Mapped[str] = mapped_column(String(80), nullable=False)
+    request_id: Mapped[str | None] = mapped_column(ForeignKey("blood_requests.id", ondelete="SET NULL"), nullable=True)
+    courier_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    courier_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    pickup_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    pickup_address: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    pickup_area: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    destination_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    destination_department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    destination_area: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    blood_group: Mapped[str] = mapped_column(String(10), nullable=False)
+    component: Mapped[str] = mapped_column(String(40), nullable=False)
+    units: Mapped[int] = mapped_column(Integer, nullable=False)
+    priority: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    estimated_distance_km: Mapped[float | None] = mapped_column(Float, nullable=True)
+    estimated_delivery_minutes: Mapped[float | None] = mapped_column(Float, nullable=True)
+    vehicle_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    cold_chain_temp: Mapped[float] = mapped_column(Float, nullable=False, default=3.8)
+    pickup_otp: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    delivery_otp: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    picked_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dispatch_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    arrival_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    proof_of_handover_status: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    exception_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    synthetic: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    source_facility_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    destination_facility_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    data_source: Mapped[str | None] = mapped_column(String(80), default="SYNTHETIC_CHENNAI_DEMO", nullable=True)
+

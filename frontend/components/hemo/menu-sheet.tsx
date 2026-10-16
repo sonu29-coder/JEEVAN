@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useGrid, type Tab } from './grid-store'
+import { JeevanLogo } from './jeevan-logo'
 
 const LINKS: { tab: Tab; label: string; hint: string; icon: LucideIcon }[] = [
   { tab: 'home', label: 'Home', hint: 'Overview of your area', icon: House },
@@ -27,7 +28,7 @@ const LINKS: { tab: Tab; label: string; hint: string; icon: LucideIcon }[] = [
 ]
 
 export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { setTab, openExpiryRadar } = useGrid()
+  const { setTab, openExpiryRadar, setShowDashboardSelector, logout } = useGrid()
 
   useEffect(() => {
     if (!open) return
@@ -56,18 +57,13 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
             className="flex h-full w-[82%] flex-col bg-background p-5 shadow-2xl"
           >
             <div className="flex items-center justify-between">
-              <p className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-                <span className="grid size-9 place-items-center rounded-xl bg-coral text-white">
-                  <Droplets className="size-5" aria-hidden="true" />
-                </span>
-                JEEVAN
-              </p>
+              <JeevanLogo iconSize="md" showText={true} showSubtitle={true} />
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close menu"
                 autoFocus
-                className="grid size-10 place-items-center rounded-xl border bg-card"
+                className="grid size-10 place-items-center rounded-xl border bg-card text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <X className="size-5" aria-hidden="true" />
               </button>
@@ -123,49 +119,44 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
 
               <li className="pt-2 border-t border-border mt-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 mb-1.5 block">
-                  Dedicated Login Portals
+                  Workspace & Account
                 </span>
                 <div className="grid grid-cols-1 gap-1">
-                  <a
-                    href="/login/icu"
-                    className="flex items-center gap-2.5 rounded-xl p-2 text-xs font-semibold hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      setShowDashboardSelector(true)
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-xs font-semibold hover:bg-coral/10 text-coral transition-colors text-left cursor-pointer"
                   >
-                    <span className="grid size-7 place-items-center rounded-lg bg-red-100 dark:bg-red-950/60 shrink-0">
+                    <span className="grid size-7 place-items-center rounded-lg bg-coral/15 text-coral shrink-0">
                       🏥
                     </span>
-                    <span className="flex-1 truncate">ICU Hospital Login</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold">Switch Workspace</p>
+                      <p className="text-[11px] text-muted-foreground truncate">Choose an authorized workspace</p>
+                    </div>
                     <ChevronRight className="size-3.5 opacity-60" />
-                  </a>
+                  </button>
 
-                  <a
-                    href="/login/donor"
-                    className="flex items-center gap-2.5 rounded-xl p-2 text-xs font-semibold hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      logout()
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-xs font-semibold hover:bg-destructive/10 text-destructive transition-colors text-left cursor-pointer border-t border-border/50 mt-1"
                   >
-                    <span className="grid size-7 place-items-center rounded-lg bg-rose-100 dark:bg-rose-950/60 shrink-0">
-                      🩸
+                    <span className="grid size-7 place-items-center rounded-lg bg-destructive/15 text-destructive shrink-0">
+                      🔒
                     </span>
-                    <span className="flex-1 truncate">Blood Donor Login</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold">Sign Out</p>
+                      <p className="text-[11px] text-muted-foreground truncate">Return to central login screen</p>
+                    </div>
                     <ChevronRight className="size-3.5 opacity-60" />
-                  </a>
-
-                  <a
-                    href="/login/driver"
-                    className="flex items-center gap-2.5 rounded-xl p-2 text-xs font-semibold hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors"
-                  >
-                    <span className="grid size-7 place-items-center rounded-lg bg-emerald-100 dark:bg-emerald-950/60 shrink-0">
-                      🛵
-                    </span>
-                    <span className="flex-1 truncate">Logistics Driver Login</span>
-                    <ChevronRight className="size-3.5 opacity-60" />
-                  </a>
-
-                  <a
-                    href="/login"
-                    className="flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <span>View All Role Login Portals</span>
-                    <ChevronRight className="size-3" />
-                  </a>
+                  </button>
                 </div>
               </li>
             </ul>

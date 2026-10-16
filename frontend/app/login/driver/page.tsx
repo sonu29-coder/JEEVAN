@@ -112,8 +112,8 @@ export default function DriverLoginPage() {
             <GoogleAuthButton
               portal="driver"
               className="mb-3"
-              onSuccess={(msg) => {
-                setSuccessMsg(msg)
+              onSuccess={(res) => {
+                setSuccessMsg(res.message)
                 setTimeout(() => router.push('/?role=driver'), 500)
               }}
               onError={(err) => setErrorMsg(err)}

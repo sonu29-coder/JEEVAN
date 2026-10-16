@@ -451,8 +451,8 @@ export default function DonorLoginPage() {
                 <GoogleAuthButton
                   portal="donor"
                   className="mb-3"
-                  onSuccess={(msg) => {
-                    setSuccessMsg(msg)
+                  onSuccess={(res) => {
+                    setSuccessMsg(res.message)
                     setTimeout(() => router.push('/?role=donor'), 500)
                   }}
                   onError={(err) => setErrorMsg(err)}

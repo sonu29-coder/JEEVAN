@@ -52,8 +52,13 @@ def main():
     backend_env = os.environ.copy()
     backend_env["PYTHONPATH"] = str(ROOT_DIR)
 
+    venv_python = ROOT_DIR / "backend" / "venv" / "Scripts" / ("python.exe" if sys.platform == "win32" else "python")
+    if not venv_python.is_file():
+        venv_python = ROOT_DIR / "backend" / "venv" / "bin" / "python"
+    py_exec = str(venv_python) if venv_python.is_file() else sys.executable
+
     backend_proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"],
+        [py_exec, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload"],
         cwd=str(ROOT_DIR),
         env=backend_env,
     )
@@ -64,6 +69,7 @@ def main():
     frontend_proc = subprocess.Popen(
         [npm_cmd, "run", "dev"],
         cwd=str(FRONTEND_DIR),
+        shell=sys.platform == "win32",
     )
 
     # 3. Wait for services to be ready
@@ -71,7 +77,7 @@ def main():
     backend_ready = False
     frontend_ready = False
 
-    for _ in range(40):
+    for _ in range(60):
         if not backend_ready:
             backend_ready = check_service("http://127.0.0.1:8000/health")
         if not frontend_ready:

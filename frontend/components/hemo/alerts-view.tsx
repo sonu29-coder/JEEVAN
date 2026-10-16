@@ -45,7 +45,7 @@ export function AlertsView() {
               </span>
             </div>
             <p className="text-xs font-bold text-foreground truncate">Capt. Dr. Arun Balakrishnan</p>
-            <p className="text-[10px] text-muted-foreground truncate">23 Kerala Bn NCC • 128 Cadets on standby</p>
+            <p className="text-[10px] text-muted-foreground truncate">1 TN Armoured Sqn NCC Chennai • 128 Cadets on standby</p>
           </div>
         </div>
         <button

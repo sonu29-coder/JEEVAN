@@ -51,18 +51,18 @@ class FirebaseFCMEngine:
         self._init_default_demo_devices()
 
     def _init_default_demo_devices(self):
-        """Seed default tokens for Thrissur medical grid stakeholders."""
+        """Seed default tokens for Chennai medical grid stakeholders."""
         default_devices = [
-            ("icu-elite", "ICU_HOSPITAL", "fcm_token_icu_elite_4892", ["emergency-alerts-thrissur", "icu-dispatches"]),
-            ("icu-westfort", "ICU_HOSPITAL", "fcm_token_icu_westfort_1120", ["emergency-alerts-thrissur", "icu-dispatches"]),
-            ("bank-ima", "BLOOD_BANK", "fcm_token_bank_ima_9934", ["emergency-alerts-thrissur", "stock-alerts"]),
+            ("icu-elite", "ICU_HOSPITAL", "fcm_token_icu_elite_4892", ["emergency-alerts-chennai", "icu-dispatches"]),
+            ("icu-westfort", "ICU_HOSPITAL", "fcm_token_icu_westfort_1120", ["emergency-alerts-chennai", "icu-dispatches"]),
+            ("bank-ima", "BLOOD_BANK", "fcm_token_bank_ima_9934", ["emergency-alerts-chennai", "stock-alerts"]),
             ("courier-42", "COURIER", "fcm_token_courier_42_7712", ["courier-jobs"]),
             ("donor-d1", "DONOR", "fcm_token_donor_aarav_3311", ["donor-requests-o-negative"]),
             (
-                "ncc-coord-thrissur",
+                "ncc-coord-chennai",
                 "NCC_BLOOD_CLUB_COORDINATOR",
-                "fcm_token_ncc_coordinator_23_kerala",
-                ["emergency-alerts-thrissur", "ncc-cadet-mobilization"],
+                "fcm_token_ncc_coordinator_chennai",
+                ["emergency-alerts-chennai", "ncc-cadet-mobilization"],
             ),
         ]
         for u_id, role, token, topics in default_devices:
@@ -78,18 +78,18 @@ class FirebaseFCMEngine:
     ) -> Dict[str, Any]:
         """
         Dispatches an automatic high-priority emergency message to the
-        Single Verified College NCC Coordinator & Blood Club Leader.
+        Single Verified College NCC Coordinator & Blood Club Leader in Chennai.
         """
         coordinator_name = "Capt. Dr. Arun Balakrishnan"
-        coordinator_unit = "23 Kerala Battalion NCC • St. Thomas College & GEC Thrissur"
-        coordinator_phone = "+91 94471 28904"
-        token = "fcm_token_ncc_coordinator_23_kerala"
+        coordinator_unit = "1 Tamil Nadu Armoured Sqn NCC • Loyola & Anna University Blood Corps, Chennai"
+        coordinator_phone = "+91 44 2817 8200"
+        token = "fcm_token_ncc_coordinator_chennai"
 
         title = f"🚨 URGENT CODE RED: {units} Units {blood_group} Needed at {hospital_name}"
         body = (
             f"Official Emergency Alert for College NCC Coordinator {coordinator_name}: "
             f"{hospital_name} requires immediate emergency dispatch of {units} units {blood_group} "
-            f"({urgency.upper()}). Please mobilize verified college NCC cadets."
+            f"({urgency.upper()}). Please mobilize verified college NCC cadets across Chennai corridor."
         )
 
         fcm_res = self.send_to_token(
@@ -139,7 +139,7 @@ class FirebaseFCMEngine:
             user_id=user_id,
             role=role,
             fcm_token=fcm_token,
-            subscribed_topics=topics or ["emergency-alerts-thrissur"],
+            subscribed_topics=topics or ["emergency-alerts-chennai"],
         )
         self.devices[fcm_token] = dev
         return dev
@@ -285,7 +285,7 @@ class OTPVerificationManager:
 
             # Trigger Firebase push notifications for delivery confirmation
             self.fcm.broadcast_to_topic(
-                topic="emergency-alerts-thrissur",
+                topic="emergency-alerts-chennai",
                 title="✅ Emergency Blood Delivery Handshake Completed",
                 body=f"Custody verified for {stock_id or 'blood unit'}. Handshake confirmed at ICU Hospital.",
                 data={

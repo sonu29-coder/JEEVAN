@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { GoogleAuthButton } from '@/components/hemo/google-auth-button'
+import { JeevanLogo } from '@/components/hemo/jeevan-logo'
 import { DEMO_USERS, loginUser, type Portal } from '@/lib/hemo-auth'
 
 export default function LoginPage() {
@@ -42,7 +43,7 @@ export default function LoginPage() {
       name: 'ICU Hospital Portal',
       subtitle: 'Physicians & Surgeons',
       icon: Hospital,
-      badge: 'NABH Node',
+      badge: 'NABH Accredited',
       bgIcon: 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400',
       loginUrl: '/login/icu',
       user: 'Dr. Rajesh Nair, MD',
@@ -74,7 +75,7 @@ export default function LoginPage() {
       <div className="relative mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden bg-background sm:h-[min(920px,calc(100dvh-3rem))] sm:rounded-[36px] sm:border sm:shadow-xl">
         {/* Top Header */}
         <header className="z-30 shrink-0 border-b bg-background px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Link
               href="/"
               className="grid size-9 place-items-center rounded-xl border bg-card text-foreground transition-colors hover:bg-muted"
@@ -82,13 +83,7 @@ export default function LoginPage() {
             >
               <ArrowLeft className="size-4" />
             </Link>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-coral flex items-center gap-1.5">
-                <Shield className="size-3.5" />
-                Auth Gateway
-              </p>
-              <p className="text-xs text-muted-foreground font-medium">Select your portal</p>
-            </div>
+            <JeevanLogo iconSize="sm" showText={true} />
           </div>
 
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-muted px-2.5 py-0.5 rounded-full border">
@@ -113,8 +108,8 @@ export default function LoginPage() {
             <GoogleAuthButton
               portal="hospital"
               className="mb-3"
-              onSuccess={(msg) => {
-                setAuthMsg(msg)
+              onSuccess={(res) => {
+                setAuthMsg(res.message)
                 setTimeout(() => router.push('/?role=hospital'), 400)
               }}
               onError={(err) => setAuthMsg(err)}

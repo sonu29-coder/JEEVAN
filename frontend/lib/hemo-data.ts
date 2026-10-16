@@ -1,5 +1,5 @@
-export const GRID_CENTER: [number, number] = [10.5276, 76.2144]
-export const USER_LOCATION: [number, number] = [10.5242, 76.2106]
+export const GRID_CENTER: [number, number] = [13.0827, 80.2707] // Chennai Central
+export const USER_LOCATION: [number, number] = [13.0418, 80.2341] // T. Nagar, Chennai
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const
 export const COMPONENTS = ['Whole Blood', 'PRBC', 'Platelets'] as const
@@ -32,18 +32,18 @@ export interface Site {
 }
 
 export const ICUS: Site[] = [
-  { id: 'icu-elite', name: 'Elite Mission Hospital', short: 'Elite Mission', position: [10.5089, 76.2052] },
-  { id: 'icu-westfort', name: 'West Fort Hospital', short: 'West Fort', position: [10.5268, 76.1993] },
-  { id: 'icu-daya', name: 'Daya General Hospital', short: 'Daya General', position: [10.5376, 76.1764] },
-  { id: 'icu-jubilee', name: 'Jubilee Mission Hospital', short: 'Jubilee', position: [10.5149, 76.2291] },
+  { id: 'icu-elite', name: 'Kilpauk Medical College Hospital', short: 'Kilpauk MCH', position: [13.0784, 80.2415] },
+  { id: 'icu-westfort', name: 'Anna Nagar Superspeciality Hospital', short: 'Anna Nagar SSH', position: [13.0850, 80.2101] },
+  { id: 'icu-daya', name: 'Porur Emergency Care Centre', short: 'Porur ECC', position: [13.0382, 80.1565] },
+  { id: 'icu-jubilee', name: 'Apollo Greams Trauma ICU', short: 'Greams Trauma', position: [13.0528, 80.2508] },
 ]
 
 export const BANKS: Site[] = [
-  { id: 'bank-gmc', name: 'Govt Medical College Blood Bank', short: 'GMC Bank', position: [10.6186, 76.2016] },
-  { id: 'bank-jubilee', name: 'Jubilee Mission Blood Centre', short: 'Jubilee Centre', position: [10.5181, 76.2248] },
-  { id: 'bank-ima', name: 'IMA Blood Bank Thrissur', short: 'IMA Bank', position: [10.5262, 76.2138] },
-  { id: 'bank-amala', name: 'Amala Blood Centre', short: 'Amala Centre', position: [10.5673, 76.1652] },
-  { id: 'bank-district', name: 'District Hospital Blood Bank', short: 'District Bank', position: [10.5195, 76.2189] },
+  { id: 'bank-gmc', name: 'Madras Medical College Blood Bank', short: 'MMC Blood Bank', position: [13.0836, 80.2775] },
+  { id: 'bank-jubilee', name: 'Mylapore Lions Blood Centre', short: 'Mylapore Lions', position: [13.0368, 80.2676] },
+  { id: 'bank-ima', name: 'Red Cross Blood Centre Chennai', short: 'Red Cross Chennai', position: [13.0680, 80.2480] },
+  { id: 'bank-amala', name: 'Ambattur Rotaract Blood Bank', short: 'Ambattur Blood', position: [13.1143, 80.1548] },
+  { id: 'bank-district', name: 'Guindy Regional Blood Bank', short: 'Guindy Regional', position: [13.0067, 80.2025] },
 ]
 
 export interface Donor {
@@ -54,10 +54,10 @@ export interface Donor {
 }
 
 export const DONORS: Donor[] = [
-  { id: 'd1', group: 'O-', position: [10.5402, 76.2311], icuId: 'icu-elite' },
-  { id: 'd2', group: 'O-', position: [10.4961, 76.2262], icuId: 'icu-elite' },
-  { id: 'd3', group: 'B+', position: [10.5531, 76.2042], icuId: 'icu-westfort' },
-  { id: 'd4', group: 'B+', position: [10.5092, 76.1826], icuId: 'icu-westfort' },
+  { id: 'd1', group: 'O-', position: [13.0600, 80.2400], icuId: 'icu-elite' },
+  { id: 'd2', group: 'O-', position: [13.0450, 80.2300], icuId: 'icu-elite' },
+  { id: 'd3', group: 'B+', position: [13.0800, 80.2150], icuId: 'icu-westfort' },
+  { id: 'd4', group: 'B+', position: [13.0350, 80.1600], icuId: 'icu-westfort' },
 ]
 
 export interface StockItem {
@@ -270,10 +270,10 @@ export function computeExpiryRadarUnits(stock: StockItem[], now: number): Expiry
     if (days >= 0 && days <= 4 && s.units > 0) {
       if (s.bankId !== 'bank-gmc') {
         targetId = 'bank-gmc'
-        targetName = 'Govt Medical College Blood Bank'
+        targetName = 'Madras Medical College Blood Bank'
       } else {
         targetId = 'bank-jubilee'
-        targetName = 'Jubilee Mission Blood Centre'
+        targetName = 'Mylapore Lions Blood Centre'
       }
       rules.push({
         id: 'INTER_FACILITY_TRANSFER_RECOMMENDED',

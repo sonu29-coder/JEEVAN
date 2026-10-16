@@ -20,12 +20,23 @@ Workflow:
 """
 
 import json
+import os
 import sys
 import urllib.request
 import urllib.error
 
-API_URL = "http://127.0.0.1:8080/api"
-HEALTH_URL = "http://127.0.0.1:8080/health"
+# Ensure stdout supports UTF-8 on Windows
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+PORT = os.environ.get("PORT", "8000")
+BASE_URL = os.environ.get("JEEVAN_BASE_URL", f"http://127.0.0.1:{PORT}")
+API_URL = f"{BASE_URL}/api"
+HEALTH_URL = f"{BASE_URL}/health"
+
 
 
 def make_request(url: str, method: str = "GET", data: dict = None, token: str = None) -> tuple[int, dict]:
@@ -49,7 +60,7 @@ def make_request(url: str, method: str = "GET", data: dict = None, token: str = 
 
 def run_e2e_demo():
     print("=" * 70)
-    print("   JEEVAN — Smart Blood Availability Network (Thrissur, Kerala)")
+    print("   JEEVAN — Smart Blood Availability Network (Chennai, Tamil Nadu)")
     print("          End-to-End Operational Lifecycle Demonstration        ")
     print("=" * 70)
 
@@ -74,15 +85,15 @@ def run_e2e_demo():
     print(f"  -> JWT Access Token: {token[:24]}...")
 
     # Step 3: Emergency Blood Request Submission
-    print("\n[Step 3/14] Submitting Critical ICU Request for O- PRBC at Jubilee Mission...")
+    print("\n[Step 3/14] Submitting Critical ICU Request for O- PRBC at Chennai Central Trauma Hospital...")
     request_payload = {
-        "hospital_name": "Jubilee Mission Hospital",
+        "hospital_name": "Chennai Central Trauma Hospital [SYNTHETIC DEMO]",
         "patient_blood_group": "O-",
         "component": "PRBC",
         "units_required": 2,
         "urgency": "critical",
-        "hospital_latitude": 10.5186,
-        "hospital_longitude": 76.2223,
+        "hospital_latitude": 13.0827,
+        "hospital_longitude": 80.2607,
     }
     status, req_res = make_request(f"{API_URL}/requests", method="POST", data=request_payload, token=token)
     assert status == 201, f"Create request failed: {req_res}"
@@ -97,7 +108,7 @@ def run_e2e_demo():
     print(f"  -> Verified in DB: Hospital={get_req['hospital_name']}, Group={get_req['patient_blood_group']}, Urgency={get_req['urgency']}")
 
     # Step 5: Query Compatible & Non-Expired Stock
-    print("\n[Step 5/14] Querying Live Non-Expired Compatible Stock in Thrissur Area...")
+    print("\n[Step 5/14] Querying Live Non-Expired Compatible Stock in Chennai Area...")
     status, avail_res = make_request(f"{API_URL}/availability?blood_group=O-&component=PRBC", token=token)
     assert status == 200, f"Availability query failed: {avail_res}"
     avail_count = len(avail_res.get("items", []))

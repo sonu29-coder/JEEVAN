@@ -122,7 +122,7 @@ export function DispatchView() {
               <Building2 className="size-3.5 text-coral" />
               Requesting Hospital:
             </span>
-            <span className="font-bold text-foreground">{icu.name} (Verified ICU)</span>
+            <span className="font-bold text-foreground">{icu.name}</span>
           </div>
         </Step>
 

@@ -1902,7 +1902,7 @@ HEMO_LOCKS: dict[str, dict] = {
         "bank_id": "bank-ima",
         "icu_id": "icu-westfort",
         "locked_until": int((datetime.now(timezone.utc) + timedelta(minutes=11)).timestamp() * 1000),
-        "holder": "West Fort Hospital",
+        "holder": "Anna Nagar Multispecialty Hospital [SYNTHETIC DEMO]",
         "otp": "3702",
     },
     "s4": {
@@ -1911,7 +1911,7 @@ HEMO_LOCKS: dict[str, dict] = {
         "bank_id": "bank-district",
         "icu_id": "icu-daya",
         "locked_until": int((datetime.now(timezone.utc) + timedelta(minutes=6)).timestamp() * 1000),
-        "holder": "Daya General Hospital",
+        "holder": "Porur Surgical Institute [SYNTHETIC DEMO]",
         "otp": "6481",
     },
     "s6": {
@@ -1920,7 +1920,7 @@ HEMO_LOCKS: dict[str, dict] = {
         "bank_id": "bank-ima",
         "icu_id": "icu-elite",
         "locked_until": int((datetime.now(timezone.utc) + timedelta(minutes=13)).timestamp() * 1000),
-        "holder": "Elite Mission Hospital",
+        "holder": "Kilpauk Medical & Critical Care [SYNTHETIC DEMO]",
         "otp": "8492",
     },
 }
@@ -2139,11 +2139,11 @@ def login(
         if target_role == "ADMIN":
             user_id = "admin-jeevan"
             label = "Jeevan Administrator"
-            badge = "Verified Network Administrator • Thrissur Grid HQ"
+            badge = "Verified Network Administrator • Chennai Grid HQ"
         elif target_role == "ICU_HOSPITAL":
             user_id = "hosp-jubilee"
-            label = "Jubilee Mission ICU"
-            badge = "Verified Hospital Node • Jubilee Mission ICU"
+            label = "Chennai Central Trauma ICU"
+            badge = "Verified Hospital Node • Chennai Central ICU"
         elif target_role == "REGISTERED_DONOR":
             user_id = "donor-aarav"
             label = "Aarav (Donor)"
@@ -2151,11 +2151,11 @@ def login(
         elif target_role == "DELIVERY_PARTNER":
             user_id = "rider-42"
             label = "Swift Rider #42"
-            badge = "Verified Logistics Partner • Swift Rider #42"
+            badge = "Verified Logistics Partner • Swift Rider #42 (Chennai)"
         elif target_role == "BLOOD_BANK":
             user_id = "bank-ima"
-            label = "IMA Blood Bank Thrissur"
-            badge = "Verified Blood Bank • IMA Thrissur"
+            label = "Red Cross Blood Centre Chennai"
+            badge = "Verified Blood Bank • Red Cross Chennai"
     elif token_candidate:
         user_id = token_candidate
         label = token_candidate
@@ -2780,12 +2780,12 @@ def list_donors_management(session: Annotated[Session, Depends(get_session)]):
     # Include seed donors if DB is empty
     if not donors:
         seed_donors_data = [
-            {"donor_id": "d1", "name": "Aarav", "blood_group": "O-", "lat": 10.5402, "lng": 76.2311, "last_donated_days": 104, "alerts": 1},
-            {"donor_id": "d2", "name": "Sneha", "blood_group": "O-", "lat": 10.4961, "lng": 76.2262, "last_donated_days": 45, "alerts": 0},
-            {"donor_id": "d3", "name": "Rahul", "blood_group": "B+", "lat": 10.5531, "lng": 76.2042, "last_donated_days": 120, "alerts": 4},
-            {"donor_id": "d4", "name": "Diya", "blood_group": "B+", "lat": 10.5092, "lng": 76.1826, "last_donated_days": 95, "alerts": 2},
+            {"donor_id": "d1", "name": "Aarav", "blood_group": "O-", "lat": 13.0569, "lng": 80.2425, "last_donated_days": 104, "alerts": 1},
+            {"donor_id": "d2", "name": "Sneha", "blood_group": "O-", "lat": 13.0418, "lng": 80.2341, "last_donated_days": 45, "alerts": 0},
+            {"donor_id": "d3", "name": "Rahul", "blood_group": "B+", "lat": 13.0850, "lng": 80.2101, "last_donated_days": 120, "alerts": 4},
+            {"donor_id": "d4", "name": "Diya", "blood_group": "B+", "lat": 13.0382, "lng": 80.1565, "last_donated_days": 95, "alerts": 2},
         ]
-        hospital_coord = (10.5089, 76.2052)
+        hospital_coord = (13.0784, 80.2415)
         for s in seed_donors_data:
             dist = round(haversine_km(hospital_coord[0], hospital_coord[1], s["lat"], s["lng"]), 2)
             cooldown_active = s["last_donated_days"] < 90
@@ -3105,18 +3105,18 @@ def dispatch_ncc_coordinator_endpoint(body: Dict[str, Any]):
 def get_ncc_coordinator_profile():
     """
     Returns the profile and verification credentials of the Single Verified
-    College NCC Coordinator & Blood Club Leader in Thrissur.
+    College NCC Coordinator & Blood Club Leader in Chennai.
     """
     return {
         "coordinator": {
             "name": "Capt. Dr. Arun Balakrishnan",
             "title": "College NCC Blood Donation Coordinator & Red Cross Club Officer",
-            "institution": "23 Kerala Battalion NCC • St. Thomas College & Govt. Engineering College Thrissur",
-            "verification_id": "NCC-KL-23-BC01",
+            "institution": "1 Tamil Nadu Armoured Sqn NCC • Loyola & Anna University Blood Corps, Chennai",
+            "verification_id": "NCC-TN-01-CHE",
             "status": "VERIFIED_ACTIVE",
-            "phone": "+91 94471 28904",
+            "phone": "+91 44 2817 8200",
             "cadets_ready": 128,
-            "fcm_token": "fcm_token_ncc_coordinator_23_kerala",
+            "fcm_token": "fcm_token_ncc_coordinator_chennai",
             "response_time_minutes": 15,
         }
     }
@@ -3130,7 +3130,7 @@ def send_fcm_push(body: Dict[str, Any]):
     token = body.get("token")
     topic = body.get("topic")
     title = body.get("title", "Emergency Blood Alert")
-    msg_body = body.get("body", "Immediate action required in Thrissur medical grid.")
+    msg_body = body.get("body", "Immediate action required in Chennai medical grid.")
     data = body.get("data", {})
 
     if topic:
@@ -3139,7 +3139,7 @@ def send_fcm_push(body: Dict[str, Any]):
         return FCM_ENGINE.send_to_token(token, title, msg_body, data)
     else:
         # Default broadcast to emergency topic
-        return FCM_ENGINE.broadcast_to_topic("emergency-alerts-thrissur", title, msg_body, data)
+        return FCM_ENGINE.broadcast_to_topic("emergency-alerts-chennai", title, msg_body, data)
 
 
 @hemo_router.get("/fcm/notifications")
@@ -3158,9 +3158,62 @@ def register_fcm_token(body: Dict[str, Any]):
     user_id = body.get("user_id", "user-default")
     role = body.get("role", "ICU_HOSPITAL")
     token = body.get("fcm_token", f"token_{uuid4().hex[:8]}")
-    topics = body.get("topics", ["emergency-alerts-thrissur"])
+    topics = body.get("topics", ["emergency-alerts-chennai"])
     dev = FCM_ENGINE.register_device(user_id, role, token, topics)
     return {"status": "REGISTERED", "device": dev.__dict__}
+
+
+@hemo_router.get("/deliveries")
+def list_synthetic_deliveries(
+    session: Annotated[Session, Depends(get_session)],
+    status: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """
+    Lists synthetic blood delivery and logistics records for Chennai.
+    Demonstration and simulated logistics tracking only.
+    """
+    from backend.models import DeliveryRecord
+    query = select(DeliveryRecord).order_by(DeliveryRecord.created_at.desc())
+    if status:
+        query = query.where(func.lower(DeliveryRecord.status) == status.strip().lower())
+    records = list(session.scalars(query.limit(limit)))
+    return [
+        {
+            "delivery_id": d.id,
+            "dispatch_code": d.dispatch_code,
+            "blood_request_id": d.request_id,
+            "source_facility_id": d.source_facility_id,
+            "destination_facility_id": d.destination_facility_id,
+            "pickup_name": d.pickup_name,
+            "pickup_area": d.pickup_area,
+            "destination_name": d.destination_name,
+            "destination_department": d.destination_department,
+            "destination_area": d.destination_area,
+            "blood_group": d.blood_group,
+            "component_type": d.component,
+            "units": d.units,
+            "priority": d.priority,
+            "estimated_distance_km": d.estimated_distance_km,
+            "estimated_delivery_minutes": d.estimated_delivery_minutes,
+            "courier_id": d.courier_id,
+            "courier_name": d.courier_name,
+            "vehicle_type": d.vehicle_type,
+            "delivery_status": d.status.upper(),
+            "cold_chain_temp": d.cold_chain_temp,
+            "pickup_otp": d.pickup_otp,
+            "delivery_otp": d.delivery_otp,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "dispatch_timestamp": d.dispatch_timestamp.isoformat() if d.dispatch_timestamp else None,
+            "arrival_timestamp": d.arrival_timestamp.isoformat() if d.arrival_timestamp else None,
+            "proof_of_handover_status": d.proof_of_handover_status,
+            "data_source": d.data_source,
+            "synthetic": d.synthetic,
+            "tracking_mode": "SIMULATED_DEMO_TRACKING",
+        }
+        for d in records
+    ]
+
 
 
 # Mount the routers to the application

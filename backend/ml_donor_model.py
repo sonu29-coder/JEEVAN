@@ -1,6 +1,6 @@
 """
 HEMO-GRID AI - Donor Response Prediction Engine
-Heuristic + XGBoost Machine Learning Model trained on synthetic Thrissur emergency dispatch datasets.
+Heuristic + XGBoost Machine Learning Model trained on synthetic Chennai emergency dispatch datasets.
 Predicts donor willingness, acceptance probability, and response ETA for emergency blood calls.
 """
 
@@ -51,7 +51,7 @@ class DonorFeatureInput:
 class SyntheticDatasetGenerator:
     """
     Generates synthetic medical emergency response datasets modeled after
-    real-world Thrissur blood bank donor dispatch patterns.
+    real-world Chennai blood bank donor dispatch patterns.
     """
 
     @staticmethod

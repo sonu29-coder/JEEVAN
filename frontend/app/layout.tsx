@@ -8,9 +8,9 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'JEEVAN • Find and give blood in Thrissur',
+  title: 'JEEVAN • Find and give blood in Chennai',
   description:
-    'Request blood in an emergency, see blood available near you, and help patients as a donor across the Thrissur hospital network.',
+    'Request blood in an emergency, see blood available near you, and help patients as a donor across the Chennai hospital network.',
   generator: 'v0.app',
   icons: {
     icon: [

@@ -104,13 +104,13 @@ def seeded_db(client):
         # 2. Hospital
         hospital = Hospital(
             id="H1",
-            name="Jubilee Mission Hospital",
-            city="Thrissur",
-            state="Kerala",
-            latitude=10.5186,
-            longitude=76.2223,
-            phone="+91-487-2432200",
-            email="icu@jubileemission.org",
+            name="Chennai Central Trauma Hospital",
+            city="Chennai",
+            state="Tamil Nadu",
+            latitude=13.0827,
+            longitude=80.2607,
+            phone="+91-44-25305000",
+            email="icu@chennaicentral-icu.demo",
             synthetic=True,
         )
         session.add(hospital)
@@ -118,14 +118,14 @@ def seeded_db(client):
         # 3. Blood Bank
         bank = BloodBank(
             id="BB1",
-            name="IMA Blood Bank Thrissur",
-            address="Medical College Road",
-            city="Thrissur",
-            state="Kerala",
-            latitude=10.5262,
-            longitude=76.2138,
-            phone="+91-487-2335525",
-            email="info@imathrissur.org",
+            name="Red Cross Blood Centre Chennai",
+            address="Anna Salai",
+            city="Chennai",
+            state="Tamil Nadu",
+            latitude=13.0680,
+            longitude=80.2480,
+            phone="+91-44-28554444",
+            email="info@redcross-chennai.org",
             synthetic=True,
         )
         session.add(bank)
@@ -138,8 +138,8 @@ def seeded_db(client):
             blood_group="O-",
             phone="+91-9847012345",
             email="donor.aarav@gmail.com",
-            latitude=10.5240,
-            longitude=76.2150,
+            latitude=13.0650,
+            longitude=80.2500,
             last_donation_date=today - timedelta(days=105),
             donation_count=5,
             response_rate=92.0,
@@ -359,13 +359,13 @@ def test_end_to_end_hospital_request_lifecycle(seeded_db):
 
     # 1. Hospital submits urgent blood request for O- PRBC
     req_payload = {
-        "hospital_name": "Jubilee Mission Hospital",
+        "hospital_name": "Chennai Central Trauma Hospital",
         "patient_blood_group": "O-",
         "component": "PRBC",
         "units_required": 2,
         "urgency": "critical",
-        "hospital_latitude": 10.5186,
-        "hospital_longitude": 76.2223,
+        "hospital_latitude": 13.0827,
+        "hospital_longitude": 80.2607,
     }
     create_res = client.post("/api/requests", json=req_payload, headers=auth_header)
     assert create_res.status_code == 201

@@ -1,4 +1,4 @@
-export type AuthRole = 'ICU_HOSPITAL' | 'REGISTERED_DONOR' | 'DELIVERY_PARTNER'
+export type AuthRole = 'ICU_HOSPITAL' | 'REGISTERED_DONOR' | 'DELIVERY_PARTNER' | 'ADMIN'
 export type Portal = 'hospital' | 'donor' | 'driver'
 
 export interface Credential {
@@ -35,10 +35,10 @@ export const DEMO_USERS: Record<Portal, DemoUser[]> = {
       token: 'HOSP-9042',
       defaultPassword: 'HospitalPassword2026!',
       title: 'Chief Critical Care Physician',
-      badge: 'Verified NABH ICU Node • Jubilee Mission Hospital',
+      badge: 'Chennai Central Trauma ICU • NABH Accredited',
       avatar: '🏥',
-      entityName: 'Jubilee Mission Medical College & Research Hospital',
-      details: 'Authorized to dispatch emergency PRBC and Platelet reservations across Thrissur.',
+      entityName: 'Chennai Central Trauma ICU • MMC Complex',
+      details: 'Authorized to dispatch emergency PRBC and Platelet reservations across Chennai.',
     },
   ],
   donor: [
@@ -50,10 +50,10 @@ export const DEMO_USERS: Record<Portal, DemoUser[]> = {
       email: 'sneha.donor@gmail.com',
       token: 'DONOR-1108',
       defaultPassword: 'DonorPassword2026!',
-      title: 'Registered Voluntary Donor (O- Universal)',
-      badge: 'Certified O- Universal Donor • Health Cleared',
+      title: 'Universal Blood Donor (O-)',
+      badge: 'Universal Donor (O-) • Health Cleared',
       avatar: '🩸',
-      entityName: 'Thrissur Central Donor Network',
+      entityName: 'Chennai Voluntary Donor Network',
       details: 'Active emergency donor ready for on-call critical trauma transfusions.',
     },
     {
@@ -64,11 +64,11 @@ export const DEMO_USERS: Record<Portal, DemoUser[]> = {
       email: 'donor.aarav@gmail.com',
       token: 'DONOR-1108',
       defaultPassword: 'DonorPassword2026!',
-      title: 'Registered Donor (B+)',
-      badge: 'Certified B+ Active Donor • 8 Lifetime Donations',
+      title: 'Active Blood Donor (B+)',
+      badge: 'Active Blood Donor (B+) • 8 Donations',
       avatar: '🩸',
-      entityName: 'Jubilee Mission Blood Donor Registry',
-      details: 'Verified donor node available for immediate local emergency dispatch.',
+      entityName: 'Chennai Central Donor Registry',
+      details: 'Verified donor available for immediate local emergency dispatch in Chennai.',
     },
   ],
   driver: [
@@ -81,10 +81,10 @@ export const DEMO_USERS: Record<Portal, DemoUser[]> = {
       token: 'DLVR-8821',
       defaultPassword: 'DriverPassword2026!',
       title: 'Rapid Response Medical Courier (Swift Rider #42)',
-      badge: 'Cold-Chain Certified • Rapid Transit Fleet',
+      badge: 'Cold-Chain Certified • Transit Fleet',
       avatar: '🛵',
-      entityName: 'Jeevan Emergency Logistics Corridor',
-      details: 'Authorized for cold-chain refrigerated blood box transport & OTP verification.',
+      entityName: 'Jeevan Chennai Emergency Logistics Corridor',
+      details: 'Authorized for cold-chain refrigerated blood box transport & OTP verification across Chennai routes.',
     },
   ],
 }
@@ -93,23 +93,30 @@ export const CREDENTIALS: Record<AuthRole, Credential> = {
   ICU_HOSPITAL: {
     role: 'ICU_HOSPITAL',
     token: 'HOSP-9042',
-    label: 'Jubilee Mission ICU',
-    badge: 'Verified Hospital Node • Jubilee Mission ICU',
+    label: 'Chennai Central ICU',
+    badge: 'Chennai Central ICU',
     email: 'dr.rajesh@jubileemission.org',
   },
   REGISTERED_DONOR: {
     role: 'REGISTERED_DONOR',
     token: 'DONOR-1108',
     label: 'Sneha Menon (Donor)',
-    badge: 'Verified Donor Node • Sneha Menon (O-)',
+    badge: 'Sneha Menon (O-)',
     email: 'sneha.donor@gmail.com',
   },
   DELIVERY_PARTNER: {
     role: 'DELIVERY_PARTNER',
     token: 'DLVR-8821',
     label: 'Swift Rider #42',
-    badge: 'Verified Logistics Partner • Swift Rider #42',
+    badge: 'Swift Rider #42',
     email: 'driver.arun@gmail.com',
+  },
+  ADMIN: {
+    role: 'ADMIN',
+    token: 'ADMIN-0001',
+    label: 'Jeevan Administrator',
+    badge: 'Grid Operations Administrator',
+    email: 'admin@jeevan.org',
   },
 }
 
@@ -146,6 +153,7 @@ export const ROUTE_PERMISSIONS: Record<string, AuthRole> = {
 }
 
 export function hasPortalAccess(session: AuthRole, portal: Portal) {
+  if ((session as any) === 'ADMIN') return true
   return PORTAL_ACCESS[portal].required === session
 }
 
@@ -215,13 +223,34 @@ export async function loginUser(
 
     if (res.ok) {
       const data = await res.json()
-      saveAuthSession(expectedAuthRole, portal, data)
+      const actualRole: AuthRole = (data.role as AuthRole) || expectedAuthRole
+      const actualPortal: Portal =
+        actualRole === 'REGISTERED_DONOR' ? 'donor' : actualRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
+      saveAuthSession(actualRole, actualPortal, data)
       return {
         success: true,
-        message: `Welcome back, ${data.name || cleanId}!`,
+        message: `Welcome back, ${data.name || data.label || cleanId}!`,
+        role: actualRole,
+        user: {
+          ...data,
+          name: data.name || data.label || cleanId,
+          role: actualRole,
+          allowed_roles: actualRole === 'ADMIN' ? 'ICU_HOSPITAL,REGISTERED_DONOR,DELIVERY_PARTNER,ADMIN' : actualRole,
+        },
+        token: data.access_token || CREDENTIALS[actualRole]?.token || 'AUTH-TOKEN',
+      }
+    } else {
+      const errData = await res.json().catch(() => ({}))
+      const friendlyMsg =
+        res.status === 401
+          ? 'Invalid email, mobile number, or password. Please verify your details.'
+          : errData.detail || 'Authentication failed. Please verify your details and try again.'
+      return {
+        success: false,
+        message: friendlyMsg,
         role: expectedAuthRole,
-        user: data,
-        token: data.access_token || CREDENTIALS[expectedAuthRole].token,
+        user: null,
+        token: '',
       }
     }
   } catch {
@@ -229,14 +258,47 @@ export async function loginUser(
   }
 
   // Demo / offline fallback matching
-  const list = DEMO_USERS[portal]
-  const matched = list.find(
+  const allDemoUsers = [...DEMO_USERS.hospital, ...DEMO_USERS.donor, ...DEMO_USERS.driver]
+  const matched = allDemoUsers.find(
     (u) =>
       u.email.toLowerCase() === cleanId.toLowerCase() ||
       u.token.toLowerCase() === cleanId.toLowerCase() ||
-      cleanId.toLowerCase().includes(portal),
-  ) || list[0]
+      cleanId.toLowerCase().includes(u.portal),
+  )
 
+  if (matched) {
+    if (password && password.length < 4) {
+      return {
+        success: false,
+        message: 'Password must be at least 4 characters long.',
+        role: matched.role,
+        user: null,
+        token: '',
+      }
+    }
+
+    const userMeta = {
+      name: matched.name,
+      email: matched.email,
+      token: matched.token,
+      role: matched.role,
+      allowed_roles: matched.role,
+      badge: matched.badge,
+      portal: matched.portal,
+    }
+
+    saveAuthSession(matched.role, matched.portal, userMeta)
+
+    return {
+      success: true,
+      message: `Welcome back, ${matched.name}!`,
+      role: matched.role,
+      user: userMeta,
+      token: matched.token,
+    }
+  }
+
+  // Fallback for custom user credentials if offline
   if (password && password.length < 4) {
     return {
       success: false,
@@ -247,23 +309,34 @@ export async function loginUser(
     }
   }
 
+  const detectedRole: AuthRole =
+    cleanId.toLowerCase().includes('donor')
+      ? 'REGISTERED_DONOR'
+      : cleanId.toLowerCase().includes('driver') || cleanId.toLowerCase().includes('rider')
+      ? 'DELIVERY_PARTNER'
+      : 'ICU_HOSPITAL'
+
+  const detectedPortal: Portal =
+    detectedRole === 'REGISTERED_DONOR' ? 'donor' : detectedRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
+
   const userMeta = {
-    name: matched.name,
-    email: matched.email,
-    token: matched.token,
-    role: expectedAuthRole,
-    badge: matched.badge,
-    portal,
+    name: cleanId.includes('@') ? cleanId.split('@')[0] : cleanId,
+    email: cleanId,
+    token: CREDENTIALS[detectedRole]?.token || 'AUTH-TOKEN',
+    role: detectedRole,
+    allowed_roles: detectedRole,
+    badge: `${detectedPortal === 'hospital' ? 'Hospital ICU' : detectedPortal === 'donor' ? 'Blood Donor' : 'Medical Logistics'}`,
+    portal: detectedPortal,
   }
 
-  saveAuthSession(expectedAuthRole, portal, userMeta)
+  saveAuthSession(detectedRole, detectedPortal, userMeta)
 
   return {
     success: true,
-    message: `Authenticated as ${matched.name} (${matched.title})`,
-    role: expectedAuthRole,
+    message: `Signed in as ${userMeta.name}`,
+    role: detectedRole,
     user: userMeta,
-    token: matched.token,
+    token: userMeta.token,
   }
 }
 
@@ -271,16 +344,9 @@ export async function loginWithGoogle(
   portal: Portal,
   emailOrToken?: string,
 ): Promise<{ success: boolean; message: string; role: AuthRole; user: any; token: string }> {
+  const defaultEmail = emailOrToken || 'user@gmail.com'
   const expectedAuthRole: AuthRole =
     portal === 'hospital' ? 'ICU_HOSPITAL' : portal === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
-
-  const defaultEmail =
-    emailOrToken ||
-    (portal === 'hospital'
-      ? 'dr.rajesh@gmail.com'
-      : portal === 'donor'
-        ? 'sneha.donor@gmail.com'
-        : 'driver.arun@gmail.com')
 
   // Attempt live backend Google authentication
   try {
@@ -296,33 +362,55 @@ export async function loginWithGoogle(
 
     if (res.ok) {
       const data = await res.json()
-      saveAuthSession(expectedAuthRole, portal, data)
+      const actualRole: AuthRole = (data.role as AuthRole) || expectedAuthRole
+      const actualPortal: Portal =
+        actualRole === 'REGISTERED_DONOR' ? 'donor' : actualRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
+      const userMeta = {
+        ...data,
+        name: data.label || data.name || defaultEmail.split('@')[0],
+        email: data.email || defaultEmail,
+        role: actualRole,
+        allowed_roles: actualRole === 'ADMIN' ? 'ICU_HOSPITAL,REGISTERED_DONOR,DELIVERY_PARTNER,ADMIN' : actualRole,
+      }
+      saveAuthSession(actualRole, actualPortal, userMeta)
       return {
         success: true,
-        message: `Signed in with Google as ${data.label || defaultEmail}!`,
-        role: expectedAuthRole,
-        user: data,
-        token: data.access_token || CREDENTIALS[expectedAuthRole].token,
+        message: `Signed in with Google as ${userMeta.name}!`,
+        role: actualRole,
+        user: userMeta,
+        token: data.access_token || CREDENTIALS[actualRole]?.token || 'AUTH-TOKEN',
       }
     }
   } catch {}
 
   // Seamless offline fallback
+  const lowerEmail = defaultEmail.toLowerCase()
+  const resolvedRole: AuthRole =
+    lowerEmail.includes('donor') || lowerEmail.includes('sneha') || lowerEmail.includes('aarav')
+      ? 'REGISTERED_DONOR'
+      : lowerEmail.includes('driver') || lowerEmail.includes('rider') || lowerEmail.includes('arun')
+      ? 'DELIVERY_PARTNER'
+      : 'ICU_HOSPITAL'
+
+  const resolvedPortal: Portal =
+    resolvedRole === 'REGISTERED_DONOR' ? 'donor' : resolvedRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
+
   const userMeta = {
     name: defaultEmail.split('@')[0].replace('.', ' ').toUpperCase(),
     email: defaultEmail,
-    role: expectedAuthRole,
-    badge: `Google Verified • ${portal.toUpperCase()}`,
-    portal,
+    role: resolvedRole,
+    allowed_roles: resolvedRole,
+    badge: `${resolvedPortal === 'hospital' ? 'Hospital ICU' : resolvedPortal === 'donor' ? 'Blood Donor' : 'Medical Logistics'}`,
+    portal: resolvedPortal,
   }
-  saveAuthSession(expectedAuthRole, portal, userMeta)
+  saveAuthSession(resolvedRole, resolvedPortal, userMeta)
 
   return {
     success: true,
     message: `Signed in with Google as ${defaultEmail}!`,
-    role: expectedAuthRole,
+    role: resolvedRole,
     user: userMeta,
-    token: CREDENTIALS[expectedAuthRole].token,
+    token: CREDENTIALS[resolvedRole]?.token || 'AUTH-TOKEN',
   }
 }
 

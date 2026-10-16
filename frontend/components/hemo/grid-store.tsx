@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { loadSavedAuth, saveAuthSession, type AuthRole } from '@/lib/hemo-auth'
+import { clearSavedAuth, loadSavedAuth, saveAuthSession, type AuthRole } from '@/lib/hemo-auth'
 import { BANKS, SEED_EMERGENCIES, seedStock, siteById, type Emergency, type StockItem } from '@/lib/hemo-data'
 
 export type Tab = 'home' | 'map' | 'blood' | 'alerts' | 'verify' | 'request'
@@ -22,6 +22,14 @@ export interface ForbiddenInfo {
 }
 
 interface GridContextValue {
+  isAuthenticated: boolean
+  setIsAuthenticated: (val: boolean) => void
+  currentUser: any
+  setCurrentUser: (user: any) => void
+  showDashboardSelector: boolean
+  setShowDashboardSelector: (val: boolean) => void
+  login: (targetRole: Role, authRole: AuthRole, userData: any) => void
+  logout: () => void
   role: Role
   setRole: (role: Role) => void
   session: AuthRole
@@ -59,24 +67,57 @@ interface GridContextValue {
 
 const GridContext = createContext<GridContextValue | null>(null)
 
-export function GridProvider({ children }: { children: ReactNode }) {
-  const [role, setRoleState] = useState<Role>('hospital')
-  const [session, setSessionState] = useState<AuthRole>('ICU_HOSPITAL')
+export function GridProvider({ children, initialRole }: { children: ReactNode; initialRole?: Role }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('role')) return true
+    if (initialRole) return true
+    return localStorage.getItem('jeevan_is_authenticated') === 'true'
+  })
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [showDashboardSelector, setShowDashboardSelector] = useState<boolean>(false)
+  const [role, setRoleState] = useState<Role>(initialRole || 'hospital')
+  const [session, setSessionState] = useState<AuthRole>(
+    initialRole === 'donor' ? 'REGISTERED_DONOR' : initialRole === 'driver' ? 'DELIVERY_PARTNER' : 'ICU_HOSPITAL'
+  )
   const [forbidden, setForbidden] = useState<ForbiddenInfo | null>(null)
   const dismissForbidden = useCallback(() => setForbidden(null), [])
   const [tab, setTabState] = useState<Tab>('home')
 
+  const login = useCallback((targetRole: Role, authRole: AuthRole, userData: any) => {
+    setRoleState(targetRole)
+    setSessionState(authRole)
+    setCurrentUser(userData)
+    setIsAuthenticated(true)
+    setShowDashboardSelector(false)
+    saveAuthSession(authRole, targetRole, userData)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jeevan_is_authenticated', 'true')
+    }
+  }, [])
+
+  const logout = useCallback(() => {
+    setIsAuthenticated(false)
+    setShowDashboardSelector(false)
+    setCurrentUser(null)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('jeevan_is_authenticated')
+      clearSavedAuth()
+    }
+  }, [])
+
   const setRole = useCallback((nextRole: Role) => {
     setRoleState(nextRole)
     const saved = loadSavedAuth()
-    saveAuthSession(saved?.session || session, nextRole, saved?.user)
-  }, [session])
+    saveAuthSession(saved?.session || session, nextRole, saved?.user || currentUser)
+  }, [session, currentUser])
 
   const setSession = useCallback((nextSession: AuthRole) => {
     setSessionState(nextSession)
     const saved = loadSavedAuth()
-    saveAuthSession(nextSession, saved?.role || role, saved?.user)
-  }, [role])
+    saveAuthSession(nextSession, saved?.role || role, saved?.user || currentUser)
+  }, [role, currentUser])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -88,15 +129,28 @@ export function GridProvider({ children }: { children: ReactNode }) {
         roleParam === 'hospital' ? 'ICU_HOSPITAL' : roleParam === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
       setSessionState(mappedSession)
       saveAuthSession(mappedSession, roleParam)
+      setIsAuthenticated(true)
       return
     }
 
-    const saved = loadSavedAuth()
-    if (saved?.session && saved?.role) {
-      setSessionState(saved.session)
-      setRoleState(saved.role)
+    if (initialRole) {
+      setRoleState(initialRole)
+      const mappedSession: AuthRole =
+        initialRole === 'hospital' ? 'ICU_HOSPITAL' : initialRole === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
+      setSessionState(mappedSession)
     }
-  }, [])
+
+    const saved = loadSavedAuth()
+    const authedFlag = localStorage.getItem('jeevan_is_authenticated') === 'true'
+    if (authedFlag && saved?.session && saved?.role) {
+      setSessionState(saved.session)
+      if (!initialRole) {
+        setRoleState(saved.role)
+      }
+      setCurrentUser(saved.user || null)
+      setIsAuthenticated(true)
+    }
+  }, [initialRole])
 
   // Tabs belong to the hospital portal, so navigating to one switches back to that role.
   const setTab = useCallback((next: Tab) => {
@@ -109,7 +163,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
 
   // Hydrate live stock and emergency requests from PostgreSQL backend
   useEffect(() => {
-    fetch('http://localhost:8000/api/inventory', {
+    fetch('/api/inventory', {
       headers: { Authorization: 'Bearer HOSP-9042' },
       signal: AbortSignal.timeout(3000),
     })
@@ -147,7 +201,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {})
 
-    fetch('http://localhost:8000/api/requests/icu-view', {
+    fetch('/api/requests/icu-view', {
       headers: { Authorization: 'Bearer HOSP-9042' },
       signal: AbortSignal.timeout(3000),
     })
@@ -224,7 +278,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
       [id]: { reason, timestamp: Date.now() },
     }))
     try {
-      await fetch(`http://localhost:8000/api/inventory/${id}/prioritize`, {
+      await fetch(`/api/inventory/${id}/prioritize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer HOSP-9042' },
         body: JSON.stringify({ reason, clinical_case: 'Emergency / Elective Surgery' }),
@@ -247,7 +301,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
       },
     }))
     try {
-      const res = await fetch(`http://localhost:8000/api/inventory/${id}/redistribute`, {
+      const res = await fetch(`/api/inventory/${id}/redistribute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer HOSP-9042' },
         body: JSON.stringify({ target_bank_id: targetBankId, courier_notes: notes }),
@@ -264,7 +318,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
   const quarantineStockUnit = useCallback(async (id: string) => {
     setStock((list) => list.filter((s) => s.id !== id))
     try {
-      await fetch(`http://localhost:8000/api/inventory/${id}`, {
+      await fetch(`/api/inventory/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer HOSP-9042' },
         body: JSON.stringify({ status: 'quarantined' }),
@@ -310,7 +364,7 @@ export function GridProvider({ children }: { children: ReactNode }) {
       setStock((prev) => [newDispatch, ...prev.filter((p) => p.id !== newStockId)])
       notify(`⚡ Priority dispatch initiated for ${group} PRBC!`, 'success')
       // Background ping to backend if active
-      fetch('http://localhost:8000/api/dispatches/fast-create', {
+      fetch('/api/dispatches/fast-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -329,6 +383,14 @@ export function GridProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      isAuthenticated,
+      setIsAuthenticated,
+      currentUser,
+      setCurrentUser,
+      showDashboardSelector,
+      setShowDashboardSelector,
+      login,
+      logout,
       role,
       setRole,
       session,
@@ -364,6 +426,11 @@ export function GridProvider({ children }: { children: ReactNode }) {
       createFastDispatch,
     }),
     [
+      isAuthenticated,
+      currentUser,
+      showDashboardSelector,
+      login,
+      logout,
       role,
       setRole,
       session,

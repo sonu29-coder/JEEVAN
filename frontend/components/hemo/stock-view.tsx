@@ -198,7 +198,7 @@ export function StockView() {
       </section>
 
       <section aria-labelledby="banks-label" className="mt-8 px-5">
-        <SectionTitle eyebrow="Connected" title="Blood banks in Thrissur" />
+        <SectionTitle eyebrow="Connected" title="Blood banks in Chennai" />
         <ul className="divide-y rounded-3xl border bg-card shadow-sm" id="banks-label">
           {BANKS.map((bank) => {
             const items = stock.filter((s) => s.bankId === bank.id)

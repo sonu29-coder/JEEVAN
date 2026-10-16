@@ -29,7 +29,6 @@ export function HomeView() {
   return (
     <div className="no-scrollbar h-full overflow-y-auto px-5 pt-7 pb-10">
       <p className="text-lg font-medium text-muted-foreground">{greeting}</p>
-      <RoleSwitcher className="mt-3" />
       <h1 className="mt-4 text-[34px] leading-[1.1] font-extrabold tracking-tight text-balance">
         Every second counts. How can we help?
       </h1>

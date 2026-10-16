@@ -526,7 +526,7 @@ export function BloodExpiryRadarModal() {
                       </span>
                       <span>
                         <strong className="text-foreground">Zero-Waste Cold Chain:</strong> High-risk surplus units are
-                        rerouted to regional high-intake trauma centers (e.g. GMC Thrissur) via Green Corridor.
+                        rerouted to regional high-intake trauma centers (e.g. Madras Medical College Chennai) via Green Corridor.
                       </span>
                     </li>
                   </ul>
