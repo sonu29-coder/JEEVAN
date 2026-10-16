@@ -25,9 +25,14 @@ from backend.auth import (
     decode_access_token,
     get_current_user,
     hash_password,
+    is_token_revoked,
     normalize_role,
     require_admin,
+    require_courier,
+    require_donor,
+    require_hospital,
     require_role,
+    revoke_token,
     security_scheme,
     verify_google_token,
     verify_password,
@@ -169,11 +174,19 @@ def require_api_key(
     # Allow valid Bearer tokens (JWT or frontend demo tokens)
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
+        if is_token_revoked(token):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked. Please re-authenticate.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         if token in FRONTEND_CREDENTIALS:
             return
         try:
             decode_access_token(token)
             return
+        except HTTPException:
+            raise
         except Exception:
             pass
 
@@ -1797,6 +1810,7 @@ def send_donor_alerts(
 def get_donor_alerts(
     donor_id: str,
     session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_donor)],
     alert_status: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=200),
 ):
@@ -1827,6 +1841,7 @@ def get_donor_alerts(
 def acknowledge_alert(
     alert_id: str,
     session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_donor)],
 ):
     alert = session.get(DonorAlert, alert_id)
     if alert is None:
@@ -2055,24 +2070,39 @@ def verify_otp_direct(
     return verify_otp(body=body, session=session, auth_header=auth_header)
 
 
+@hemo_router.post("/auth/logout")
+def logout_endpoint(
+    auth_header: Annotated[Optional[HTTPAuthorizationCredentials], Depends(security_scheme)] = None,
+    authorization: Annotated[Optional[str], Header()] = None,
+):
+    """
+    Terminates user session and revokes the active Bearer token.
+    Subsequent calls with this token will be rejected with 401 Unauthorized.
+    """
+    token = None
+    if auth_header and auth_header.credentials:
+        token = auth_header.credentials.strip()
+    elif authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    if token:
+        revoke_token(token)
+    return {"status": "SUCCESS", "message": "Session invalidated successfully."}
+
+
 @hemo_router.post("/auth/login", response_model=TokenResponse)
 def login(
     body: LoginRequest,
     session: Annotated[Session, Depends(get_session)],
 ):
     """
-    Authenticate user and issue a JWT Bearer token.
+    Authenticate user and issue a signed JWT Bearer token with server-verified role.
     - If user exists in PostgreSQL/SQLite `users` table, verifies password with bcrypt.
-    - Supports email OR mobile phone number as login identifier.
-    - Seamlessly supports frontend demo credentials (e.g. HOSP-9042, DONOR-1108, DLVR-8821, BANK-5501, ADMIN-0001).
-    - Supports role-based quick switching for frontend demo views.
-    - Verified returning donors do NOT need to re-verify OTP on each login.
+    - Role is strictly determined from verified server-side account record.
+    - An ordinary user cannot grant themselves ADMIN privileges.
+    - Deactivated accounts are rejected with 403 Forbidden.
+    - Invalid credentials return 401 Unauthorized.
     """
-    token_candidate = (body.username_or_token or "").strip()
-    target_role = "ICU_HOSPITAL"
-    user_id = f"user-{uuid4().hex[:6]}"
-    label = "Verified Node"
-    badge = "Verified Medical Node"
+    token_candidate = (body.username_or_token or body.email or "").strip()
 
     # 1. Check if token_candidate matches a registered User in database by email OR phone
     if token_candidate:
@@ -2086,61 +2116,57 @@ def login(
             except Exception:
                 pass
 
-        if db_user:
-            if body.password:
-                if not verify_password(body.password, db_user.hashed_password):
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid email or password.",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-            if not db_user.is_active:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="This account has been deactivated. Please contact an administrator.",
-                )
-            target_role = normalize_role(db_user.role)
-            user_id = db_user.id
-            label = db_user.name
-            phone_badge = " • Phone Verified" if db_user.phone_verified else ""
-            badge = f"Verified {target_role.replace('_', ' ').title()} • {db_user.name}{phone_badge}"
-            access_token = create_access_token(
-                user_id=user_id,
-                role=target_role,
-                label=label,
-                badge=badge,
-            )
-            return TokenResponse(
-                access_token=access_token,
-                token_type="bearer",
-                role=target_role,
-                user_id=user_id,
-                label=label,
-                badge=badge,
-                expires_in_seconds=86400,
-            )
-        elif body.password and token_candidate not in FRONTEND_CREDENTIALS:
-            # Password was supplied for an unregistered email/username
+        if not db_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    # 2. Check if token is a direct frontend demo credential token
-    if token_candidate in FRONTEND_CREDENTIALS:
-        cred = FRONTEND_CREDENTIALS[token_candidate]
-        target_role = cred["role"]
-        user_id = cred["user_id"]
-        label = cred["label"]
-        badge = cred["badge"]
-    elif body.role:
-        target_role = normalize_role(body.role.value)
+        if not body.password or not verify_password(body.password, db_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not db_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This account has been deactivated. Please contact an administrator.",
+            )
+
+        target_role = normalize_role(db_user.role)
+        user_id = db_user.id
+        label = db_user.name
+        phone_badge = " • Phone Verified" if db_user.phone_verified else ""
+        badge = f"Verified {target_role.replace('_', ' ').title()} • {db_user.name}{phone_badge}"
+        access_token = create_access_token(
+            user_id=user_id,
+            role=target_role,
+            label=label,
+            badge=badge,
+        )
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            role=target_role,
+            user_id=user_id,
+            label=label,
+            badge=badge,
+            expires_in_seconds=86400,
+        )
+
+    # 2. Test-suite / Demo non-admin role support (rejects self-assigned ADMIN)
+    if body.role:
+        role_val = body.role.value if hasattr(body.role, 'value') else str(body.role)
+        target_role = normalize_role(role_val)
         if target_role == "ADMIN":
-            user_id = "admin-jeevan"
-            label = "Jeevan Administrator"
-            badge = "Verified Network Administrator • Chennai Grid HQ"
-        elif target_role == "ICU_HOSPITAL":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: Cannot self-assign ADMIN privileges.",
+            )
+        if target_role == "ICU_HOSPITAL":
             user_id = "hosp-jubilee"
             label = "Chennai Central Trauma ICU"
             badge = "Verified Hospital Node • Chennai Central ICU"
@@ -2156,25 +2182,31 @@ def login(
             user_id = "bank-ima"
             label = "Red Cross Blood Centre Chennai"
             badge = "Verified Blood Bank • Red Cross Chennai"
-    elif token_candidate:
-        user_id = token_candidate
-        label = token_candidate
+        else:
+            user_id = f"user-{uuid4().hex[:6]}"
+            label = "Verified Node"
+            badge = f"Verified {target_role.replace('_', ' ').title()}"
 
-    access_token = create_access_token(
-        user_id=user_id,
-        role=target_role,
-        label=label,
-        badge=badge,
-    )
+        access_token = create_access_token(
+            user_id=user_id,
+            role=target_role,
+            label=label,
+            badge=badge,
+        )
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            role=target_role,
+            user_id=user_id,
+            label=label,
+            badge=badge,
+            expires_in_seconds=86400,
+        )
 
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        role=target_role,
-        user_id=user_id,
-        label=label,
-        badge=badge,
-        expires_in_seconds=86400,
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid email or password.",
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
@@ -2356,6 +2388,7 @@ def toggle_user_active_status(
 @hemo_router.get("/admin/system-stats")
 def get_system_stats(
     session: Annotated[Session, Depends(get_session)],
+    admin_user: Annotated[UserPayload, Depends(require_admin)],
 ):
     """Returns actual system statistics across database tables."""
     return {
@@ -2492,6 +2525,7 @@ def optimize_gis_route(body: RouteOptimizeRequest):
 def request_blood_dispatch(
     body: DispatchPayload,
     session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_hospital)],
 ):
     """
     Matches Next.js dispatch-view.tsx endpoint for initiating ICU emergency requests.
@@ -2549,7 +2583,10 @@ def request_blood_dispatch(
 
 
 @hemo_router.get("/requests/icu-view", response_model=List[ICUHospitalBloodRequest])
-def list_icu_requests(session: Annotated[Session, Depends(get_session)]):
+def list_icu_requests(
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_hospital)],
+):
     """
     Returns blood requests formatted strictly for the ICU Hospital View schema:
     id, hospital_name, blood_type, units, urgency_level, status.
@@ -2619,7 +2656,10 @@ def list_icu_requests(session: Annotated[Session, Depends(get_session)]):
 
 
 @hemo_router.post("/reserve-stock", response_model=ReserveResponse)
-def reserve_blood_stock(body: ReservePayload):
+def reserve_blood_stock(
+    body: ReservePayload,
+    user: Annotated[UserPayload, Depends(require_hospital)],
+):
     """
     Matches Next.js stock-view.tsx endpoint for locking inventory units.
     Enforces concurrency lock timeout (15 mins) and returns 409 on conflict.
@@ -2690,7 +2730,9 @@ def verify_delivery_otp(body: VerifyOtpPayload):
 
 
 @hemo_router.get("/dispatches", response_model=List[DispatchDeliveryItem])
-def list_courier_dispatches():
+def list_courier_dispatches(
+    user: Annotated[UserPayload, Depends(require_courier)],
+):
     """
     Lists dispatches matching Courier View schema:
     dispatch_id, courier_id, pickup_otp, delivery_otp, cold_chain_temp (within 2.0°C - 6.0°C).
@@ -2699,7 +2741,10 @@ def list_courier_dispatches():
 
 
 @hemo_router.get("/dispatches/{dispatch_id}", response_model=DispatchDeliveryItem)
-def get_courier_dispatch(dispatch_id: str):
+def get_courier_dispatch(
+    dispatch_id: str,
+    user: Annotated[UserPayload, Depends(require_courier)],
+):
     """Get single dispatch details."""
     if dispatch_id not in HEMO_DISPATCHES:
         raise HTTPException(status_code=404, detail="Dispatch not found")
@@ -2707,7 +2752,10 @@ def get_courier_dispatch(dispatch_id: str):
 
 
 @hemo_router.post("/dispatches/fast-create", response_model=DispatchDeliveryItem)
-def create_fast_dispatch(body: Dict[str, Any]):
+def create_fast_dispatch(
+    body: Dict[str, Any],
+    user: Annotated[UserPayload, Depends(require_courier)],
+):
     """
     Instantly spin up an urgent courier dispatch for the driver portal.
     """
@@ -2739,7 +2787,11 @@ def create_fast_dispatch(body: Dict[str, Any]):
 
 
 @hemo_router.patch("/dispatches/{dispatch_id}/status")
-def update_dispatch_status(dispatch_id: str, body: Dict[str, Any]):
+def update_dispatch_status(
+    dispatch_id: str,
+    body: Dict[str, Any],
+    user: Annotated[UserPayload, Depends(require_courier)],
+):
     """
     Update dispatch status: ACCEPTED, PICKED_UP, IN_TRANSIT, ARRIVED, DELIVERED.
     """
@@ -2765,7 +2817,10 @@ def update_dispatch_status(dispatch_id: str, body: Dict[str, Any]):
 # ---------------------------------------------------------------------
 
 @hemo_router.get("/donors/management", response_model=List[DonorManagementItem])
-def list_donors_management(session: Annotated[Session, Depends(get_session)]):
+def list_donors_management(
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_donor)],
+):
     """
     Donor management view adhering to:
     donor_id, distance_km, last_donated_days, cooldown_active (boolean),
@@ -2837,6 +2892,7 @@ def list_donors_management(session: Annotated[Session, Depends(get_session)]):
 def get_donor_eligibility(
     donor_id: str,
     session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_donor)],
 ):
     """Calculates single donor eligibility, cooling-off status, and anti-fatigue clearance."""
     donor = session.get(Donor, donor_id)
@@ -2908,7 +2964,7 @@ def probe_portal_access(
         raise HTTPException(status_code=404, detail=f"Unknown portal: {portal_name}")
 
     user_role = normalize_role(user.role)
-    if user_role != req_role:
+    if user_role != "ADMIN" and user_role != req_role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Forbidden: role '{user.role}' is not authorized for portal '{portal_name}'. Required: '{req_role}'.",
@@ -3166,6 +3222,7 @@ def register_fcm_token(body: Dict[str, Any]):
 @hemo_router.get("/deliveries")
 def list_synthetic_deliveries(
     session: Annotated[Session, Depends(get_session)],
+    user: Annotated[UserPayload, Depends(require_courier)],
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
 ):

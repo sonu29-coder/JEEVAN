@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { clearSavedAuth, loadSavedAuth, saveAuthSession, type AuthRole } from '@/lib/hemo-auth'
+import { clearSavedAuth, loadSavedAuth, logoutUser, saveAuthSession, type AuthRole } from '@/lib/hemo-auth'
 import { BANKS, SEED_EMERGENCIES, seedStock, siteById, type Emergency, type StockItem } from '@/lib/hemo-data'
 
 export type Tab = 'home' | 'map' | 'blood' | 'alerts' | 'verify' | 'request'
@@ -68,13 +68,7 @@ interface GridContextValue {
 const GridContext = createContext<GridContextValue | null>(null)
 
 export function GridProvider({ children, initialRole }: { children: ReactNode; initialRole?: Role }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('role')) return true
-    if (initialRole) return true
-    return localStorage.getItem('jeevan_is_authenticated') === 'true'
-  })
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(initialRole))
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [showDashboardSelector, setShowDashboardSelector] = useState<boolean>(false)
   const [role, setRoleState] = useState<Role>(initialRole || 'hospital')
@@ -97,15 +91,23 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
     }
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const saved = loadSavedAuth()
+    const token = currentUser?.token || currentUser?.access_token || saved?.user?.token || saved?.user?.access_token
+    if (token) {
+      await logoutUser(token).catch(() => {})
+    }
     setIsAuthenticated(false)
     setShowDashboardSelector(false)
     setCurrentUser(null)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('jeevan_is_authenticated')
       clearSavedAuth()
+      try {
+        window.history.replaceState(null, '', '/')
+      } catch {}
     }
-  }, [])
+  }, [currentUser])
 
   const setRole = useCallback((nextRole: Role) => {
     setRoleState(nextRole)
@@ -123,33 +125,59 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     const roleParam = params.get('role') as Role | null
-    if (roleParam && (roleParam === 'hospital' || roleParam === 'donor' || roleParam === 'driver')) {
-      setRoleState(roleParam)
-      const mappedSession: AuthRole =
-        roleParam === 'hospital' ? 'ICU_HOSPITAL' : roleParam === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
-      setSessionState(mappedSession)
-      saveAuthSession(mappedSession, roleParam)
-      setIsAuthenticated(true)
+    const targetRole =
+      roleParam && (roleParam === 'hospital' || roleParam === 'donor' || roleParam === 'driver')
+        ? roleParam
+        : initialRole
+
+    const saved = loadSavedAuth()
+    const token = saved?.user?.token || saved?.user?.access_token
+
+    if (!token) {
+      // Unauthenticated: cannot access any dashboard via URL or query param
+      setIsAuthenticated(false)
+      setCurrentUser(null)
       return
     }
 
-    if (initialRole) {
-      setRoleState(initialRole)
-      const mappedSession: AuthRole =
-        initialRole === 'hospital' ? 'ICU_HOSPITAL' : initialRole === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
-      setSessionState(mappedSession)
-    }
+    // Verify session with backend /api/auth/me
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Token invalid or revoked')
+        }
+        const data = await res.json()
+        const verifiedRole: AuthRole = data.role
+        const allowedPortals =
+          verifiedRole === 'ADMIN'
+            ? ['hospital', 'donor', 'driver']
+            : verifiedRole === 'ICU_HOSPITAL'
+            ? ['hospital']
+            : verifiedRole === 'REGISTERED_DONOR'
+            ? ['donor']
+            : verifiedRole === 'DELIVERY_PARTNER'
+            ? ['driver']
+            : []
 
-    const saved = loadSavedAuth()
-    const authedFlag = localStorage.getItem('jeevan_is_authenticated') === 'true'
-    if (authedFlag && saved?.session && saved?.role) {
-      setSessionState(saved.session)
-      if (!initialRole) {
-        setRoleState(saved.role)
-      }
-      setCurrentUser(saved.user || null)
-      setIsAuthenticated(true)
-    }
+        // If targetRole is requested and allowed, use it; otherwise default to authorized portal
+        const resolvedPortal: Role =
+          targetRole && allowedPortals.includes(targetRole)
+            ? targetRole
+            : (allowedPortals[0] as Role) || 'hospital'
+
+        setRoleState(resolvedPortal)
+        setSessionState(verifiedRole)
+        setCurrentUser({ ...saved?.user, ...data, token })
+        setIsAuthenticated(true)
+      })
+      .catch(() => {
+        // Token invalid, revoked, or expired
+        clearSavedAuth()
+        setIsAuthenticated(false)
+        setCurrentUser(null)
+      })
   }, [initialRole])
 
   // Tabs belong to the hospital portal, so navigating to one switches back to that role.

@@ -36,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
-      <body className="antialiased">
+    <html lang="en" className={`${inter.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
         <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

@@ -31,6 +31,7 @@ class UserRole(str, Enum):
 
 class LoginRequest(APIModel):
     username_or_token: Optional[str] = Field(default=None, description="Email, username or frontend demo token (e.g. HOSP-9042)")
+    email: Optional[str] = Field(default=None, description="User email address")
     password: Optional[str] = Field(default=None, description="Password (verified with bcrypt for DB users)")
     role: Optional[UserRole] = Field(default=None, description="Role to assume: ADMIN, ICU_HOSPITAL, DONOR, DELIVERY_PARTNER, BLOOD_BANK")
 

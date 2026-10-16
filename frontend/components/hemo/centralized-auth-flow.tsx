@@ -16,11 +16,13 @@ import {
   Hospital,
   Info,
   Lock,
+  LogOut,
   Mail,
   Phone,
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   User,
   X,
 } from 'lucide-react'
@@ -28,6 +30,7 @@ import { GoogleAuthButton } from './google-auth-button'
 import {
   PORTAL_ACCESS,
   loginUser,
+  DEMO_USERS,
   type AuthRole,
   type Portal,
 } from '@/lib/hemo-auth'
@@ -41,7 +44,7 @@ interface CentralizedAuthFlowProps {
 
 export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: CentralizedAuthFlowProps) {
   const router = useRouter()
-  const { login, currentUser: existingUser } = useGrid()
+  const { login, logout, currentUser: existingUser } = useGrid()
 
   const [stage, setStage] = useState<'auth' | 'select'>(
     initialStage === 'select' && existingUser ? 'select' : 'auth'
@@ -112,7 +115,7 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
     setIsLoading(true)
 
     try {
-      // Determine probable role by email or check all portals
+      // Authenticate directly against backend
       const targetPortal: Portal =
         cleanEmail.includes('donor')
           ? 'donor'
@@ -123,17 +126,9 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
       const authRes = await loginUser(targetPortal, cleanEmail, cleanPassword)
 
       if (authRes.success) {
-        const userObj = {
-          ...authRes.user,
-          name: cleanName || authRes.user?.name || cleanEmail.split('@')[0],
-          email: cleanEmail,
-          phone: cleanPhone || authRes.user?.phone,
-          role: authRes.role,
-          allowed_roles: authRes.user?.allowed_roles || authRes.role,
-          token: authRes.token,
-        }
-        setAuthenticatedUser(userObj)
+        setAuthenticatedUser(authRes.user)
         setStage('select')
+        setErrorMessage('')
       } else {
         setErrorMessage(
           authRes.message || 'Invalid email or password. Please verify your details and try again.'
@@ -158,7 +153,7 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
       email: gUser.email || email || 'user@gmail.com',
       phone: gUser.phone || phone || '+91 98765 43210',
       role: userRole,
-      allowed_roles: gUser.allowed_roles || userRole,
+      allowed_roles: userRole,
       token: gUser.token || 'GOOGLE-AUTH-TOKEN',
     }
 
@@ -166,66 +161,65 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
     setStage('select')
   }
 
-  // Handle Dashboard Selection & Strict Role Authorization Check
+  // Quick demo presets populate form fields for genuine authentication
+  const handleFillDemo = (type: 'hospital' | 'donor' | 'courier' | 'admin') => {
+    setErrorMessage('')
+    if (type === 'hospital') {
+      setEmail('dr.rajesh@jubileemission.org')
+      setPassword('HospitalPassword2026!')
+      setFullName('Dr. Rajesh Nair, MD')
+    } else if (type === 'donor') {
+      setEmail('sneha.donor@gmail.com')
+      setPassword('DonorPassword2026!')
+      setFullName('Sneha Menon')
+    } else if (type === 'courier') {
+      setEmail('driver.arun@gmail.com')
+      setPassword('DriverPassword2026!')
+      setFullName('Arun Kumar')
+    } else if (type === 'admin') {
+      setEmail('admin@jeevan.org')
+      setPassword('AdminPassword2026!')
+      setFullName('Jeevan Grid Administrator')
+    }
+  }
+
+  // Handle Dashboard Selection with RBAC Verification
   const handleDashboardSelect = (targetPortal: Portal) => {
     setErrorMessage('')
 
     const requiredAuthRole = PORTAL_ACCESS[targetPortal].required
-    const userRole = authenticatedUser?.role as AuthRole | undefined
-    const allowedRoles = (authenticatedUser?.allowed_roles || '').split(',')
+    const userRole = authenticatedUser?.role as AuthRole
 
-    // Check authorization: does the user's role match or is it allowed?
-    const isAuthorized =
-      userRole === requiredAuthRole ||
-      userRole === ('ADMIN' as any) ||
-      allowedRoles.includes(requiredAuthRole)
-
-    if (isAuthorized) {
-      login(targetPortal, requiredAuthRole, authenticatedUser)
-      if (onCancel) onCancel()
-
-      const targetRoute =
-        targetPortal === 'hospital'
-          ? '/icu/dashboard'
-          : targetPortal === 'donor'
-          ? '/donor/dashboard'
-          : '/delivery/dashboard'
-      try {
-        router.push(targetRoute)
-      } catch {}
-    } else {
-      const currentRoleLabel =
-        userRole === 'ICU_HOSPITAL'
-          ? 'Hospital / ICU'
-          : userRole === 'REGISTERED_DONOR'
-          ? 'Blood Donor'
-          : userRole === 'DELIVERY_PARTNER'
-          ? 'Delivery Partner'
-          : userRole || 'Current'
-
-      const targetTitle =
-        targetPortal === 'hospital'
-          ? 'Hospital / ICU'
-          : targetPortal === 'donor'
-          ? 'Blood Donor'
-          : 'Delivery Partner'
-
-      setErrorMessage(
-        `Access Restricted: Your account (${currentRoleLabel}) is not authorized for the ${targetTitle} dashboard. Please select your authorized dashboard or contact your administrator.`
-      )
+    // Strict role check: only authorized role or ADMIN can enter
+    if (userRole !== 'ADMIN' && userRole !== requiredAuthRole) {
+      setErrorMessage(`Access denied: Your account role (${userRole}) is not authorized to access this workspace.`)
+      return
     }
+
+    const sessionRole = userRole === 'ADMIN' ? 'ADMIN' : requiredAuthRole
+
+    login(targetPortal, sessionRole, authenticatedUser)
+    if (onCancel) onCancel()
+
+    const targetRoute =
+      targetPortal === 'hospital'
+        ? '/icu/dashboard'
+        : targetPortal === 'donor'
+        ? '/donor/dashboard'
+        : '/delivery/dashboard'
+    try {
+      router.push(targetRoute)
+    } catch {}
   }
 
   // Helper to test if a dashboard is authorized
   const isDashboardAuthorized = (targetPortal: Portal) => {
-    const requiredAuthRole = PORTAL_ACCESS[targetPortal].required
     const userRole = authenticatedUser?.role as AuthRole | undefined
-    const allowedRoles = (authenticatedUser?.allowed_roles || '').split(',')
-    return (
-      userRole === requiredAuthRole ||
-      userRole === ('ADMIN' as any) ||
-      allowedRoles.includes(requiredAuthRole)
-    )
+    if (userRole === 'ADMIN') return true
+    if (targetPortal === 'hospital') return userRole === 'ICU_HOSPITAL'
+    if (targetPortal === 'donor') return userRole === 'REGISTERED_DONOR'
+    if (targetPortal === 'driver') return userRole === 'DELIVERY_PARTNER'
+    return false
   }
 
   return (
@@ -426,9 +420,65 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
                   )}
                 </button>
               </form>
+
+              {/* Demo Accounts Quick-Fill (Development Testing) */}
+              <div className="pt-2">
+                <div className="relative flex items-center justify-center my-3">
+                  <div className="w-full border-t border-border" />
+                  <span className="absolute bg-card px-2.5 text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                    Development Demo Accounts
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleFillDemo('hospital')}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl border border-border bg-background hover:border-red-500/50 hover:bg-red-500/5 transition-all cursor-pointer text-center"
+                    title="Fill Hospital Demo Credentials"
+                  >
+                    <Hospital className="size-3.5 text-red-600 mb-1" />
+                    <span className="text-[11px] font-semibold text-foreground">Hospital</span>
+                    <span className="text-[9px] text-muted-foreground">Dr. Rajesh</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFillDemo('donor')}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl border border-border bg-background hover:border-rose-500/50 hover:bg-rose-500/5 transition-all cursor-pointer text-center"
+                    title="Fill Donor Demo Credentials"
+                  >
+                    <Droplets className="size-3.5 text-rose-600 mb-1" />
+                    <span className="text-[11px] font-semibold text-foreground">Donor</span>
+                    <span className="text-[9px] text-muted-foreground">Sneha</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFillDemo('courier')}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl border border-border bg-background hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all cursor-pointer text-center"
+                    title="Fill Courier Demo Credentials"
+                  >
+                    <Bike className="size-3.5 text-emerald-600 mb-1" />
+                    <span className="text-[11px] font-semibold text-foreground">Courier</span>
+                    <span className="text-[9px] text-muted-foreground">Arun</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFillDemo('admin')}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl border border-border bg-background hover:border-purple-500/50 hover:bg-purple-500/5 transition-all cursor-pointer text-center"
+                    title="Fill Admin Demo Credentials"
+                  >
+                    <ShieldCheck className="size-3.5 text-purple-600 mb-1" />
+                    <span className="text-[11px] font-semibold text-foreground">Admin</span>
+                    <span className="text-[9px] text-muted-foreground">System</span>
+                  </button>
+                </div>
+              </div>
             </motion.div>
           ) : (
-            /* STAGE 2: Simplified Dashboard Selection with Role Authorization */
+            /* STAGE 2: Role-Based Workspace Selection */
             <motion.div
               key="select-stage"
               initial={{ opacity: 0, y: 6 }}
@@ -438,117 +488,108 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
               className="space-y-4"
             >
               <div className="text-center pt-1">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 mb-2">
-                  <CheckCircle2 className="size-3.5" />
-                  <span>Authenticated Successfully</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 mb-2">
+                  <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Authenticated</span>
                 </span>
                 <h2 className="text-xl font-bold text-foreground">
-                  Welcome, {authenticatedUser?.name || 'User'}
+                  Welcome, {authenticatedUser?.name || 'Authorized User'}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Select your authorized dashboard to continue:
+                  Select your workspace to proceed:
                 </p>
               </div>
 
               {/* Only Authorized Workspaces Displayed */}
-              <div className="space-y-2.5 pt-1">
+              <div className="space-y-3 pt-1">
                 {isDashboardAuthorized('hospital') && (
-                  <button
-                    type="button"
-                    onClick={() => handleDashboardSelect('hospital')}
-                    className="w-full text-left rounded-2xl border border-border bg-background hover:border-red-500/50 hover:bg-red-500/5 shadow-xs cursor-pointer p-3.5 transition-all flex flex-col gap-2"
+                  <div
+                    className="rounded-2xl border border-border bg-card p-4 transition-all shadow-xs hover:border-red-500/40 flex flex-col gap-3"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="grid size-10 place-items-center rounded-xl shrink-0 bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400">
+                    <div className="flex items-start gap-3.5">
+                      <span className="grid size-11 place-items-center rounded-xl shrink-0 bg-red-100 text-red-600 dark:bg-red-950/70 dark:text-red-400">
                         <Hospital className="size-5" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-foreground">Hospital & ICU Workspace</h3>
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                            <CheckCircle2 className="size-3" />
-                            <span>Authorized</span>
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                          Emergency transfusions, patient blood requests, and live inventory management.
+                        <h3 className="text-base font-bold text-foreground">
+                          HOSPITAL / ICU
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Manage blood inventory, emergency requests, hospital requirements, and transfusion logistics.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-1.5 border-t border-border/50 text-[11px]">
-                      <span className="text-muted-foreground">Workspace: Hospital Clinical Staff</span>
-                      <span className="font-bold flex items-center gap-1 text-red-600 dark:text-red-400">
+                    <div className="pt-2 border-t border-border/50 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleDashboardSelect('hospital')}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-xs transition-colors cursor-pointer"
+                      >
                         <span>Open Workspace</span>
-                        <ArrowRight className="size-3" />
-                      </span>
+                        <ArrowRight className="size-3.5" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 )}
 
                 {isDashboardAuthorized('donor') && (
-                  <button
-                    type="button"
-                    onClick={() => handleDashboardSelect('donor')}
-                    className="w-full text-left rounded-2xl border border-border bg-background hover:border-rose-500/50 hover:bg-rose-500/5 shadow-xs cursor-pointer p-3.5 transition-all flex flex-col gap-2"
+                  <div
+                    className="rounded-2xl border border-border bg-card p-4 transition-all shadow-xs hover:border-rose-500/40 flex flex-col gap-3"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="grid size-10 place-items-center rounded-xl shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400">
+                    <div className="flex items-start gap-3.5">
+                      <span className="grid size-11 place-items-center rounded-xl shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950/70 dark:text-rose-400">
                         <Droplets className="size-5" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-foreground">Blood Donor Workspace</h3>
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                            <CheckCircle2 className="size-3" />
-                            <span>Authorized</span>
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                          View active donation alerts, schedule appointments, and donate blood.
+                        <h3 className="text-base font-bold text-foreground">
+                          DONOR
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          View donation requests, manage appointments, and access donor-related services.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-1.5 border-t border-border/50 text-[11px]">
-                      <span className="text-muted-foreground">Workspace: Registered Voluntary Donor</span>
-                      <span className="font-bold flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                    <div className="pt-2 border-t border-border/50 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleDashboardSelect('donor')}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
+                      >
                         <span>Open Workspace</span>
-                        <ArrowRight className="size-3" />
-                      </span>
+                        <ArrowRight className="size-3.5" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 )}
 
                 {isDashboardAuthorized('driver') && (
-                  <button
-                    type="button"
-                    onClick={() => handleDashboardSelect('driver')}
-                    className="w-full text-left rounded-2xl border border-border bg-background hover:border-emerald-500/50 hover:bg-emerald-500/5 shadow-xs cursor-pointer p-3.5 transition-all flex flex-col gap-2"
+                  <div
+                    className="rounded-2xl border border-border bg-card p-4 transition-all shadow-xs hover:border-emerald-500/40 flex flex-col gap-3"
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="grid size-10 place-items-center rounded-xl shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+                    <div className="flex items-start gap-3.5">
+                      <span className="grid size-11 place-items-center rounded-xl shrink-0 bg-emerald-100 text-emerald-600 dark:bg-emerald-950/70 dark:text-emerald-400">
                         <Bike className="size-5" />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-foreground">Logistics Courier Workspace</h3>
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                            <CheckCircle2 className="size-3" />
-                            <span>Authorized</span>
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                          Rapid cold-chain logistics dispatch, route navigation, and secure OTP handovers.
+                        <h3 className="text-base font-bold text-foreground">
+                          DELIVERY / COURIER
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Manage blood deliveries, assigned routes, dispatch status, and delivery verification.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-1.5 border-t border-border/50 text-[11px]">
-                      <span className="text-muted-foreground">Workspace: Medical Courier</span>
-                      <span className="font-bold flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <div className="pt-2 border-t border-border/50 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleDashboardSelect('driver')}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
+                      >
                         <span>Open Workspace</span>
-                        <ArrowRight className="size-3" />
-                      </span>
+                        <ArrowRight className="size-3.5" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 )}
               </div>
 
@@ -560,17 +601,19 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
                 </div>
               )}
 
-              {/* Switch Account Option */}
+              {/* Sign Out / Switch Account Option */}
               <div className="pt-2 text-center">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
+                    await logout()
                     setErrorMessage('')
                     setStage('auth')
                   }}
-                  className="text-xs font-semibold text-coral hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                 >
-                  ← Sign in with a different account
+                  <LogOut className="size-3.5" />
+                  <span>Sign Out / Switch Account</span>
                 </button>
               </div>
             </motion.div>

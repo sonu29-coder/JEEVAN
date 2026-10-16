@@ -5,6 +5,7 @@ JWT Bearer token generation, verification, and compatibility with Next.js fronte
 
 from __future__ import annotations
 
+import hmac
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Dict, List, Optional
@@ -92,6 +93,33 @@ def normalize_role(role: str) -> str:
     return ROLE_ALIASES.get(cleaned, cleaned)
 
 
+REVOKED_TOKENS: set[str] = set()
+
+
+def revoke_token(token: str) -> None:
+    """Revoke an active token upon logout."""
+    clean_token = token.strip()
+    REVOKED_TOKENS.add(clean_token)
+    try:
+        from backend.database import redis_client
+        redis_client.setex(f"jeevan:revoked:{clean_token}", 86400, "1")
+    except Exception:
+        pass
+
+
+def is_token_revoked(token: str) -> bool:
+    """Check if a token has been revoked."""
+    clean_token = token.strip()
+    if clean_token in REVOKED_TOKENS:
+        return True
+    try:
+        from backend.database import redis_client
+        val = redis_client.get(f"jeevan:revoked:{clean_token}")
+        return bool(val)
+    except Exception:
+        return False
+
+
 def create_access_token(
     user_id: str,
     role: str,
@@ -115,8 +143,14 @@ def create_access_token(
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
-def decode_access_token(token: str) -> Dict[str, str]:
+def decode_access_token(token: str) -> Dict[str, Any]:
     """Decode and validate a JWT access token."""
+    if is_token_revoked(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked. Please re-authenticate.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         return payload
@@ -140,11 +174,12 @@ security_scheme = HTTPBearer(auto_error=False)
 def get_current_user(
     auth_header: Annotated[Optional[HTTPAuthorizationCredentials], Depends(security_scheme)],
     authorization: Annotated[Optional[str], Header()] = None,
+    x_api_key: Annotated[Optional[str], Header()] = None,
 ) -> UserPayload:
     """
     FastAPI dependency to extract and authenticate current user from Bearer header.
     Seamlessly supports both signed JWT tokens AND the Next.js frontend demo tokens
-    (HOSP-9042, DONOR-1108, DLVR-8821).
+    (HOSP-9042, DONOR-1108, DLVR-8821). Also recognizes system API keys with ADMIN role.
     """
     token = None
     if auth_header and auth_header.credentials:
@@ -153,10 +188,20 @@ def get_current_user(
         token = authorization[7:].strip()
 
     if not token:
+        configured_key = os.getenv("JEEVAN_API_KEY")
+        if x_api_key and configured_key and hmac.compare_digest(x_api_key, configured_key):
+            return UserPayload(user_id="api-key-system", role="ADMIN", label="System API Key")
         # Default guest / unauthenticated fallback
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication credentials were not provided. Expected 'Authorization: Bearer <token>'",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if is_token_revoked(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked. Please re-authenticate.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -191,8 +236,10 @@ def require_role(allowed_roles: List[str]):
     """
     Dependency factory to enforce role-based access control.
     Supports role normalization (e.g. DONOR matching REGISTERED_DONOR).
+    ADMIN always has access across medical and logistics workspaces.
     """
     normalized_allowed = {normalize_role(r) for r in allowed_roles}
+    normalized_allowed.add("ADMIN")
 
     def role_checker(user: Annotated[UserPayload, Depends(get_current_user)]) -> UserPayload:
         user_role = normalize_role(user.role)
@@ -201,10 +248,24 @@ def require_role(allowed_roles: List[str]):
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Forbidden: role '{user.role}' is not authorized. Required: {list(normalized_allowed)}",
             )
+        return user
     return role_checker
 
 
-require_admin = require_role(["ADMIN"])
+def require_admin(user: Annotated[UserPayload, Depends(get_current_user)]) -> UserPayload:
+    """Dependency that exclusively authorizes ADMIN accounts for system management."""
+    user_role = normalize_role(user.role)
+    if user_role != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden: role '{user.role}' is not authorized for administrative operations. Required: ['ADMIN']",
+        )
+    return user
+
+
+require_hospital = require_role(["ICU_HOSPITAL"])
+require_donor = require_role(["REGISTERED_DONOR"])
+require_courier = require_role(["DELIVERY_PARTNER"])
 
 
 # ---------------------------------------------------------------------

@@ -199,6 +199,18 @@ export function clearSavedAuth() {
   } catch {}
 }
 
+export async function logoutUser(token?: string): Promise<void> {
+  if (token) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch {}
+  }
+  clearSavedAuth()
+}
+
 export async function loginUser(
   portal: Portal,
   identifier: string,
@@ -208,17 +220,25 @@ export async function loginUser(
   const expectedAuthRole: AuthRole =
     portal === 'hospital' ? 'ICU_HOSPITAL' : portal === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
 
-  // Attempt live backend authentication first
+  if (!cleanId || !password) {
+    return {
+      success: false,
+      message: 'Please provide both your registered email and password.',
+      role: expectedAuthRole,
+      user: null,
+      token: '',
+    }
+  }
+
   try {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username_or_token: cleanId,
-        password: password || undefined,
-        role: expectedAuthRole,
+        password: password,
       }),
-      signal: AbortSignal.timeout(3500),
+      signal: AbortSignal.timeout(4000),
     })
 
     if (res.ok) {
@@ -226,25 +246,37 @@ export async function loginUser(
       const actualRole: AuthRole = (data.role as AuthRole) || expectedAuthRole
       const actualPortal: Portal =
         actualRole === 'REGISTERED_DONOR' ? 'donor' : actualRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
-      saveAuthSession(actualRole, actualPortal, data)
+
+      const userObj = {
+        id: data.user_id,
+        name: data.label || data.name || cleanId.split('@')[0],
+        email: cleanId,
+        role: actualRole,
+        allowed_roles: actualRole === 'ADMIN' ? 'ICU_HOSPITAL,REGISTERED_DONOR,DELIVERY_PARTNER,ADMIN' : actualRole,
+        token: data.access_token,
+        access_token: data.access_token,
+        badge: data.badge,
+        portal: actualPortal,
+      }
+
+      saveAuthSession(actualRole, actualPortal, userObj)
+
       return {
         success: true,
-        message: `Welcome back, ${data.name || data.label || cleanId}!`,
+        message: `Welcome back, ${userObj.name}!`,
         role: actualRole,
-        user: {
-          ...data,
-          name: data.name || data.label || cleanId,
-          role: actualRole,
-          allowed_roles: actualRole === 'ADMIN' ? 'ICU_HOSPITAL,REGISTERED_DONOR,DELIVERY_PARTNER,ADMIN' : actualRole,
-        },
-        token: data.access_token || CREDENTIALS[actualRole]?.token || 'AUTH-TOKEN',
+        user: userObj,
+        token: data.access_token,
       }
     } else {
       const errData = await res.json().catch(() => ({}))
       const friendlyMsg =
         res.status === 401
           ? 'Invalid email, mobile number, or password. Please verify your details.'
-          : errData.detail || 'Authentication failed. Please verify your details and try again.'
+          : res.status === 403
+          ? errData.detail || 'Access denied. Your account is not active or authorized.'
+          : errData.detail || 'Authentication failed. Please check your credentials.'
+
       return {
         success: false,
         message: friendlyMsg,
@@ -254,89 +286,13 @@ export async function loginUser(
       }
     }
   } catch {
-    // Backend is offline or not reachable, proceed to verified demo matcher
-  }
-
-  // Demo / offline fallback matching
-  const allDemoUsers = [...DEMO_USERS.hospital, ...DEMO_USERS.donor, ...DEMO_USERS.driver]
-  const matched = allDemoUsers.find(
-    (u) =>
-      u.email.toLowerCase() === cleanId.toLowerCase() ||
-      u.token.toLowerCase() === cleanId.toLowerCase() ||
-      cleanId.toLowerCase().includes(u.portal),
-  )
-
-  if (matched) {
-    if (password && password.length < 4) {
-      return {
-        success: false,
-        message: 'Password must be at least 4 characters long.',
-        role: matched.role,
-        user: null,
-        token: '',
-      }
-    }
-
-    const userMeta = {
-      name: matched.name,
-      email: matched.email,
-      token: matched.token,
-      role: matched.role,
-      allowed_roles: matched.role,
-      badge: matched.badge,
-      portal: matched.portal,
-    }
-
-    saveAuthSession(matched.role, matched.portal, userMeta)
-
-    return {
-      success: true,
-      message: `Welcome back, ${matched.name}!`,
-      role: matched.role,
-      user: userMeta,
-      token: matched.token,
-    }
-  }
-
-  // Fallback for custom user credentials if offline
-  if (password && password.length < 4) {
     return {
       success: false,
-      message: 'Password must be at least 4 characters long.',
+      message: 'Unable to reach authentication server. Please ensure the backend service is running.',
       role: expectedAuthRole,
       user: null,
       token: '',
     }
-  }
-
-  const detectedRole: AuthRole =
-    cleanId.toLowerCase().includes('donor')
-      ? 'REGISTERED_DONOR'
-      : cleanId.toLowerCase().includes('driver') || cleanId.toLowerCase().includes('rider')
-      ? 'DELIVERY_PARTNER'
-      : 'ICU_HOSPITAL'
-
-  const detectedPortal: Portal =
-    detectedRole === 'REGISTERED_DONOR' ? 'donor' : detectedRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
-
-  const userMeta = {
-    name: cleanId.includes('@') ? cleanId.split('@')[0] : cleanId,
-    email: cleanId,
-    token: CREDENTIALS[detectedRole]?.token || 'AUTH-TOKEN',
-    role: detectedRole,
-    allowed_roles: detectedRole,
-    badge: `${detectedPortal === 'hospital' ? 'Hospital ICU' : detectedPortal === 'donor' ? 'Blood Donor' : 'Medical Logistics'}`,
-    portal: detectedPortal,
-  }
-
-  saveAuthSession(detectedRole, detectedPortal, userMeta)
-
-  return {
-    success: true,
-    message: `Signed in as ${userMeta.name}`,
-    role: detectedRole,
-    user: userMeta,
-    token: userMeta.token,
   }
 }
 
