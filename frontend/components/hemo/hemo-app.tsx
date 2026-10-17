@@ -41,7 +41,16 @@ export function HemoApp({ initialRole }: { initialRole?: import('./grid-store').
 
 function AppShell() {
   const [showSplash, setShowSplash] = useState(true)
-  const { tab, role, session, isAuthenticated, showDashboardSelector, setShowDashboardSelector } = useGrid()
+  const {
+    tab,
+    role,
+    session,
+    isAuthenticated,
+    isWorkspaceLoading,
+    finishWorkspaceLoading,
+    showDashboardSelector,
+    setShowDashboardSelector,
+  } = useGrid()
   const authorized = hasPortalAccess(session, role)
   const PortalView = role === 'donor' ? DonorDashboard : role === 'driver' ? DriverDashboard : VIEWS[tab]
   const View = authorized ? PortalView : AccessDenied
@@ -49,11 +58,17 @@ function AppShell() {
 
   return (
     <>
-      {/* 1. Professional Splash Screen with Animated Pattern and Smooth Transition */}
+      {/* 1. Professional Splash Screen & Workspace Loading Transition Screen */}
       <AnimatePresence mode="wait">
-        {showSplash && (
-          <SplashScreen key="splash-view" onFinish={() => setShowSplash(false)} />
-        )}
+        {showSplash ? (
+          <SplashScreen key="initial-splash-view" durationMs={1800} onFinish={() => setShowSplash(false)} />
+        ) : isWorkspaceLoading ? (
+          <SplashScreen
+            key="workspace-splash-view"
+            durationMs={1200}
+            onFinish={() => finishWorkspaceLoading()}
+          />
+        ) : null}
       </AnimatePresence>
 
       {/* 2. Unauthenticated: Centralized Login Page */}
@@ -66,7 +81,11 @@ function AppShell() {
         </div>
       ) : (
         /* 3. Authenticated: Clean App Container with Workspace Header & Dashboard */
-        <div className="relative mx-auto flex h-dvh max-w-md flex-col overflow-hidden bg-background sm:h-[min(920px,calc(100dvh-3rem))] sm:rounded-[36px] sm:border sm:shadow-xl">
+        <div
+          className={`relative mx-auto flex h-dvh max-w-md flex-col overflow-hidden bg-background sm:h-[min(920px,calc(100dvh-3rem))] sm:rounded-[36px] sm:border sm:shadow-xl transition-opacity duration-300 ${
+            isWorkspaceLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
           <AppHeader />
           <main className="relative isolate min-h-0 flex-1">
             <AnimatePresence mode="wait" initial={false}>

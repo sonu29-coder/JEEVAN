@@ -30,6 +30,9 @@ interface GridContextValue {
   setShowDashboardSelector: (val: boolean) => void
   login: (targetRole: Role, authRole: AuthRole, userData: any) => void
   logout: () => void
+  isWorkspaceLoading: boolean
+  enterWorkspace: (targetRole: Role, authRole: AuthRole, userData: any) => void
+  finishWorkspaceLoading: () => void
   role: Role
   setRole: (role: Role) => void
   session: AuthRole
@@ -68,9 +71,10 @@ interface GridContextValue {
 const GridContext = createContext<GridContextValue | null>(null)
 
 export function GridProvider({ children, initialRole }: { children: ReactNode; initialRole?: Role }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(initialRole))
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [showDashboardSelector, setShowDashboardSelector] = useState<boolean>(false)
+  const [isWorkspaceLoading, setIsWorkspaceLoading] = useState<boolean>(false)
   const [role, setRoleState] = useState<Role>(initialRole || 'hospital')
   const [session, setSessionState] = useState<AuthRole>(
     initialRole === 'donor' ? 'REGISTERED_DONOR' : initialRole === 'driver' ? 'DELIVERY_PARTNER' : 'ICU_HOSPITAL'
@@ -78,6 +82,36 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
   const [forbidden, setForbidden] = useState<ForbiddenInfo | null>(null)
   const dismissForbidden = useCallback(() => setForbidden(null), [])
   const [tab, setTabState] = useState<Tab>('home')
+
+  const enterWorkspace = useCallback((targetRole: Role, authRole: AuthRole, userData: any) => {
+    // 1. Immediately activate workspace loading logo screen
+    setIsWorkspaceLoading(true)
+
+    // 2. Set authenticated state and role
+    setRoleState(targetRole)
+    setSessionState(authRole)
+    setCurrentUser(userData)
+    setIsAuthenticated(true)
+    setShowDashboardSelector(false)
+    saveAuthSession(authRole, targetRole, userData)
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jeevan_is_authenticated', 'true')
+      const targetRoute =
+        targetRole === 'hospital'
+          ? '/icu/dashboard'
+          : targetRole === 'donor'
+          ? '/donor/dashboard'
+          : '/delivery/dashboard'
+      try {
+        window.history.replaceState(null, '', targetRoute)
+      } catch {}
+    }
+  }, [])
+
+  const finishWorkspaceLoading = useCallback(() => {
+    setIsWorkspaceLoading(false)
+  }, [])
 
   const login = useCallback((targetRole: Role, authRole: AuthRole, userData: any) => {
     setRoleState(targetRole)
@@ -130,54 +164,58 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
         ? roleParam
         : initialRole
 
-    const saved = loadSavedAuth()
-    const token = saved?.user?.token || saved?.user?.access_token
+    // Only restore session if explicitly targeting a specific portal/role route
+    if (targetRole) {
+      const saved = loadSavedAuth()
+      const token = saved?.user?.token || saved?.user?.access_token
 
-    if (!token) {
-      // Unauthenticated: cannot access any dashboard via URL or query param
-      setIsAuthenticated(false)
-      setCurrentUser(null)
-      return
-    }
-
-    // Verify session with backend /api/auth/me
-    fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error('Token invalid or revoked')
-        }
-        const data = await res.json()
-        const verifiedRole: AuthRole = data.role
-        const allowedPortals =
-          verifiedRole === 'ADMIN'
-            ? ['hospital', 'donor', 'driver']
-            : verifiedRole === 'ICU_HOSPITAL'
-            ? ['hospital']
-            : verifiedRole === 'REGISTERED_DONOR'
-            ? ['donor']
-            : verifiedRole === 'DELIVERY_PARTNER'
-            ? ['driver']
-            : []
-
-        // If targetRole is requested and allowed, use it; otherwise default to authorized portal
-        const resolvedPortal: Role =
-          targetRole && allowedPortals.includes(targetRole)
-            ? targetRole
-            : (allowedPortals[0] as Role) || 'hospital'
-
-        setRoleState(resolvedPortal)
-        setSessionState(verifiedRole)
-        setCurrentUser({ ...saved?.user, ...data, token })
-        setIsAuthenticated(true)
-      })
-      .catch(() => {
-        // Token invalid, revoked, or expired
-        clearSavedAuth()
+      if (!token) {
         setIsAuthenticated(false)
         setCurrentUser(null)
+        return
+      }
+
+      // Verify session with backend /api/auth/me
+      fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
       })
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error('Token invalid or revoked')
+          }
+          const data = await res.json()
+          const verifiedRole: AuthRole = data.role
+          const allowedPortals =
+            verifiedRole === 'ADMIN'
+              ? ['hospital', 'donor', 'driver']
+              : verifiedRole === 'ICU_HOSPITAL'
+              ? ['hospital']
+              : verifiedRole === 'REGISTERED_DONOR'
+              ? ['donor']
+              : verifiedRole === 'DELIVERY_PARTNER'
+              ? ['driver']
+              : []
+
+          // If targetRole is requested and allowed, use it; otherwise default to authorized portal
+          const resolvedPortal: Role =
+            targetRole && allowedPortals.includes(targetRole)
+              ? targetRole
+              : (allowedPortals[0] as Role) || 'hospital'
+
+          setRoleState(resolvedPortal)
+          setSessionState(verifiedRole)
+          setCurrentUser({ ...saved?.user, ...data, token })
+          setIsAuthenticated(true)
+        })
+        .catch(() => {
+          // Token invalid, revoked, or expired
+          clearSavedAuth()
+          setIsAuthenticated(false)
+          setCurrentUser(null)
+        })
+    } else {
+      setIsAuthenticated(false)
+    }
   }, [initialRole])
 
   // Tabs belong to the hospital portal, so navigating to one switches back to that role.
@@ -186,7 +224,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
     setTabState(next)
   }, [])
   const [query, setQuery] = useState('')
-  const [stock, setStock] = useState<StockItem[]>(() => seedStock(Date.now()))
+  const [stock, setStock] = useState<StockItem[]>(() => seedStock(1740000000000))
   const [emergencies, setEmergencies] = useState<Emergency[]>(SEED_EMERGENCIES)
 
   // Hydrate live stock and emergency requests from PostgreSQL backend
@@ -419,6 +457,9 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       setShowDashboardSelector,
       login,
       logout,
+      isWorkspaceLoading,
+      enterWorkspace,
+      finishWorkspaceLoading,
       role,
       setRole,
       session,
@@ -459,6 +500,9 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       showDashboardSelector,
       login,
       logout,
+      isWorkspaceLoading,
+      enterWorkspace,
+      finishWorkspaceLoading,
       role,
       setRole,
       session,

@@ -2137,7 +2137,30 @@ def login(
     """
     token_candidate = (body.username_or_token or body.email or "").strip()
 
-    # 1. Check if token_candidate matches a registered User in database by email OR phone
+    # 1. Direct frontend demo credential token support (e.g. HOSP-9042, DONOR-1108, DLVR-8821, ADMIN-0001)
+    if token_candidate in FRONTEND_CREDENTIALS:
+        cred = FRONTEND_CREDENTIALS[token_candidate]
+        target_role = normalize_role(cred["role"])
+        user_id = cred["user_id"]
+        label = cred["label"]
+        badge = cred["badge"]
+        access_token = create_access_token(
+            user_id=user_id,
+            role=target_role,
+            label=label,
+            badge=badge,
+        )
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            role=target_role,
+            user_id=user_id,
+            label=label,
+            badge=badge,
+            expires_in_seconds=86400,
+        )
+
+    # 2. Check if token_candidate matches a registered User in database by email OR phone
     if token_candidate:
         # Check by email
         db_user = session.scalar(select(User).where(func.lower(User.email) == token_candidate.lower()))
@@ -2148,6 +2171,16 @@ def login(
                 db_user = session.scalar(select(User).where(User.phone_number == norm_phone))
             except Exception:
                 pass
+
+        # If user record not found, check if it is one of the standard demo accounts and seed on-demand
+        if not db_user:
+            try:
+                from backend.seed_users import DEFAULT_USERS, seed_users
+                if any(u["email"].lower() == token_candidate.lower() for u in DEFAULT_USERS):
+                    seed_users()
+                    db_user = session.scalar(select(User).where(func.lower(User.email) == token_candidate.lower()))
+            except Exception as exc:
+                logger.warning("On-demand user seed fallback notice: %s", exc)
 
         if not db_user:
             raise HTTPException(

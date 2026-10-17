@@ -44,7 +44,7 @@ interface CentralizedAuthFlowProps {
 
 export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: CentralizedAuthFlowProps) {
   const router = useRouter()
-  const { login, logout, currentUser: existingUser } = useGrid()
+  const { login, logout, currentUser: existingUser, enterWorkspace } = useGrid()
 
   const [stage, setStage] = useState<'auth' | 'select'>(
     initialStage === 'select' && existingUser ? 'select' : 'auth'
@@ -108,30 +108,31 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
     if (!validateForm()) return
 
     const cleanEmail = email.trim()
-    const cleanName = fullName.trim()
-    const cleanPhone = phone.trim()
     const cleanPassword = password.trim()
 
     setIsLoading(true)
 
     try {
-      // Authenticate directly against backend
+      // Authenticate directly against backend or verified credentials
       const targetPortal: Portal =
         cleanEmail.includes('donor')
           ? 'donor'
-          : cleanEmail.includes('driver') || cleanEmail.includes('rider')
+          : cleanEmail.includes('driver') || cleanEmail.includes('rider') || cleanEmail.includes('courier')
           ? 'driver'
           : 'hospital'
 
       const authRes = await loginUser(targetPortal, cleanEmail, cleanPassword)
 
-      if (authRes.success) {
-        setAuthenticatedUser(authRes.user)
+      if (authRes.success && authRes.user) {
+        setAuthenticatedUser({
+          ...authRes.user,
+          name: authRes.user.name || fullName.trim() || 'Authorized User',
+        })
         setStage('select')
         setErrorMessage('')
       } else {
         setErrorMessage(
-          authRes.message || 'Invalid email or password. Please verify your details and try again.'
+          authRes.message || 'Invalid email, mobile number, or password. Please verify your details.'
         )
       }
     } catch {
@@ -168,18 +169,22 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
       setEmail('dr.rajesh@jubileemission.org')
       setPassword('HospitalPassword2026!')
       setFullName('Dr. Rajesh Nair, MD')
+      setPhone('+91 94471 23456')
     } else if (type === 'donor') {
       setEmail('sneha.donor@gmail.com')
       setPassword('DonorPassword2026!')
       setFullName('Sneha Menon')
+      setPhone('+91 98472 34567')
     } else if (type === 'courier') {
       setEmail('driver.arun@gmail.com')
       setPassword('DriverPassword2026!')
       setFullName('Arun Kumar')
+      setPhone('+91 97453 45678')
     } else if (type === 'admin') {
       setEmail('admin@jeevan.org')
       setPassword('AdminPassword2026!')
       setFullName('Jeevan Grid Administrator')
+      setPhone('+91 99954 56789')
     }
   }
 
@@ -198,18 +203,8 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
 
     const sessionRole = userRole === 'ADMIN' ? 'ADMIN' : requiredAuthRole
 
-    login(targetPortal, sessionRole, authenticatedUser)
+    enterWorkspace(targetPortal, sessionRole, authenticatedUser)
     if (onCancel) onCancel()
-
-    const targetRoute =
-      targetPortal === 'hospital'
-        ? '/icu/dashboard'
-        : targetPortal === 'donor'
-        ? '/donor/dashboard'
-        : '/delivery/dashboard'
-    try {
-      router.push(targetRoute)
-    } catch {}
   }
 
   // Helper to test if a dashboard is authorized

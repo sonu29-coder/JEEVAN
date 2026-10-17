@@ -28,10 +28,15 @@ export default function LoginPage() {
     setQuickLogging(portal)
     const user = DEMO_USERS[portal][0]
     try {
-      await loginUser(portal, user.email, user.defaultPassword)
-      setTimeout(() => {
-        router.push(`/?role=${portal}`)
-      }, 400)
+      const authRes = await loginUser(portal, user.email, user.defaultPassword)
+      if (authRes.success) {
+        setAuthMsg(`Welcome ${user.name}!`)
+        setTimeout(() => {
+          router.push(`/?role=${portal}`)
+        }, 400)
+      } else {
+        setAuthMsg(authRes.message)
+      }
     } finally {
       setQuickLogging(null)
     }
