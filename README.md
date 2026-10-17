@@ -10,7 +10,6 @@
 | :--- | :--- | :--- |
 | **🌐 Web Application (Frontend)** | https://jeevan-frontend.onrender.com | Next.js 16 Production Web App & Role Portals |
 | **⚙️ Backend REST API** | https://jeevan-backend-suyo.onrender.com | FastAPI High-Performance Asynchronous Core |
-| **🩺 Health Check Endpoint** | postgresql://jeevan:1w1GcEkxFgnNw3yJkBCWoh4vQGSZUZ0G@dpg-db9hieuq1p3s73897h8g-a.oregon-postgres.render.com/jeevan_bbiv | Service & Database Liveness Probe |
 
 ---
 
