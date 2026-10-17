@@ -8,12 +8,9 @@
 
 | Service | Live Deployment URL | Description |
 | :--- | :--- | :--- |
-| **🌐 Web Application (Frontend)** | `https://jeevan-frontend.onrender.com` *(Paste your Render Frontend URL here)* | Next.js 16 Production Web App & Role Portals |
-| **⚙️ Backend REST API** | `https://jeevan-backend.onrender.com` *(Paste your Render Backend URL here)* | FastAPI High-Performance Asynchronous Core |
-| **📖 Interactive API Docs (Swagger)**| `https://jeevan-backend.onrender.com/docs` | OpenAPI / Swagger Interactive Testing Playground |
-| **🩺 Health Check Endpoint** | `https://jeevan-backend.onrender.com/health` | Service & Database Liveness Probe |
-
-> **Evaluation Quickstart:** When deployed on Render or running locally, all same-origin `/api/*` calls from the Next.js frontend are automatically proxied to the FastAPI backend service.
+| **🌐 Web Application (Frontend)** | https://jeevan-frontend.onrender.com | Next.js 16 Production Web App & Role Portals |
+| **⚙️ Backend REST API** | https://jeevan-backend-suyo.onrender.com | FastAPI High-Performance Asynchronous Core |
+| **🩺 Health Check Endpoint** | postgresql://jeevan:1w1GcEkxFgnNw3yJkBCWoh4vQGSZUZ0G@dpg-db9hieuq1p3s73897h8g-a.oregon-postgres.render.com/jeevan_bbiv | Service & Database Liveness Probe |
 
 ---
 
