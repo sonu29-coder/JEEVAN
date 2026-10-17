@@ -17,7 +17,7 @@ services:
         fromService:
           type: web
           name: jeevan-frontend
-          property: url
+          envVarKey: RENDER_EXTERNAL_URL
       - key: DEMO_DATA_ENABLED
         value: "true"
       - key: PYTHONPATH
@@ -41,7 +41,7 @@ services:
         fromService:
           type: web
           name: jeevan-backend
-          property: url
+          envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_API_URL
         value: "/api"
 
