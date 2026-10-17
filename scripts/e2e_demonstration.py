@@ -5,7 +5,7 @@ Executes the realistic 14-step emergency blood workflow against the live Postgre
 Workflow:
 1. Health & Dependency Readiness Check
 2. Authorized Hospital User Authentication (Bcrypt / JWT)
-3. Emergency Blood Request Submission (Thrissur ICU)
+3. Emergency Blood Request Submission (Chennai Central ICU)
 4. PostgreSQL Request Record Verification
 5. Querying Available, Compatible, Non-Expired Inventory
 6. Real PostGIS Geographic Candidate Matching

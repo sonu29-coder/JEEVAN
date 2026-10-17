@@ -176,7 +176,7 @@ export default function LoginPage() {
           {/* Footer Info */}
           <div className="pt-4 border-t border-border mt-4 text-center">
             <p className="text-[11px] text-muted-foreground">
-              Kerala State Emergency Blood Transmission Grid • Thrissur
+              Tamil Nadu State Emergency Blood Transmission Grid • Chennai
             </p>
           </div>
         </main>

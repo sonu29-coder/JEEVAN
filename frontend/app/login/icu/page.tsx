@@ -83,7 +83,7 @@ export default function IcuLoginPage() {
                 <Hospital className="size-3.5" />
                 ICU Portal
               </p>
-              <p className="text-xs text-muted-foreground font-medium">Jubilee Mission ICU</p>
+              <p className="text-xs text-muted-foreground font-medium">Chennai Central Trauma ICU</p>
             </div>
           </div>
 

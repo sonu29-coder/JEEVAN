@@ -94,26 +94,34 @@ def run_controlled_migration():
             print(f"      Removed {deleted_res} old Kerala synthetic reservation records.")
 
             deleted_alerts = session.execute(
-                text("DELETE FROM donor_alerts WHERE synthetic = 1 AND (message LIKE '%Thrissur%' OR source = 'synthetic_demo')")
+                text("DELETE FROM donor_alerts WHERE message LIKE '%Thrissur%' OR message LIKE '%Kerala%' OR message LIKE '%Jubilee%' OR source = 'synthetic_demo'")
             ).rowcount
-            print(f"      Removed {deleted_alerts} old Kerala synthetic donor alert records.")
+            print(f"      Removed {deleted_alerts} old Kerala donor alert records.")
 
             deleted_requests = session.execute(
-                text("DELETE FROM blood_requests WHERE synthetic = 1 AND (hospital_latitude < 11.5 OR source = 'synthetic_demo')")
+                text("DELETE FROM blood_requests WHERE (hospital_latitude IS NOT NULL AND hospital_latitude < 11.5) OR hospital_name LIKE '%Jubilee%' OR hospital_name LIKE '%Elite%' OR hospital_name LIKE '%Westfort%' OR source = 'synthetic_demo'")
             ).rowcount
-            print(f"      Removed {deleted_requests} old Kerala synthetic blood request records.")
+            print(f"      Removed {deleted_requests} old Kerala blood request records.")
 
             # Old delivery records with Thrissur addresses
             deleted_deliv = session.execute(
-                text("DELETE FROM delivery_records WHERE synthetic = 1 AND (pickup_name LIKE '%Thrissur%' OR destination_name LIKE '%Thrissur%' OR pickup_address LIKE '%Thrissur%')")
+                text("DELETE FROM delivery_records WHERE pickup_name LIKE '%Thrissur%' OR destination_name LIKE '%Thrissur%' OR pickup_address LIKE '%Thrissur%' OR source = 'synthetic_demo'")
             ).rowcount
-            print(f"      Removed {deleted_deliv} old Kerala synthetic delivery records.")
+            print(f"      Removed {deleted_deliv} old Kerala delivery records.")
 
             # Old audit logs
             deleted_audits = session.execute(
-                text("DELETE FROM audit_logs WHERE synthetic = 1 AND source = 'synthetic_demo'")
+                text("DELETE FROM audit_logs WHERE source = 'synthetic_demo'")
             ).rowcount
-            print(f"      Removed {deleted_audits} old Kerala synthetic audit log records.")
+            print(f"      Removed {deleted_audits} old Kerala audit log records.")
+
+            # Clean legacy Kerala user references
+            session.execute(
+                text("UPDATE users SET email = 'redcross.admin@redcrosschennai.org' WHERE id = 'usr-bank-01' AND email LIKE '%thrissur%'")
+            )
+            session.execute(
+                text("DELETE FROM users WHERE id = 'usr-538c5e94' OR email LIKE '%kerala%' OR email LIKE '%thrissur%'")
+            )
 
             # Verify user accounts are completely untouched
             user_count = session.execute(text("SELECT count(*) FROM users")).scalar()

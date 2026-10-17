@@ -920,7 +920,7 @@ def get_blood_expiry_radar(
                 target_bank_name = "Govt Medical College Blood Bank (High Trauma Intake)"
             else:
                 target_bank_id = "bank-jubilee"
-                target_bank_name = "Jubilee Mission Blood Centre"
+                target_bank_name = "Mylapore Lions Blood Centre"
 
             rules.append(
                 ClinicalRuleAlert(
@@ -3141,7 +3141,7 @@ def dispatch_ncc_coordinator_endpoint(body: Dict[str, Any]):
     Automatically sends an emergency high-priority message & push notification
     to the Single Verified College NCC Coordinator & Blood Club Leader.
     """
-    hospital_name = body.get("hospital_name") or body.get("hospital") or "Jubilee Mission ICU"
+    hospital_name = body.get("hospital_name") or body.get("hospital") or "Apollo Greams Trauma ICU"
     blood_group = body.get("blood_group") or body.get("group") or "O-"
     units = int(body.get("units") or 2)
     urgency = body.get("urgency", "CRITICAL")

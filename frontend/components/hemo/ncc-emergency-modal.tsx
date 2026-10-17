@@ -28,7 +28,7 @@ export function NccEmergencyModal() {
 
   if (!nccAlertOpen) return null
 
-  const hospital = nccAlertData?.hospital_name || 'Jubilee Mission Hospital ICU'
+  const hospital = nccAlertData?.hospital_name || 'Apollo Greams Trauma ICU'
   const group = nccAlertData?.blood_group || nccAlertData?.group || 'O-'
   const units = nccAlertData?.units || 2
   const urgency = nccAlertData?.urgency || 'CRITICAL'

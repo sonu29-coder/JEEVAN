@@ -558,7 +558,7 @@ callback validation.
 ## Data and demo records
 
 -   `data/synthetic/*.csv` contains generated demo records around
-    Thrissur.
+    Chennai.
 -   `data/raw/private_bloodbanks_0.csv` is a historical 199-record
     blood-bank directory. It includes old licence dates and does not
     provide verified coordinates or live inventory.

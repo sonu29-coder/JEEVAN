@@ -41,9 +41,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 FRONTEND_CREDENTIALS: Dict[str, Dict[str, str]] = {
     "HOSP-9042": {
         "role": "ICU_HOSPITAL",
-        "user_id": "hosp-jubilee",
-        "label": "Jubilee Mission ICU",
-        "badge": "Verified Hospital Node • Jubilee Mission ICU",
+        "user_id": "hosp-chennai-central",
+        "label": "Chennai Central Trauma ICU",
+        "badge": "Verified Hospital Node • Chennai Central Trauma ICU",
     },
     "DONOR-1108": {
         "role": "REGISTERED_DONOR",
@@ -274,7 +274,7 @@ require_courier = require_role(["DELIVERY_PARTNER"])
 
 GOOGLE_CLIENT_ID = os.getenv(
     "GOOGLE_CLIENT_ID",
-    "789234891234-jeevan-hemo-grid-thrissur.apps.googleusercontent.com",
+    "789234891234-jeevan-hemo-grid-chennai.apps.googleusercontent.com",
 )
 
 

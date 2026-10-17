@@ -361,7 +361,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       setEmergencies((list) => [emergency, ...list])
       // Automatically trigger high-priority NCC Coordinator Pop-Up!
       openNccAlert({
-        hospital_name: emergency.icuId === 'icu-elite' ? 'Elite Mission Hospital ICU' : 'Jubilee Mission Hospital ICU',
+        hospital_name: emergency.icuId === 'icu-elite' ? 'Kilpauk Medical College Hospital' : 'Apollo Greams Trauma ICU',
         blood_group: emergency.group,
         units: emergency.units,
         urgency: emergency.urgency,
