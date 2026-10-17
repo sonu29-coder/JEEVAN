@@ -14,7 +14,10 @@ services:
       - key: JEEVAN_API_KEY
         generateValue: true
       - key: FRONTEND_URL
-        value: "http://localhost:3000"
+        fromService:
+          type: web
+          name: jeevan-frontend
+          envVarKey: RENDER_EXTERNAL_URL
       - key: CORS_ORIGIN_REGEX
         value: "https://.*\\.onrender\\.com|https://.*\\.vercel\\.app"
       - key: DEMO_DATA_ENABLED
@@ -30,7 +33,7 @@ services:
     name: jeevan-frontend
     runtime: node
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     startCommand: npm run start
     plan: free
     envVars:

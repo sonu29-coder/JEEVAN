@@ -66,6 +66,7 @@ def ensure_column_migrations(target_engine=None):
     eng = target_engine or engine
     is_sqlite = eng.dialect.name == "sqlite"
     bool_default = "0" if is_sqlite else "FALSE"
+    dt_type = "DATETIME" if is_sqlite else "TIMESTAMP"
 
     try:
         with eng.begin() as conn:
@@ -95,7 +96,7 @@ def ensure_column_migrations(target_engine=None):
                 if "operating_status" not in hosp_cols:
                     conn.execute(text("ALTER TABLE hospitals ADD COLUMN operating_status VARCHAR(60)"))
                 if "last_inventory_update" not in hosp_cols:
-                    conn.execute(text("ALTER TABLE hospitals ADD COLUMN last_inventory_update DATETIME"))
+                    conn.execute(text(f"ALTER TABLE hospitals ADD COLUMN last_inventory_update {dt_type}"))
 
             if "blood_banks" in tables:
                 bank_cols = {c["name"] for c in inspector.get_columns("blood_banks")}
@@ -132,11 +133,11 @@ def ensure_column_migrations(target_engine=None):
                 if "assigned_delivery_id" not in req_cols:
                     conn.execute(text("ALTER TABLE blood_requests ADD COLUMN assigned_delivery_id VARCHAR(40)"))
                 if "approved_at" not in req_cols:
-                    conn.execute(text("ALTER TABLE blood_requests ADD COLUMN approved_at DATETIME"))
+                    conn.execute(text(f"ALTER TABLE blood_requests ADD COLUMN approved_at {dt_type}"))
                 if "dispatched_at" not in req_cols:
-                    conn.execute(text("ALTER TABLE blood_requests ADD COLUMN dispatched_at DATETIME"))
+                    conn.execute(text(f"ALTER TABLE blood_requests ADD COLUMN dispatched_at {dt_type}"))
                 if "delivered_at" not in req_cols:
-                    conn.execute(text("ALTER TABLE blood_requests ADD COLUMN delivered_at DATETIME"))
+                    conn.execute(text(f"ALTER TABLE blood_requests ADD COLUMN delivered_at {dt_type}"))
 
             if "delivery_records" in tables:
                 deliv_cols = {c["name"] for c in inspector.get_columns("delivery_records")}
@@ -157,9 +158,9 @@ def ensure_column_migrations(target_engine=None):
                 if "vehicle_type" not in deliv_cols:
                     conn.execute(text("ALTER TABLE delivery_records ADD COLUMN vehicle_type VARCHAR(60)"))
                 if "dispatch_timestamp" not in deliv_cols:
-                    conn.execute(text("ALTER TABLE delivery_records ADD COLUMN dispatch_timestamp DATETIME"))
+                    conn.execute(text(f"ALTER TABLE delivery_records ADD COLUMN dispatch_timestamp {dt_type}"))
                 if "arrival_timestamp" not in deliv_cols:
-                    conn.execute(text("ALTER TABLE delivery_records ADD COLUMN arrival_timestamp DATETIME"))
+                    conn.execute(text(f"ALTER TABLE delivery_records ADD COLUMN arrival_timestamp {dt_type}"))
                 if "proof_of_handover_status" not in deliv_cols:
                     conn.execute(text("ALTER TABLE delivery_records ADD COLUMN proof_of_handover_status VARCHAR(40)"))
                 if "data_source" not in deliv_cols:
