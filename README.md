@@ -1,4 +1,4 @@
-# 🩸 JEEVAN — Emergency Blood Logistics & Spatial AI Grid
+# 🩸 JEEVAN — Blood Availability Network
 
 > **Next-Generation Decentralized Emergency Blood Availability, Predictive Expiry Radar & Green Corridor Rapid Transit Network**
 
