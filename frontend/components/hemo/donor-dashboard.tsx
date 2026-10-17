@@ -33,6 +33,11 @@ const RouteMap = dynamic(() => import('./route-map'), {
   ),
 })
 
+const NavigationScreen = dynamic(
+  () => import('./navigation-screen').then((mod) => mod.NavigationScreen),
+  { ssr: false }
+)
+
 const COOLING_OFF_DAYS = 90
 const DAYS_SINCE_LAST_DONATION = 104
 const CASCADE_TIERS = ['Tier 1 • 0–3km', 'Tier 2 • 3–7km', 'Tier 3 • 7–15km']
@@ -73,6 +78,7 @@ export function DonorDashboard() {
   const [isIdentityLoading, setIsIdentityLoading] = useState(true)
   const [isIdentityStarting, setIsIdentityStarting] = useState(false)
   const [identityError, setIdentityError] = useState<string | null>(null)
+  const [isNavOpen, setIsNavOpen] = useState(false)
 
   const pending = emergencies.filter((e) => !responses[e.id])
   const alert = pending.find((e) => e.group === donorGroup) ?? pending[0] ?? emergencies[0]
@@ -510,6 +516,7 @@ export function DonorDashboard() {
                 from={{ position: USER_LOCATION, label: 'You', kind: 'donor' }}
                 to={{ position: hospital.position, label: hospital.short, kind: 'icu' }}
                 color="#2fbf8a"
+                onStartNavigation={() => setIsNavOpen(true)}
               />
             </div>
           </section>
@@ -517,6 +524,33 @@ export function DonorDashboard() {
 
         <EligibilityCard />
       </div>
+
+      {/* Full-Screen Turn-by-Turn Navigation Screen for Donor Collection */}
+      {isNavOpen && hospital && (
+        <NavigationScreen
+          origin={{
+            name: 'Your Location (T. Nagar)',
+            short: 'You',
+            position: USER_LOCATION,
+            type: 'donor',
+          }}
+          destination={{
+            name: hospital.name,
+            short: hospital.short,
+            position: hospital.position,
+            type: 'hospital',
+          }}
+          deliveryDetails={{
+            requestId: alert?.id || 'DONOR-NAV',
+            bloodGroup: alert?.group || donorGroup,
+            component: alert ? COMPONENT_LABELS[alert.component] : 'Whole Blood',
+            units: alert?.units || 1,
+            isGreenCorridor: alert?.urgency === 'CRITICAL',
+            courierName: donorName,
+          }}
+          onClose={() => setIsNavOpen(false)}
+        />
+      )}
     </div>
   )
 }

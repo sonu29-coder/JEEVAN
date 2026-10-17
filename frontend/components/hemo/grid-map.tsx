@@ -1,11 +1,41 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet'
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import { useNow } from '@/hooks/use-now'
 import { BANKS, DONORS, GRID_CENTER, ICUS, formatRemaining, isLocked, siteById } from '@/lib/hemo-data'
+import {
+  calculateRoadRoute,
+  DEFAULT_TILE_ATTRIBUTION,
+  DEFAULT_TILE_LAYER_URL,
+  MAP_LAYERS,
+  type MapLayerType,
+  type RouteOption,
+} from '@/lib/navigation-service'
 import { useGrid } from './grid-store'
+
+function MapAutoResizer() {
+  const map = useMap()
+  useEffect(() => {
+    // Invalidate map size so it fits perfectly inside parent app container on load and tab switches
+    const timer = setTimeout(() => {
+      map.invalidateSize()
+    }, 150)
+
+    const handleResize = () => {
+      map.invalidateSize()
+    }
+    window.addEventListener('resize', handleResize)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [map])
+
+  return null
+}
 
 const emergencyIcon = L.divIcon({
   className: '',
@@ -18,35 +48,100 @@ const bankIcon = L.divIcon({ className: '', html: '<div class="hg-bank"></div>',
 const lockedBankIcon = L.divIcon({ className: '', html: '<div class="hg-bank is-locked"></div>', iconSize: [24, 24], iconAnchor: [12, 12] })
 const donorIcon = L.divIcon({ className: '', html: '<div class="hg-donor"></div>', iconSize: [12, 12], iconAnchor: [6, 6] })
 
-/** Quadratic bezier between two lat/lng points, bowed perpendicular to the chord. */
-export function curve(from: [number, number], to: [number, number], bend = 0.28, steps = 40): [number, number][] {
-  const [lat1, lng1] = from
-  const [lat2, lng2] = to
-  const midLat = (lat1 + lat2) / 2
-  const midLng = (lng1 + lng2) / 2
-  const ctrlLat = midLat - (lng2 - lng1) * bend
-  const ctrlLng = midLng + (lat2 - lat1) * bend
-  return Array.from({ length: steps + 1 }, (_, i) => {
-    const t = i / steps
-    const u = 1 - t
-    return [u * u * lat1 + 2 * u * t * ctrlLat + t * t * lat2, u * u * lng1 + 2 * u * t * ctrlLng + t * t * lng2]
-  })
-}
+/**
+ * Real Road Corridor: Computes and renders real roadway shortest paths
+ * along the street network, optimizing shortest road distance & time savings.
+ */
+function RealRoadCorridor({
+  from,
+  to,
+  color = '#00E676',
+  isGreenCorridor = true,
+}: {
+  from: [number, number]
+  to: [number, number]
+  color?: string
+  isGreenCorridor?: boolean
+}) {
+  const [route, setRoute] = useState<RouteOption | null>(null)
 
-function NeonArc({ positions, color }: { positions: [number, number][]; color: string }) {
+  useEffect(() => {
+    let active = true
+    async function loadRoadCorridor() {
+      try {
+        const { activeRoute } = await calculateRoadRoute(from, to, { isGreenCorridor })
+        if (active && activeRoute && activeRoute.coordinates.length >= 2) {
+          setRoute(activeRoute)
+        }
+      } catch {
+        // Fallback handled
+      }
+    }
+    loadRoadCorridor()
+    return () => {
+      active = false
+    }
+  }, [from, to, isGreenCorridor])
+
+  const coords = route && route.coordinates.length >= 2 ? route.coordinates : [from, to]
+  const distKm = route ? (route.distanceMeters / 1000).toFixed(1) : ''
+  const durMin = route ? Math.max(1, Math.round(route.durationSeconds / 60)) : ''
+  const savedMin = route?.timeSavedSeconds ? Math.round(route.timeSavedSeconds / 60) : 0
+  const midPoint = coords[Math.floor(coords.length / 2)] || from
+
   return (
     <>
-      <Polyline positions={positions} pathOptions={{ color, weight: 9, opacity: 0.18, lineCap: 'round' }} />
-      <Polyline positions={positions} pathOptions={{ color, weight: 2.5, opacity: 0.95, className: 'hg-flow' }} />
+      {/* Outer Road Glow (follows actual street network) */}
+      <Polyline
+        positions={coords}
+        pathOptions={{
+          color,
+          weight: 7,
+          opacity: 0.32,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }}
+      />
+      {/* Inner Active Flow Polyline (follows actual street network) */}
+      <Polyline
+        positions={coords}
+        pathOptions={{
+          color,
+          weight: 3.5,
+          opacity: 0.95,
+          className: 'hg-flow',
+          lineCap: 'round',
+          lineJoin: 'round',
+        }}
+      />
+
+      {route && (
+        <Marker
+          position={midPoint}
+          icon={L.divIcon({
+            className: '',
+            html: `
+              <div style="background:#0f172a;color:#ffffff;border:1.5px solid ${color};border-radius:9999px;padding:2px 8px;font-size:10px;font-weight:800;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.5);display:flex;align-items:center;gap:4px;pointer-events:none;">
+                <span>⚡</span>
+                <span>${distKm} km · ${durMin}m${savedMin > 0 ? ` (-${savedMin}m)` : ''}</span>
+              </div>
+            `,
+            iconSize: [110, 24],
+            iconAnchor: [55, 12],
+          })}
+          zIndexOffset={300}
+        />
+      )}
     </>
   )
 }
 
-export default function GridMap() {
+export default function GridMap({ layer = 'streets' }: { layer?: MapLayerType }) {
   const { emergencies, stock } = useGrid()
   const now = useNow()
   const emergencyIcuIds = new Set(emergencies.map((e) => e.icuId))
   const activeLocks = stock.filter((s) => isLocked(s, now) && s.lockedUntil !== null)
+  const activeLayer = MAP_LAYERS[layer] || MAP_LAYERS.streets
 
   return (
     <MapContainer
@@ -57,24 +152,42 @@ export default function GridMap() {
       className="size-full"
       attributionControl
     >
+      <MapAutoResizer />
       <TileLayer
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        className="hg-dark-tiles"
-        maxZoom={19}
+        key={activeLayer.id}
+        url={activeLayer.url}
+        attribution={activeLayer.attribution}
+        className={activeLayer.className}
+        maxZoom={activeLayer.maxZoom}
       />
 
       {DONORS.filter((d) => emergencyIcuIds.has(d.icuId)).map((donor) => {
         const icu = siteById(ICUS, donor.icuId)
         if (!icu) return null
-        return <NeonArc key={`arc-${donor.id}`} positions={curve(donor.position, icu.position)} color="#00E676" />
+        return (
+          <RealRoadCorridor
+            key={`road-donor-${donor.id}`}
+            from={donor.position}
+            to={icu.position}
+            color="#00E676"
+            isGreenCorridor={true}
+          />
+        )
       })}
 
       {activeLocks.map((item) => {
         const bank = siteById(BANKS, item.bankId)
         const icu = siteById(ICUS, item.lockedByIcuId)
         if (!bank || !icu) return null
-        return <NeonArc key={`lock-${item.id}`} positions={curve(bank.position, icu.position, -0.32)} color="#FFB800" />
+        return (
+          <RealRoadCorridor
+            key={`road-lock-${item.id}`}
+            from={bank.position}
+            to={icu.position}
+            color="#FFB800"
+            isGreenCorridor={true}
+          />
+        )
       })}
 
       {DONORS.filter((d) => emergencyIcuIds.has(d.icuId)).map((donor) => (

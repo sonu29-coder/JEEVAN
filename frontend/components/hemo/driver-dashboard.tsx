@@ -49,6 +49,11 @@ const RouteMap = dynamic(() => import('./route-map'), {
   ),
 })
 
+const NavigationScreen = dynamic(
+  () => import('./navigation-screen').then((mod) => mod.NavigationScreen),
+  { ssr: false }
+)
+
 type TransitStage = 'assigned' | 'picked_up' | 'in_transit' | 'arrived' | 'delivered'
 
 export function DriverDashboard() {
@@ -63,6 +68,9 @@ export function DriverDashboard() {
   const bank = selected ? siteById(BANKS, selected.bankId) : undefined
   const icu = selected ? siteById(ICUS, selected.lockedByIcuId) : undefined
   const distance = bank && icu ? distanceKm(bank.position, icu.position) : 3.2
+
+  // Full-Screen Turn-by-Turn Navigation State
+  const [isNavOpen, setIsNavOpen] = useState(false)
 
   // Live Transit States per dispatch
   const [stageMap, setStageMap] = useState<Record<string, TransitStage>>({})
@@ -323,13 +331,23 @@ export function DriverDashboard() {
                 </div>
               </div>
 
+              {/* Turn-by-Turn Full Navigation Launch Button */}
+              <button
+                type="button"
+                onClick={() => setIsNavOpen(true)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/25 transition-all hover:from-emerald-700 hover:to-teal-700 active:scale-98"
+              >
+                <Navigation className="size-4 fill-white" />
+                <span>Start Full-Screen Turn-by-Turn Navigation</span>
+              </button>
+
               {/* Fast Action Buttons */}
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   disabled={isSimulating || currentStage === 'delivered'}
                   onClick={runFastSimulation}
-                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-neutral-800 py-2.5 text-xs font-bold text-neutral-200 border border-white/10 shadow-xs transition-all hover:bg-neutral-700 active:scale-95 disabled:opacity-50"
                 >
                   {isSimulating ? (
                     <>
@@ -465,10 +483,21 @@ export function DriverDashboard() {
                   </p>
                 </div>
 
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                  <Siren className="size-3 animate-pulse" />
-                  Green Corridor
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsNavOpen(true)}
+                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95"
+                  >
+                    <Navigation className="size-3 fill-white" />
+                    <span>Open Nav</span>
+                  </button>
+
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <Siren className="size-3 animate-pulse" />
+                    Green Corridor
+                  </span>
+                </div>
               </div>
 
               <div className="h-64 border-t">
@@ -477,11 +506,41 @@ export function DriverDashboard() {
                   to={{ position: icu.position, label: `Drop · ${icu.short}`, kind: 'icu' }}
                   color="#10b981"
                   progress={currentProgress}
+                  onStartNavigation={() => setIsNavOpen(true)}
                 />
               </div>
             </section>
           )}
         </div>
+      )}
+
+      {/* Full-Screen Google Maps Turn-by-Turn Navigation Experience */}
+      {isNavOpen && bank && icu && selected && (
+        <NavigationScreen
+          origin={{
+            name: bank.name,
+            short: bank.short,
+            position: bank.position,
+            type: 'bank',
+          }}
+          destination={{
+            name: icu.name,
+            short: icu.short,
+            position: icu.position,
+            type: 'hospital',
+          }}
+          deliveryDetails={{
+            requestId: selected.id,
+            bloodGroup: selected.group,
+            component: COMPONENT_LABELS[selected.component],
+            units: selected.units,
+            lockId: selected.lockId,
+            isGreenCorridor: true,
+            courierName: 'Swift Rider #42',
+          }}
+          onClose={() => setIsNavOpen(false)}
+          onCompleteDelivery={handleCompleteHandshake}
+        />
       )}
     </div>
   )

@@ -106,16 +106,20 @@
 
 /* Leaflet map skin */
 .leaflet-container {
-  background: var(--background);
+  background: #121619;
   font-family: var(--font-inter), sans-serif;
+  width: 100%;
+  height: 100%;
 }
-.dark .hg-tiles {
+.dark .hg-tiles,
+.hg-dark-tiles {
   filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
 }
 .leaflet-control-attribution {
-  background: rgb(255 255 255 / 0.8) !important;
-  color: #5b6474 !important;
+  background: rgba(18, 22, 25, 0.75) !important;
+  color: #94a3b8 !important;
   font-size: 9px !important;
+  border-radius: 4px;
 }
 
 .hg-radar {

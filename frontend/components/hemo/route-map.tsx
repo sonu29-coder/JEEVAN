@@ -3,8 +3,25 @@
 import { useEffect, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { MapContainer, Marker, Polyline, TileLayer, Tooltip } from 'react-leaflet'
-import { curve } from './grid-map'
+import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { Maximize2, Navigation, Siren } from 'lucide-react'
+import { calculateBearing, calculateRoadRoute, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_LAYER_URL } from '@/lib/navigation-service'
+
+function MapAutoResizer() {
+  const map = useMap()
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize()
+    }, 150)
+    const handleResize = () => map.invalidateSize()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [map])
+  return null
+}
 
 export type MarkerKind = 'donor' | 'bank' | 'icu'
 
@@ -19,12 +36,19 @@ const ICONS: Record<MarkerKind, L.DivIcon> = {
   }),
 }
 
-const RIDER_ICON = L.divIcon({
-  className: '',
-  html: '<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;background:#059669;color:white;box-shadow:0 10px 18px -3px rgba(0,0,0,0.4);border:2.5px solid white;font-size:18px;animation:pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;">🛵</div>',
-  iconSize: [36, 36],
-  iconAnchor: [18, 18],
-})
+const createRiderIcon = (heading: number = 0) =>
+  L.divIcon({
+    className: '',
+    html: `
+      <div style="transform: rotate(${heading}deg); transition: transform 0.2s ease-out; display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9999px;background:#059669;color:white;box-shadow:0 8px 20px rgba(0,0,0,0.5);border:2.5px solid white;font-size:18px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 19 21 12 17 5 21 12 2" fill="#ffffff"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+  })
 
 interface RoutePoint {
   position: [number, number]
@@ -35,43 +59,36 @@ interface RoutePoint {
 export default function RouteMap({
   from,
   to,
-  color,
+  color = '#10b981',
   progress = 0,
+  onStartNavigation,
 }: {
   from: RoutePoint
   to: RoutePoint
-  color: string
+  color?: string
   progress?: number
+  onStartNavigation?: () => void
 }) {
-  const [path, setPath] = useState<[number, number][]>(() => curve(from.position, to.position, 0.22))
-  const [roadInfo, setRoadInfo] = useState<{ distanceKm: number; durationMin: number } | null>(null)
+  const [path, setPath] = useState<[number, number][]>([from.position, to.position])
+  const [roadInfo, setRoadInfo] = useState<{ distanceKm: number; durationMin: number; name: string } | null>(null)
 
   useEffect(() => {
     let active = true
     async function loadRoadRoute() {
       try {
-        const [lat1, lon1] = from.position
-        const [lat2, lon2] = to.position
-        // Fast 1.2s timeout so map never delays or blocks
-        const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`
-        const res = await fetch(url, { signal: AbortSignal.timeout(1200) })
-        if (!res.ok) throw new Error('OSRM network response was not ok')
-        const data = await res.json()
-        if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates && active) {
-          const coords: [number, number][] = data.routes[0].geometry.coordinates.map(
-            ([lng, lat]: [number, number]) => [lat, lng]
-          )
-          setPath(coords)
+        const { activeRoute } = await calculateRoadRoute(from.position, to.position, {
+          isGreenCorridor: true,
+        })
+        if (active && activeRoute.coordinates.length >= 2) {
+          setPath(activeRoute.coordinates)
           setRoadInfo({
-            distanceKm: Number((data.routes[0].distance / 1000).toFixed(1)),
-            durationMin: Number((data.routes[0].duration / 60).toFixed(1)),
+            distanceKm: Number((activeRoute.distanceMeters / 1000).toFixed(1)),
+            durationMin: Number((activeRoute.durationSeconds / 60).toFixed(1)),
+            name: activeRoute.name,
           })
         }
       } catch {
-        // Instant fallback to smooth curved trajectory
-        if (active) {
-          setPath(curve(from.position, to.position, 0.22))
-        }
+        // Keep existing path
       }
     }
 
@@ -83,57 +100,101 @@ export default function RouteMap({
 
   const bounds = L.latLngBounds(path.length > 0 ? path : [from.position, to.position]).pad(0.25)
 
-  // Calculate live position of courier bike along the path
+  // Calculate live position and heading of courier along the real road path
   const clampedProgress = Math.min(1, Math.max(0, progress))
   const riderIndex = Math.min(path.length - 1, Math.max(0, Math.floor(clampedProgress * (path.length - 1))))
+  const nextRiderIndex = Math.min(path.length - 1, riderIndex + 1)
   const riderPosition = path[riderIndex] || from.position
 
+  const heading =
+    riderIndex < nextRiderIndex && path[riderIndex] && path[nextRiderIndex]
+      ? calculateBearing(path[riderIndex], path[nextRiderIndex])
+      : 0
+
   return (
-    <div className="relative size-full">
+    <div className="relative size-full overflow-hidden">
       <MapContainer
         key={`${from.position.join()}-${to.position.join()}-${path.length}`}
         bounds={bounds}
         zoomControl={false}
         scrollWheelZoom={false}
-        className="size-full"
-        attributionControl
+        className="size-full bg-[#121619]"
+        attributionControl={false}
       >
+        <MapAutoResizer />
         <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          className="hg-dark-tiles"
+          url={DEFAULT_TILE_LAYER_URL}
+          attribution={DEFAULT_TILE_ATTRIBUTION}
           maxZoom={19}
         />
+
         {/* Glow outer road corridor */}
-        <Polyline positions={path} pathOptions={{ color, weight: 10, opacity: 0.22, lineCap: 'round', lineJoin: 'round' }} />
-        {/* Core road line following street pavement */}
-        <Polyline positions={path} pathOptions={{ color, weight: 3.5, opacity: 0.95, className: 'hg-flow' }} />
+        <Polyline
+          positions={path}
+          pathOptions={{
+            color,
+            weight: 10,
+            opacity: 0.28,
+            lineCap: 'round',
+            lineJoin: 'round',
+          }}
+        />
+
+        {/* Core road line following street network */}
+        <Polyline
+          positions={path}
+          pathOptions={{
+            color,
+            weight: 4,
+            opacity: 0.95,
+            className: 'hg-flow',
+            lineCap: 'round',
+            lineJoin: 'round',
+          }}
+        />
+
         <Marker position={from.position} icon={ICONS[from.kind]} zIndexOffset={200}>
           <Tooltip permanent direction="top" offset={[0, -10]}>
             {from.label}
           </Tooltip>
         </Marker>
+
         <Marker position={to.position} icon={ICONS[to.kind]} zIndexOffset={400}>
           <Tooltip permanent direction="bottom" offset={[0, 14]}>
             {to.label}
           </Tooltip>
         </Marker>
+
         {clampedProgress > 0 && clampedProgress < 1 && (
-          <Marker position={riderPosition} icon={RIDER_ICON} zIndexOffset={600}>
+          <Marker position={riderPosition} icon={createRiderIcon(heading)} zIndexOffset={600}>
             <Tooltip permanent direction="top" offset={[0, -16]}>
-              <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                🚀 Courier In Transit ({Math.round(clampedProgress * 100)}%)
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                🚀 Courier ({Math.round(clampedProgress * 100)}%)
               </span>
             </Tooltip>
           </Marker>
         )}
       </MapContainer>
 
-      {roadInfo && (
-        <div className="absolute bottom-2 left-2 z-[400] rounded-md bg-neutral-900/85 px-2 py-1 text-[10px] font-mono text-neutral-300 backdrop-blur border border-white/10">
-          🛣️ Real Road: {roadInfo.distanceKm} km • ⏱️ {roadInfo.durationMin} min
-        </div>
-      )}
+      {/* Road Info & Launch Full-Screen Navigation Overlay */}
+      <div className="absolute inset-x-2 bottom-2 z-[400] flex items-center justify-between gap-2">
+        {roadInfo && (
+          <div className="rounded-xl bg-neutral-900/90 px-2.5 py-1.5 text-[11px] font-mono text-neutral-200 backdrop-blur border border-white/10 shadow-lg">
+            🛣️ {roadInfo.distanceKm} km • ⏱️ {roadInfo.durationMin} min (Real Road)
+          </div>
+        )}
+
+        {onStartNavigation && (
+          <button
+            type="button"
+            onClick={onStartNavigation}
+            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-black text-white shadow-xl transition-all hover:bg-emerald-700 active:scale-95 border border-emerald-400/30"
+          >
+            <Navigation className="size-3.5 fill-white" />
+            <span>Turn-by-Turn Nav</span>
+          </button>
+        )}
+      </div>
     </div>
   )
 }
