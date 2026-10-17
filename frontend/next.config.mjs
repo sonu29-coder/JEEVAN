@@ -7,7 +7,13 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
-    const backendOrigin = process.env.JEEVAN_API_INTERNAL_URL || 'http://localhost:8000'
+    const rawBackend = (
+      process.env.JEEVAN_API_INTERNAL_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:8000'
+    ).trim()
+    const backendOrigin = rawBackend.replace(/\/+$/, '')
     return [
       {
         source: '/api/:path*',

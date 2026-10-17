@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: jeevan-backend
+    runtime: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jeevan-db
+          property: connectionString
+      - key: JEEVAN_API_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: jeevan-frontend
+          property: url
+      - key: DEMO_DATA_ENABLED
+        value: "true"
+      - key: PYTHONPATH
+        value: "."
+      - key: SMS_PROVIDER
+        value: "test"
+      - key: IDENTITY_PROVIDER_MODE
+        value: "demo"
+
+  - type: web
+    name: jeevan-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JEEVAN_API_INTERNAL_URL
+        fromService:
+          type: web
+          name: jeevan-backend
+          property: url
+      - key: NEXT_PUBLIC_API_URL
+        value: "/api"
+
+databases:
+  - name: jeevan-db
+    databaseName: jeevan
+    user: jeevan
+    plan: free

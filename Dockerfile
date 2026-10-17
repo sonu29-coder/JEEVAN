@@ -22,11 +22,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY backend /app/backend
 COPY data /app/data
 
-# Change working directory so `main:app` resolves directly
-WORKDIR /app/backend
+WORKDIR /app
 
 # Expose FastAPI application port
 EXPOSE 8000
 
-# Start server with specified command
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start server with dynamic port binding for hosting platforms
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -23,11 +23,13 @@ for env_path in (
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg://jeevan:jeevan@localhost:5432/jeevan",
-)
+).strip()
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql+psycopg2://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
 elif DATABASE_URL.startswith("sqlite:///./"):
     rel_path = DATABASE_URL[len("sqlite:///./"):]
     DATABASE_URL = f"sqlite:///{(PROJECT_ROOT / rel_path).resolve().as_posix()}"
@@ -41,8 +43,13 @@ if DATABASE_URL.startswith("sqlite://"):
 
 engine = create_engine(DATABASE_URL, **engine_options)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+raw_redis_url = os.getenv("REDIS_URL", "").strip()
+if not raw_redis_url or raw_redis_url.lower() in {"none", "disabled", "false"}:
+    raw_redis_url = "redis://localhost:6379/0"
+
 redis_client = Redis.from_url(
-    os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+    raw_redis_url,
     decode_responses=True,
     socket_connect_timeout=0.2,
     socket_timeout=0.2,

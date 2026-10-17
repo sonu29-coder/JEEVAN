@@ -349,6 +349,24 @@ async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     from backend.database import ensure_column_migrations
     ensure_column_migrations(engine)
+    # Automatically seed default users and baseline demonstration data only if explicitly enabled (e.g. Render production)
+    if os.getenv("DEMO_DATA_ENABLED", "false").lower() in ("true", "1", "yes"):
+        try:
+            from backend.seed_users import seed_users
+            seed_users()
+        except Exception as exc:
+            logger.warning("Could not auto-seed default users: %s", exc)
+
+        try:
+            with SessionLocal() as session:
+                hosp_count = session.execute(text("SELECT count(*) FROM hospitals")).scalar() or 0
+                if hosp_count == 0:
+                    from backend.import_data import import_data, SYNTHETIC_DIR
+                    logger.info("Initializing baseline demonstration dataset from %s...", SYNTHETIC_DIR)
+                    import_data(data_dir=SYNTHETIC_DIR, raw_banks_csv=None)
+        except Exception as exc:
+            logger.warning("Initial demonstration data bootstrap skipped/notice: %s", exc)
+
     worker_task = asyncio.create_task(background_work_worker())
     try:
         yield
@@ -369,14 +387,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Enable CORS for Next.js frontend (http://localhost:3000) and configured origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+
+def get_cors_origins() -> list[str]:
+    origins = {
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        os.getenv("FRONTEND_URL", "http://localhost:3000"),
-    ],
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    }
+    for var_name in ("FRONTEND_URL", "CORS_ORIGINS", "ALLOWED_ORIGINS"):
+        val = os.getenv(var_name, "").strip()
+        if val:
+            for item in val.split(","):
+                cleaned = item.strip().rstrip("/")
+                if cleaned:
+                    origins.add(cleaned)
+    return list(origins)
+
+
+# Enable CORS for Next.js frontend and configured cloud origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_cors_origins(),
+    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.onrender\.com|https://.*\.vercel\.app"),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -3277,3 +3310,10 @@ def list_synthetic_deliveries(
 app.include_router(hemo_router)
 app.include_router(router)
 app.include_router(identity_verification_router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False)
+

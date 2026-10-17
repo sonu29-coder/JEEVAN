@@ -24,4 +24,4 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/package.json ./package.json
 EXPOSE 3000
-CMD ["./node_modules/.bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"]
+CMD ["sh", "-c", "./node_modules/.bin/next start --hostname 0.0.0.0 --port ${PORT:-3000}"]
