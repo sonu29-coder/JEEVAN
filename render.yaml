@@ -14,10 +14,9 @@ services:
       - key: JEEVAN_API_KEY
         generateValue: true
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: jeevan-frontend
-          envVarKey: RENDER_EXTERNAL_URL
+        value: "http://localhost:3000"
+      - key: CORS_ORIGIN_REGEX
+        value: "https://.*\\.onrender\\.com|https://.*\\.vercel\\.app"
       - key: DEMO_DATA_ENABLED
         value: "true"
       - key: PYTHONPATH
@@ -37,6 +36,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: 22.14.0
       - key: JEEVAN_API_INTERNAL_URL
         fromService:
           type: web
