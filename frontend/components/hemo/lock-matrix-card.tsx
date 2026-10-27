@@ -1,12 +1,14 @@
 'use client'
 
 import { Lock, LockOpen } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useNow } from '@/hooks/use-now'
 import { BANKS, ICUS, OUR_ICU_ID, formatRemaining, isLocked, siteById } from '@/lib/hemo-data'
 import { cn } from '@/lib/utils'
 import { useGrid } from './grid-store'
 
 export function LockMatrixCard() {
+  const t = useTranslations('ICU')
   const { stock, setTab } = useGrid()
   const now = useNow()
   const locks = stock.filter((s) => isLocked(s, now))
@@ -17,26 +19,26 @@ export function LockMatrixCard() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="lock-matrix-title" className="text-xl font-extrabold tracking-tight">
-            Live inventory & lock matrix
+            {t('lockMatrixTitle')}
           </h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">Units currently held for hospitals across the grid</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{t('stockSubtitle')}</p>
         </div>
         <button
           type="button"
           onClick={() => setTab('blood')}
           className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold hover:bg-muted"
         >
-          View stock
+          {t('viewStock')}
         </button>
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-muted px-4 py-3">
-          <dt className="text-xs font-medium text-muted-foreground">Available units</dt>
+          <dt className="text-xs font-medium text-muted-foreground">{t('availableUnits')}</dt>
           <dd className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">{freeUnits}</dd>
         </div>
         <div className="rounded-2xl bg-muted px-4 py-3">
-          <dt className="text-xs font-medium text-muted-foreground">Active holds</dt>
+          <dt className="text-xs font-medium text-muted-foreground">{t('activeHolds')}</dt>
           <dd className="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{locks.length}</dd>
         </div>
       </dl>

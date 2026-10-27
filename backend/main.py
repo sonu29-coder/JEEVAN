@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Any, Dict, List, Literal, Optional
 from uuid import uuid4
 
+import networkx as nx
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials
@@ -55,10 +56,16 @@ from backend.models import (
 )
 from backend.otp_service import send_donor_phone_otp, verify_donor_phone_otp
 from backend.phone_utils import format_indian_phone_display, normalize_indian_phone
-from backend.routing import RouteType, optimize_route
+from backend.routing import RouteType, haversine_distance, optimize_route
 from backend.spatial_engine import PostGISSpatialEngine
-from backend.ml_donor_model import DONOR_PREDICTOR, DonorFeatureInput, SyntheticDatasetGenerator
+from backend.ml_donor_model import DONOR_PREDICTOR, DonorFeatureInput, SyntheticDatasetGenerator, record_feedback
 from backend.fcm_notifications import FCM_ENGINE, OTP_MANAGER
+from backend.gemini_service import (
+    generate_delivery_instructions,
+    generate_donor_notification,
+    generate_triage_summary,
+    parse_target_language,
+)
 from backend.schemas import (
     Coordinate,
     DispatchDeliveryItem,
@@ -803,6 +810,269 @@ PRIORITIZED_UNITS: Dict[str, Dict[str, Any]] = {}
 REDISTRIBUTED_UNITS: Dict[str, Dict[str, Any]] = {}
 
 
+def arrhenius_shelf_life_reduction(
+    nominal_hours: float,
+    storage_temp_c: Optional[float],
+    component: str = "PRBC",
+) -> Tuple[int, float, bool, Optional[str]]:
+    """
+    Arrhenius biochemical kinetics shelf-life degradation model.
+    Standard cold-chain storage requirement for PRBC & Whole Blood is 2.0°C - 6.0°C.
+    Reference baseline storage temperature: T_ref = 4.0°C (277.15 K).
+
+    Arrhenius formula:
+      k(T) = A * exp(-Ea / (R * T_K))
+      Acceleration Factor: AF = exp( (Ea / R) * (1 / T_ref_K - 1 / T_K) )
+      where Ea = 65 kJ/mol (typical for RBC metabolic decay and hemolysis),
+      R = 8.314 J/(mol*K).
+
+    If storage_temp_c is within [2.0, 6.0]°C:
+      Normal degradation, AF = 1.0, is_excursion = False.
+    If storage_temp_c > 6.0°C:
+      Accelerated spoilage, AF > 1.0. Remaining hours reduced by factor of AF.
+    If storage_temp_c < 2.0°C:
+      Freezing/sub-cooling excursion. If T <= 0°C, catastrophic hemolysis (remaining hours = 0).
+      If 0 < T < 2.0°C, membrane cold-stress damage (AF = 1.0 + 1.8 * (2.0 - T)).
+
+    Returns:
+      (adjusted_hours_remaining, acceleration_factor, is_excursion, warning_detail)
+    """
+    if storage_temp_c is None:
+        return int(round(nominal_hours)), 1.0, False, None
+
+    t_c = float(storage_temp_c)
+    if 2.0 <= t_c <= 6.0:
+        return int(round(nominal_hours)), 1.0, False, None
+
+    t_ref_k = 277.15  # 4.0 °C
+    r_const = 8.314
+    ea = 65000.0  # 65 kJ/mol
+
+    if t_c > 6.0:
+        t_k = t_c + 273.15
+        exponent = (ea / r_const) * ((1.0 / t_ref_k) - (1.0 / t_k))
+        af = float(math.exp(min(15.0, exponent)))
+        af = max(1.0, af)
+        adjusted_hours = max(0, int(round(nominal_hours / af)))
+        warning = f"Thermal excursion ({t_c:.1f}°C > 6.0°C standard): Arrhenius degradation accelerated by {af:.2f}x; remaining shelf-life reduced from {int(nominal_hours)}h to {adjusted_hours}h."
+        return adjusted_hours, round(af, 3), True, warning
+    else:
+        # t_c < 2.0 °C
+        if t_c <= 0.0:
+            return 0, 999.0, True, f"Freezing excursion ({t_c:.1f}°C <= 0.0°C): irreversible erythrocyte hemolysis. Unit expired/biohazard."
+        else:
+            af = 1.0 + 1.8 * (2.0 - t_c)
+            adjusted_hours = max(0, int(round(nominal_hours / af)))
+            warning = f"Sub-chilling excursion ({t_c:.1f}°C < 2.0°C): cold-stress membrane fragility accelerated by {af:.2f}x; remaining shelf-life reduced from {int(nominal_hours)}h to {adjusted_hours}h."
+            return adjusted_hours, round(af, 3), True, warning
+
+
+def compute_mcmf_redistribution(
+    session: Session,
+    items: List[ExpiryRadarItem],
+    bank_coords: Dict[str, Tuple[float, float]],
+    max_expiry_days: int = 5,
+    lambda_param: float = 1.5,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Computes optimal inter-hospital redistribution suggestions using NetworkX Min-Cost Max-Flow.
+    Sources: Hospitals / blood banks with units in CRITICAL or WARNING tiers.
+    Sinks: Hospitals with high consumption (active requests and high-turnover trauma intake).
+    Cost: distance - lambda * (max_expiry_days - expiry_days).
+    """
+    # 1. Identify sources
+    sources = [
+        item for item in items
+        if item.urgency_tier in ("CRITICAL", "WARNING") and item.available_units > 0
+    ]
+    if not sources:
+        return [], {
+            "status": "NO_EXPIRING_UNITS",
+            "algorithm": "NetworkX Min-Cost Max-Flow",
+            "total_redistributed_units": 0,
+            "total_optimization_cost": 0.0,
+            "transfers_count": 0,
+            "lambda_weight": lambda_param,
+            "max_expiry_days": max_expiry_days,
+            "cost_formula": "Cost = distance - lambda * (max_expiry_days - expiry_days)",
+        }
+
+    # 2. Identify sink hospitals with high consumption
+    req_counts = dict(
+        session.execute(
+            select(BloodRequest.hospital_id, func.sum(BloodRequest.units_required))
+            .where(BloodRequest.status.in_(["pending", "active", "dispatched", "verified"]))
+            .group_by(BloodRequest.hospital_id)
+        ).all()
+    )
+
+    hospitals = list(session.execute(select(Hospital)).scalars().all())
+    sinks = []
+    for h in hospitals:
+        req_demand = int(req_counts.get(h.id) or 0)
+        # Sinks with high consumption
+        demand = max(req_demand, 6 if "trauma" in h.name.lower() or "medical" in h.name.lower() else 4)
+        sinks.append({
+            "id": h.id,
+            "name": h.name,
+            "latitude": h.latitude,
+            "longitude": h.longitude,
+            "demand": demand,
+        })
+
+    if not sinks:
+        return [], {
+            "status": "NO_SINKS_AVAILABLE",
+            "algorithm": "NetworkX Min-Cost Max-Flow",
+            "total_redistributed_units": 0,
+            "total_optimization_cost": 0.0,
+            "transfers_count": 0,
+            "lambda_weight": lambda_param,
+            "max_expiry_days": max_expiry_days,
+            "cost_formula": "Cost = distance - lambda * (max_expiry_days - expiry_days)",
+        }
+
+    # 3. Build NetworkX DiGraph
+    G = nx.DiGraph()
+    G.add_node("SUPER_SOURCE")
+    G.add_node("SUPER_SINK")
+
+    item_map = {}
+    for idx, item in enumerate(sources):
+        src_node = f"src_{item.id}_{idx}"
+        item_map[src_node] = item
+        G.add_edge("SUPER_SOURCE", src_node, capacity=item.available_units, weight=0)
+
+        src_coords = bank_coords.get(item.blood_bank_id)
+
+        for sink in sinks:
+            if item.blood_bank_id == sink["id"]:
+                continue
+
+            sink_node = f"sink_{sink['id']}"
+            sink_coords = (sink["latitude"], sink["longitude"]) if sink["latitude"] and sink["longitude"] else None
+
+            if src_coords and sink_coords and src_coords[0] and sink_coords[0]:
+                dist = haversine_distance(src_coords, sink_coords)
+            else:
+                dist = 7.5
+
+            expiry_days = max(0, item.days_remaining)
+            cost = dist - lambda_param * (max_expiry_days - expiry_days)
+            weight = int(round(cost * 100))
+            cap = min(item.available_units, sink["demand"])
+            if cap > 0:
+                G.add_edge(src_node, sink_node, capacity=cap, weight=weight)
+
+    for sink in sinks:
+        sink_node = f"sink_{sink['id']}"
+        if sink_node in G:
+            G.add_edge(sink_node, "SUPER_SINK", capacity=sink["demand"], weight=0)
+
+    # 4. Run Min-Cost Max-Flow
+    try:
+        flow_dict = nx.max_flow_min_cost(G, "SUPER_SOURCE", "SUPER_SINK")
+        total_cost = nx.cost_of_flow(G, flow_dict) / 100.0
+    except Exception as exc:
+        logger.warning("MCMF computation fallback: %s", exc)
+        return [], {
+            "status": "MCMF_ERROR",
+            "error": str(exc),
+            "algorithm": "NetworkX Min-Cost Max-Flow",
+            "total_redistributed_units": 0,
+            "total_optimization_cost": 0.0,
+            "transfers_count": 0,
+            "lambda_weight": lambda_param,
+            "max_expiry_days": max_expiry_days,
+            "cost_formula": "Cost = distance - lambda * (max_expiry_days - expiry_days)",
+        }
+
+    # 5. Extract flow suggestions
+    suggestions = []
+    total_flow_units = 0
+    sink_lookup = {s["id"]: s for s in sinks}
+
+    for src_node, target_flows in flow_dict.items():
+        if not src_node.startswith("src_"):
+            continue
+        item = item_map.get(src_node)
+        if not item:
+            continue
+
+        for sink_node, flow in target_flows.items():
+            if flow <= 0 or not sink_node.startswith("sink_"):
+                continue
+
+            sink_id = sink_node.replace("sink_", "")
+            sink_info = sink_lookup.get(sink_id, {"name": f"Hospital {sink_id}"})
+            sink_name = sink_info.get("name", f"Hospital {sink_id}")
+
+            src_coords = bank_coords.get(item.blood_bank_id)
+            sink_coords = (sink_info.get("latitude"), sink_info.get("longitude")) if sink_info.get("latitude") else None
+            dist = haversine_distance(src_coords, sink_coords) if src_coords and sink_coords and src_coords[0] and sink_coords[0] else 7.5
+
+            expiry_days = max(0, item.days_remaining)
+            cost_metric = round(dist - lambda_param * (max_expiry_days - expiry_days), 2)
+
+            total_flow_units += flow
+
+            # Update item's recommended transfer target
+            item.recommended_transfer_target_id = sink_id
+            item.recommended_transfer_target_name = sink_name
+            item.redistribution_transfer_units = flow
+            item.redistribution_cost_metric = cost_metric
+            item.suggested_action = f"MCMF Redistribution: Transfer {flow} unit(s) to {sink_name} (Cost: {cost_metric:.1f}, Transit: {dist:.1f}km)."
+
+            item.clinical_rules.append(
+                ClinicalRuleAlert(
+                    rule_id="MCMF_REDISTRIBUTION_DISPATCH",
+                    title="Min-Cost Max-Flow Redistribution Route",
+                    severity="warning" if expiry_days <= 2 else "info",
+                    description=f"Optimal inter-hospital transfer determined via NetworkX min-cost max-flow: route {flow} units to {sink_name} to prevent spoilage (Cost: {cost_metric:.1f}, Dist: {dist:.1f}km).",
+                    clinical_action="Dispatch Green Corridor cold-chain transfer to high-consumption hospital.",
+                    badge="MCMF Transfer",
+                )
+            )
+
+            suggestions.append({
+                "transfer_id": f"XFER-MCMF-{uuid4().hex[:6].upper()}",
+                "inventory_id": item.id,
+                "source_facility_id": item.blood_bank_id,
+                "source_facility_name": item.blood_bank_name,
+                "target_hospital_id": sink_id,
+                "target_hospital_name": sink_name,
+                "blood_group": item.blood_group,
+                "component": item.component,
+                "units_to_transfer": flow,
+                "days_remaining": item.days_remaining,
+                "hours_remaining": item.hours_remaining,
+                "urgency_tier": item.urgency_tier,
+                "distance_km": round(dist, 2),
+                "cost_metric": cost_metric,
+                "lambda_weight": lambda_param,
+                "max_expiry_days": max_expiry_days,
+                "cost_formula": "Cost = distance - lambda * (max_expiry_days - expiry_days)",
+                "algorithm": "NetworkX Min-Cost Max-Flow",
+                "status": "RECOMMENDED",
+                "recommended_action": f"Redistribute {flow} unit(s) of {item.blood_group} {item.component} from {item.blood_bank_name} to {sink_name} to prevent spoilage (Distance: {dist:.1f}km, Days Left: {item.days_remaining}d).",
+            })
+
+    summary_metrics = {
+        "status": "OPTIMAL",
+        "algorithm": "NetworkX Min-Cost Max-Flow",
+        "lambda_weight": lambda_param,
+        "max_expiry_days": max_expiry_days,
+        "cost_formula": "Cost = distance - lambda * (max_expiry_days - expiry_days)",
+        "source_candidates_count": len(sources),
+        "sink_hospitals_count": len(sinks),
+        "total_redistributed_units": total_flow_units,
+        "total_optimization_cost": round(total_cost, 2),
+        "transfers_count": len(suggestions),
+    }
+
+    return suggestions, summary_metrics
+
+
 @router.get("/inventory/expiry-radar", response_model=ExpiryRadarResponse)
 def get_blood_expiry_radar(
     session: Annotated[Session, Depends(get_session)],
@@ -811,12 +1081,14 @@ def get_blood_expiry_radar(
     component: Optional[str] = Query(default=None),
     urgency_tier: Optional[str] = Query(default=None),
     max_days: int = Query(default=30, ge=1, le=60),
+    storage_temp_c: Optional[float] = Query(default=None, description="Storage temperature in Celsius to assess Arrhenius shelf-life degradation"),
+    lambda_param: float = Query(default=1.5, ge=0.0, description="Cost weight factor for MCMF: distance - lambda*(max_expiry_days - expiry_days)"),
 ):
     """
     Blood Expiry Radar:
     Evaluates hospital and regional blood inventory against clinical transfusion rules,
-    detects units approaching expiration, and generates actionable FEFO, pediatric restriction,
-    platelet stability, and inter-facility transfer recommendations.
+    detects units approaching expiration, applies Arrhenius shelf-life temperature degradation,
+    and generates automated Min-Cost Max-Flow redistribution suggestions via NetworkX.
     """
     statement = (
         select(Inventory, BloodBank)
@@ -840,15 +1112,34 @@ def get_blood_expiry_radar(
     safe_units = 0
     expired_units = 0
     fefo_candidates_count = 0
+    temperature_excursions_count = 0
+    total_arrhenius_hours_lost = 0
 
     raw_results = list(session.execute(statement))
+    bank_coords: Dict[str, Tuple[float, float]] = {}
 
     rank = 1
     for inv, bank in raw_results:
-        days_rem = (inv.expiry_date - today).days
-        hours_rem = max(0, days_rem * 24)
+        if bank and bank.latitude and bank.longitude:
+            bank_coords[bank.id] = (bank.latitude, bank.longitude)
+
+        nominal_days_rem = (inv.expiry_date - today).days
+        nominal_hours_rem = max(0, nominal_days_rem * 24)
         reserved = active_reserved_units(session, inv.id)
         avail = max(0, inv.units - reserved) if inv.status == "available" and inv.expiry_date >= today else 0
+
+        # Apply Arrhenius shelf-life degradation when temperature is outside 2-6°C
+        hours_rem, decay_af, is_excursion, excursion_msg = arrhenius_shelf_life_reduction(
+            nominal_hours_rem, storage_temp_c, inv.component
+        )
+        if is_excursion:
+            temperature_excursions_count += 1
+            total_arrhenius_hours_lost += max(0, nominal_hours_rem - hours_rem)
+            days_rem = max(0, int(math.ceil(hours_rem / 24.0))) if hours_rem > 0 else -1
+            if hours_rem == 0 and nominal_hours_rem > 0:
+                days_rem = -1  # force expired due to freezing/thermal death
+        else:
+            days_rem = nominal_days_rem
 
         # Filter out if beyond horizon
         if days_rem > max_days and days_rem >= 0:
@@ -859,11 +1150,11 @@ def get_blood_expiry_radar(
             tier = "EXPIRED"
             expired_units += inv.units
             suggested_action = "Biohazard Quarantine: Discard unit and update regulatory audit log."
-        elif days_rem <= 2 or (inv.component == "Platelets" and days_rem <= 3):
+        elif days_rem <= 2 or hours_rem <= 48 or (inv.component == "Platelets" and days_rem <= 3):
             tier = "CRITICAL"
             critical_units += inv.units
             suggested_action = "Immediate FEFO Issue: Allocate to today's urgent surgery, MTP, or dispatch emergency transfer."
-        elif days_rem <= 5:
+        elif days_rem <= 5 or hours_rem <= 120:
             tier = "WARNING"
             warning_units += inv.units
             suggested_action = "FEFO Priority Queue: Allocate to scheduled elective surgeries or high-turnover procedures."
@@ -888,6 +1179,19 @@ def get_blood_expiry_radar(
         trauma_cand = False
         target_bank_id = None
         target_bank_name = None
+
+        # Arrhenius Temperature Excursion Alert
+        if is_excursion and excursion_msg:
+            rules.append(
+                ClinicalRuleAlert(
+                    rule_id="ARRHENIUS_TEMPERATURE_EXCURSION",
+                    title="Arrhenius Shelf-Life Degradation",
+                    severity="critical" if decay_af >= 2.0 or hours_rem == 0 else "warning",
+                    description=excursion_msg,
+                    clinical_action="Expedite immediate transfusion or quarantine due to accelerated shelf-life decay.",
+                    badge="Arrhenius Decay",
+                )
+            )
 
         # 1. FEFO Rule
         if 0 <= days_rem <= 5 and avail > 0:
@@ -992,9 +1296,23 @@ def get_blood_expiry_radar(
                 prioritized=bool(priority_info),
                 priority_reason=priority_info.get("reason") if priority_info else None,
                 synthetic=inv.synthetic,
+                storage_temp_c=storage_temp_c,
+                adjusted_hours_remaining=hours_rem if is_excursion else None,
+                temperature_excursion=is_excursion,
+                arrhenius_decay_factor=decay_af,
+                nominal_hours_remaining=nominal_hours_rem,
             )
         )
         rank += 1
+
+    # Run NetworkX Min-Cost Max-Flow for automated redistribution suggestions
+    redistribution_suggestions, mcmf_summary = compute_mcmf_redistribution(
+        session=session,
+        items=items,
+        bank_coords=bank_coords,
+        max_expiry_days=min(max_days, 5),
+        lambda_param=lambda_param,
+    )
 
     potential_wastage = critical_units + warning_units
     adherence_pct = (
@@ -1012,6 +1330,8 @@ def get_blood_expiry_radar(
         fefo_candidates_count=fefo_candidates_count,
         potential_wastage_units=potential_wastage,
         adherence_rate_pct=adherence_pct,
+        temperature_excursions_count=temperature_excursions_count,
+        mcmf_redistributable_units=mcmf_summary.get("total_redistributed_units", 0),
     )
 
     protocols = [
@@ -1035,12 +1355,30 @@ def get_blood_expiry_radar(
             "code": "REDIST-Z-09",
             "description": "Automated regional redistribution route dispatch to ensure no usable blood expires without clinical consumption.",
         },
+        {
+            "name": "Arrhenius Cold-Chain Thermal Integrity Protocol",
+            "code": "ARRH-CC-05",
+            "description": "Continuous monitoring against 2-6°C standard. Excursions trigger exponential shelf-life decay adjustments under Arrhenius chemical kinetics.",
+        },
     ]
+
+    arrhenius_analysis = {
+        "storage_temperature_c": storage_temp_c,
+        "standard_cold_chain_range": "2.0°C - 6.0°C",
+        "reference_baseline_temperature": "4.0°C (277.15 K)",
+        "is_temperature_excursion": bool(storage_temp_c is not None and (storage_temp_c < 2.0 or storage_temp_c > 6.0)),
+        "units_with_excursions": temperature_excursions_count,
+        "total_shelf_life_hours_lost": total_arrhenius_hours_lost,
+        "kinetics_formula": "k(T) = A * exp(-Ea / (R * T)), Ea = 65 kJ/mol",
+    }
 
     return ExpiryRadarResponse(
         summary=summary,
         items=items,
         clinical_protocols=protocols,
+        redistribution_suggestions=redistribution_suggestions,
+        mcmf_optimization_summary=mcmf_summary,
+        arrhenius_temperature_analysis=arrhenius_analysis,
     )
 
 
@@ -1980,6 +2318,9 @@ HEMO_DISPATCHES: dict[str, dict] = {
         "pickup_otp": "5192",
         "delivery_otp": "8492",
         "cold_chain_temp": 3.8,
+        "temperature_readings": [3.8],
+        "cold_chain_alert": False,
+        "cusum_score": 0.0,
         "stock_id": "s6",
         "bank_id": "bank-ima",
         "icu_id": "icu-elite",
@@ -1994,6 +2335,9 @@ HEMO_DISPATCHES: dict[str, dict] = {
         "pickup_otp": "2044",
         "delivery_otp": "3702",
         "cold_chain_temp": 4.1,
+        "temperature_readings": [4.1],
+        "cold_chain_alert": False,
+        "cusum_score": 0.0,
         "stock_id": "s1",
         "bank_id": "bank-ima",
         "icu_id": "icu-westfort",
@@ -2795,6 +3139,96 @@ def verify_delivery_otp(body: VerifyOtpPayload):
     )
 
 
+# ---------------------------------------------------------------------
+# CUSUM Cold-Chain Anomaly Detector
+# ---------------------------------------------------------------------
+
+class CusumResult(dict):
+    """
+    Result container for CUSUM anomaly detector.
+    Allows dict access (res["cold_chain_alert"]), attribute access (res.cold_chain_alert),
+    integer index access (res[0]), and unpacking (alert, s_t = cusum_anomaly_detector(...)).
+    """
+    def __init__(self, data: dict):
+        super().__init__(data)
+        self.__dict__.update(data)
+
+    def __iter__(self):
+        # Enables unpacking: alert, s_t = cusum_anomaly_detector(...)
+        return iter((self["cold_chain_alert"], self["s_t"]))
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            keys = ["cold_chain_alert", "s_t", "s_history", "alarm"]
+            if 0 <= key < len(keys):
+                return self[keys[key]]
+        return super().__getitem__(key)
+
+
+def cusum_anomaly_detector(
+    temperature_readings: Union[List[float], float, Tuple[float, ...]],
+    mu0: float = 4.0,
+    k: float = 0.5,
+    h: float = 2.0,
+    s_prev: float = 0.0,
+) -> CusumResult:
+    """
+    Cumulative Sum (CUSUM) Anomaly Detector for Cold-Chain Monitoring.
+    
+    Formula:
+      S_t = max(0, S_{t-1} + T_t - mu0 - k)
+      Alarm triggered if S_t > h.
+      
+    Parameters:
+      temperature_readings: List of temperature readings in °C or a single temperature value.
+      mu0: Baseline in-control target temperature (optimal storage is 4.0°C).
+      k: Allowance / slack parameter (default 0.5°C).
+      h: Decision threshold limit for triggering the alarm (default 2.0°C).
+      s_prev: Starting cumulative statistic S_{t-1} (default 0.0).
+      
+    Returns:
+      CusumResult dict with keys:
+        - cold_chain_alert (bool): True if S_t > h
+        - alarm (bool): Synonym for cold_chain_alert
+        - s_t (float): Final cumulative CUSUM statistic
+        - s_history (List[float]): Progression of S_t over readings
+        - mu0 (float): Baseline used
+        - k (float): Slack used
+        - h (float): Threshold used
+    """
+    if isinstance(temperature_readings, (int, float)):
+        readings = [float(temperature_readings)]
+    elif isinstance(temperature_readings, (list, tuple)):
+        readings = [float(t) for t in temperature_readings]
+    else:
+        try:
+            readings = [float(t) for t in temperature_readings]
+        except (TypeError, ValueError):
+            readings = [float(mu0)]
+
+    s_curr = max(0.0, float(s_prev))
+    s_history = []
+
+    for t in readings:
+        s_curr = max(0.0, s_curr + t - float(mu0) - float(k))
+        s_history.append(round(s_curr, 4))
+
+    is_alert = bool(s_curr > float(h))
+    final_score = round(float(s_curr), 4)
+
+    return CusumResult({
+        "cold_chain_alert": is_alert,
+        "alarm": is_alert,
+        "s_t": final_score,
+        "s_history": s_history,
+        "mu0": float(mu0),
+        "k": float(k),
+        "h": float(h),
+        "readings_count": len(readings),
+        "last_reading": readings[-1] if readings else float(mu0),
+    })
+
+
 @hemo_router.get("/dispatches", response_model=List[DispatchDeliveryItem])
 def list_courier_dispatches(
     user: Annotated[UserPayload, Depends(require_courier)],
@@ -2802,7 +3236,13 @@ def list_courier_dispatches(
     """
     Lists dispatches matching Courier View schema:
     dispatch_id, courier_id, pickup_otp, delivery_otp, cold_chain_temp (within 2.0°C - 6.0°C).
+    Populates CUSUM cold_chain_alert.
     """
+    for item in HEMO_DISPATCHES.values():
+        readings = item.get("temperature_readings", [float(item.get("cold_chain_temp", 3.8))])
+        res = cusum_anomaly_detector(readings)
+        item["cold_chain_alert"] = res["cold_chain_alert"]
+        item["cusum_score"] = res["s_t"]
     return [DispatchDeliveryItem(**item) for item in HEMO_DISPATCHES.values()]
 
 
@@ -2811,10 +3251,15 @@ def get_courier_dispatch(
     dispatch_id: str,
     user: Annotated[UserPayload, Depends(require_courier)],
 ):
-    """Get single dispatch details."""
+    """Get single dispatch details with CUSUM cold_chain_alert."""
     if dispatch_id not in HEMO_DISPATCHES:
         raise HTTPException(status_code=404, detail="Dispatch not found")
-    return DispatchDeliveryItem(**HEMO_DISPATCHES[dispatch_id])
+    item = HEMO_DISPATCHES[dispatch_id]
+    readings = item.get("temperature_readings", [float(item.get("cold_chain_temp", 3.8))])
+    res = cusum_anomaly_detector(readings)
+    item["cold_chain_alert"] = res["cold_chain_alert"]
+    item["cusum_score"] = res["s_t"]
+    return DispatchDeliveryItem(**item)
 
 
 @hemo_router.post("/dispatches/fast-create", response_model=DispatchDeliveryItem)
@@ -2833,13 +3278,17 @@ def create_fast_dispatch(
     stock_id = body.get("stock_id", f"s-{uuid4().hex[:4]}")
     lock_id = body.get("lock_id", f"LCK-{uuid4().hex[:4].upper()}")
     otp = otp_for_lock(lock_id)
+    initial_temp = float(body.get("cold_chain_temp", 3.8))
 
     item = {
         "dispatch_id": dispatch_id,
         "courier_id": "DLVR-8821",
         "pickup_otp": "4912",
         "delivery_otp": otp,
-        "cold_chain_temp": 3.8,
+        "cold_chain_temp": initial_temp,
+        "temperature_readings": [initial_temp],
+        "cold_chain_alert": False,
+        "cusum_score": 0.0,
         "stock_id": stock_id,
         "bank_id": bank_id,
         "icu_id": icu_id,
@@ -2848,6 +3297,10 @@ def create_fast_dispatch(
         "status": "IN_TRANSIT",
         "locked_until": int((datetime.now(timezone.utc) + timedelta(minutes=15)).timestamp() * 1000),
     }
+    detector_res = cusum_anomaly_detector(item["temperature_readings"])
+    item["cold_chain_alert"] = detector_res["cold_chain_alert"]
+    item["cusum_score"] = detector_res["s_t"]
+
     HEMO_DISPATCHES[dispatch_id] = item
     return DispatchDeliveryItem(**item)
 
@@ -2860,6 +3313,7 @@ def update_dispatch_status(
 ):
     """
     Update dispatch status: ACCEPTED, PICKED_UP, IN_TRANSIT, ARRIVED, DELIVERED.
+    Runs CUSUM anomaly detector on simulated temperature readings and returns optional cold_chain_alert.
     """
     if dispatch_id not in HEMO_DISPATCHES:
         HEMO_DISPATCHES[dispatch_id] = {
@@ -2868,13 +3322,75 @@ def update_dispatch_status(
             "pickup_otp": "4912",
             "delivery_otp": "8492",
             "cold_chain_temp": 3.8,
+            "temperature_readings": [3.8],
+            "cold_chain_alert": False,
+            "cusum_score": 0.0,
             "status": body.get("status", "IN_TRANSIT"),
         }
-    new_status = body.get("status", "IN_TRANSIT")
-    HEMO_DISPATCHES[dispatch_id]["status"] = new_status
-    if "cold_chain_temp" in body:
-        HEMO_DISPATCHES[dispatch_id]["cold_chain_temp"] = float(body["cold_chain_temp"])
-    return {"dispatch_id": dispatch_id, "status": new_status, "ok": True}
+    item = HEMO_DISPATCHES[dispatch_id]
+    new_status = body.get("status", item.get("status", "IN_TRANSIT"))
+    item["status"] = new_status
+
+    # Simulated temperature reading updates
+    if "temperature_readings" in body:
+        readings_in = body["temperature_readings"]
+        if isinstance(readings_in, list):
+            item.setdefault("temperature_readings", []).extend([float(r) for r in readings_in])
+        else:
+            item.setdefault("temperature_readings", []).append(float(readings_in))
+        if readings_in:
+            item["cold_chain_temp"] = float(item["temperature_readings"][-1])
+    elif "cold_chain_temp" in body:
+        new_temp = float(body["cold_chain_temp"])
+        item["cold_chain_temp"] = new_temp
+        item.setdefault("temperature_readings", []).append(new_temp)
+
+    # Ensure temperature_readings has history
+    if "temperature_readings" not in item or not item["temperature_readings"]:
+        item["temperature_readings"] = [float(item.get("cold_chain_temp", 3.8))]
+
+    # Run CUSUM anomaly detector on simulated temperature readings
+    detector_res = cusum_anomaly_detector(item["temperature_readings"])
+    alert = detector_res["cold_chain_alert"]
+    item["cold_chain_alert"] = alert
+    item["cusum_score"] = detector_res["s_t"]
+    current_temp = float(item.get("cold_chain_temp", item["temperature_readings"][-1]))
+
+    return {
+        "dispatch_id": dispatch_id,
+        "status": new_status,
+        "ok": True,
+        "cold_chain_alert": alert,
+        "cold_chain_temp": current_temp,
+        "cusum_score": detector_res["s_t"],
+    }
+
+
+@hemo_router.get("/dispatches/{dispatch_id}/status")
+def get_dispatch_status(
+    dispatch_id: str,
+    user: Annotated[UserPayload, Depends(require_courier)],
+):
+    """
+    Get dispatch courier status including CUSUM cold-chain anomaly alert.
+    """
+    if dispatch_id not in HEMO_DISPATCHES:
+        raise HTTPException(status_code=404, detail="Dispatch not found")
+    item = HEMO_DISPATCHES[dispatch_id]
+    readings = item.get("temperature_readings", [float(item.get("cold_chain_temp", 3.8))])
+    detector_res = cusum_anomaly_detector(readings)
+    alert = detector_res["cold_chain_alert"]
+    item["cold_chain_alert"] = alert
+    item["cusum_score"] = detector_res["s_t"]
+
+    return {
+        "dispatch_id": dispatch_id,
+        "status": item.get("status", "IN_TRANSIT"),
+        "ok": True,
+        "cold_chain_alert": alert,
+        "cold_chain_temp": float(item.get("cold_chain_temp", readings[-1])),
+        "cusum_score": detector_res["s_t"],
+    }
 
 
 
@@ -3138,8 +3654,25 @@ def predict_donor_response(body: Dict[str, Any]):
         hour_of_day=int(body.get("hour_of_day", 14)),
         traffic_factor=float(body.get("traffic_factor", 1.1)),
         donor_age=int(body.get("donor_age", 29)),
+        past_accept_rate=float(body["past_accept_rate"]) if body.get("past_accept_rate") is not None else None,
+        hours_since_last_notified=float(body["hours_since_last_notified"]) if body.get("hours_since_last_notified") is not None else None,
     )
     return DONOR_PREDICTOR.predict(features)
+
+
+@hemo_router.post("/ml/feedback")
+@app.post("/ml/feedback")
+def record_donor_feedback_endpoint(body: Dict[str, Any]):
+    """
+    Submits binary feedback (accepted/declined) for donor dispatch,
+    updating the LinUCB bandit parameters and saving state to disk.
+    """
+    donor_id = body.get("donor_id")
+    accepted = body.get("accepted", False)
+    if not donor_id:
+        raise HTTPException(status_code=400, detail="donor_id is required")
+    context = body.get("context")
+    return record_feedback(donor_id=str(donor_id), accepted=bool(accepted), context=context)
 
 
 @hemo_router.get("/ml/metrics")
@@ -3191,27 +3724,36 @@ def complete_dispatch_handshake(body: DispatchDeliveryItem):
     Courier view delivery handshake: verifies pickup/delivery OTPs and cold chain status.
     """
     res = OTP_MANAGER.verify_otp(None, body.stock_id, body.delivery_otp)
+    detector_res = cusum_anomaly_detector(body.cold_chain_temp)
     return {
         "dispatch_id": body.dispatch_id,
         "courier_id": body.courier_id,
         "status": "DELIVERED" if res["verified"] else "OTP_PENDING",
         "cold_chain_verified": 2.0 <= body.cold_chain_temp <= 6.0,
         "cold_chain_temp": body.cold_chain_temp,
+        "cold_chain_alert": detector_res["cold_chain_alert"],
+        "cusum_score": detector_res["s_t"],
         "handshake": res,
     }
 
 
 @hemo_router.post("/emergency/dispatch-ncc-coordinator")
-def dispatch_ncc_coordinator_endpoint(body: Dict[str, Any]):
+async def dispatch_ncc_coordinator_endpoint(
+    body: Dict[str, Any],
+    x_user_language: Optional[str] = Header(None, alias="X-User-Language"),
+):
     """
     Automatically sends an emergency high-priority message & push notification
     to the Single Verified College NCC Coordinator & Blood Club Leader.
+    Injects user language preference into alert.
     """
     hospital_name = body.get("hospital_name") or body.get("hospital") or "Apollo Greams Trauma ICU"
     blood_group = body.get("blood_group") or body.get("group") or "O-"
     units = int(body.get("units") or 2)
     urgency = body.get("urgency", "CRITICAL")
     patient_info = body.get("patient_info", "Emergency Critical Requisition")
+
+    target_lang = parse_target_language(x_user_language)
 
     result = FCM_ENGINE.dispatch_ncc_coordinator_alert(
         hospital_name=hospital_name,
@@ -3220,7 +3762,68 @@ def dispatch_ncc_coordinator_endpoint(body: Dict[str, Any]):
         urgency=urgency,
         patient_info=patient_info,
     )
+    result["language"] = target_lang
     return result
+
+
+@hemo_router.post("/emergency/triage-summary")
+async def get_emergency_triage_summary(
+    body: Dict[str, Any],
+    x_user_language: Optional[str] = Header(None, alias="X-User-Language"),
+):
+    """
+    Generates AI Emergency Triage summary notes in the user's selected language
+    (English, Tamil, Hindi, or Malayalam) based on symptoms & severity rating.
+    """
+    symptoms = body.get("symptoms") or "Acute trauma hemorrhage / emergency blood requisition"
+    severity = body.get("severity") or "P1"
+    return await generate_triage_summary(
+        symptoms=symptoms,
+        severity=severity,
+        user_language_header=x_user_language,
+    )
+
+
+@hemo_router.post("/donor/notification-summary")
+async def get_donor_notification_summary(
+    body: Dict[str, Any],
+    x_user_language: Optional[str] = Header(None, alias="X-User-Language"),
+):
+    """
+    Generates AI-personalized donor notification alert in the selected language.
+    """
+    hospital_name = body.get("hospital_name") or "Apollo Greams Trauma ICU"
+    blood_group = body.get("blood_group") or "O-"
+    units = int(body.get("units") or 2)
+    urgency = body.get("urgency") or "CRITICAL"
+    return await generate_donor_notification(
+        hospital_name=hospital_name,
+        blood_group=blood_group,
+        units=units,
+        urgency=urgency,
+        user_language_header=x_user_language,
+    )
+
+
+@hemo_router.post("/delivery/dispatch-instructions")
+async def get_delivery_dispatch_instructions(
+    body: Dict[str, Any],
+    x_user_language: Optional[str] = Header(None, alias="X-User-Language"),
+):
+    """
+    Generates AI courier cold-chain transit instructions in the selected language.
+    """
+    pickup_bank = body.get("pickup_bank") or "IMA Blood Bank (Central)"
+    dropoff_icu = body.get("dropoff_icu") or "Apollo Greams Trauma ICU"
+    blood_group = body.get("blood_group") or "O-"
+    units = int(body.get("units") or 2)
+    return await generate_delivery_instructions(
+        pickup_bank=pickup_bank,
+        dropoff_icu=dropoff_icu,
+        blood_group=blood_group,
+        units=units,
+        user_language_header=x_user_language,
+    )
 
 
 @hemo_router.get("/emergency/ncc-coordinator")
@@ -3324,6 +3927,7 @@ def list_synthetic_deliveries(
             "vehicle_type": d.vehicle_type,
             "delivery_status": d.status.upper(),
             "cold_chain_temp": d.cold_chain_temp,
+            "cold_chain_alert": cusum_anomaly_detector(d.cold_chain_temp)["cold_chain_alert"] if d.cold_chain_temp is not None else False,
             "pickup_otp": d.pickup_otp,
             "delivery_otp": d.delivery_otp,
             "created_at": d.created_at.isoformat() if d.created_at else None,

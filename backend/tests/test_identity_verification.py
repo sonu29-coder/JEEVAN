@@ -223,3 +223,43 @@ def test_non_demo_provider_mode_cannot_start_identity_verification(client, monke
     response = client.post("/api/donor/identity/start", headers=donor_headers())
     assert response.status_code == 503
     assert "No real identity verification provider integration" in response.json()["detail"]
+
+
+def test_totp_generation_and_verification_with_pyotp():
+    from backend.identity_verification import generate_totp, verify_totp, send_sms
+    code, secret = generate_totp()
+    assert len(code) == 6
+    assert code.isdigit()
+    assert verify_totp(secret, code) is True
+    assert verify_totp(secret, "000000") is False
+    assert send_sms("+919876543210", "Test message") is True
+
+
+def test_start_identity_verification_does_not_return_otp(client):
+    headers = donor_headers()
+    response = client.post("/api/donor/identity/start", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "otp" not in data
+    assert "demo_otp" not in data
+    assert "code" not in data
+    assert data["verification_status"] == "pending"
+
+
+def test_totp_verify_endpoint(client):
+    from backend.identity_verification import get_totp_secret_for_user, generate_totp
+    headers = donor_headers()
+    client.post("/api/donor/identity/start", headers=headers)
+    ref = get_provider_reference("usr-identity-donor")
+    secret = get_totp_secret_for_user("usr-identity-donor", ref)
+    code, _ = generate_totp(secret)
+
+    # Invalid code rejected
+    res_bad = client.post("/api/donor/identity/verify", json={"otp": "999999"}, headers=headers)
+    assert res_bad.status_code == 400
+
+    # Valid TOTP code verified
+    res_good = client.post("/api/donor/identity/verify", json={"otp": code}, headers=headers)
+    assert res_good.status_code == 200
+    assert res_good.json()["verification_status"] == "verified"
+

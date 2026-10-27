@@ -1,3 +1,5 @@
+import { getActiveLocale } from './i18n'
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 export interface ApiResult<T> {
@@ -23,7 +25,10 @@ export async function postToGrid<T>(
   simulate: () => SimulatedResponse<T>,
   auth?: { token: string; authorized: boolean },
 ): Promise<ApiResult<T>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-User-Language': getActiveLocale(),
+  }
   if (auth) headers.Authorization = `Bearer ${auth.token}`
 
   // Mirror the backend's RBAC check so unauthorized roles get a 403 even when the API is offline.

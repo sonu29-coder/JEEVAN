@@ -133,6 +133,13 @@ def send_donor_phone_otp(
     # 4. Generate secure 6-digit numeric OTP on backend
     raw_otp = f"{secrets.randbelow(900000) + 100000:06d}"
 
+    # Dispatch via send_sms stub
+    try:
+        from backend.identity_verification import send_sms
+        send_sms(normalized_phone, f"Your JEEVAN verification OTP code is {raw_otp}. Valid for 2 minutes.")
+    except Exception:
+        pass
+
     # 5. Dispatch real SMS via Fast2SMS
     delivery_result: SMSDeliveryResult = sms_provider.send_otp(
         phone_number=normalized_phone,

@@ -37,6 +37,7 @@ import {
   siteById,
 } from '@/lib/hemo-data'
 import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 import { useGrid } from './grid-store'
 import { ViewHeader } from './view-header'
 
@@ -57,6 +58,8 @@ const NavigationScreen = dynamic(
 type TransitStage = 'assigned' | 'picked_up' | 'in_transit' | 'arrived' | 'delivered'
 
 export function DriverDashboard() {
+  const tDelivery = useTranslations('Delivery')
+  const tCommon = useTranslations('Common')
   const { stock, completeDelivery, createFastDispatch, notify } = useGrid()
   const now = useNow()
 
@@ -103,15 +106,33 @@ export function DriverDashboard() {
     setSpeedMap((prev) => ({ ...prev, [selected.id]: 32 }))
     notify('📦 Unit picked up from Blood Bank! Launching Green Corridor.', 'info')
 
+    // Background sync to courier status CUSUM detector
+    fetch(`/api/dispatches/${selected.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'picked_up', cold_chain_temp: 3.8 }),
+    }).catch(() => {})
+
     let step = 0
     simTimerRef.current = setInterval(() => {
       step += 1
       const progress = Math.min(1, step / 14)
       const simulatedSpeed = Math.floor(65 + Math.sin(step) * 12)
+      const simulatedTemp = Number((3.8 + Math.sin(step) * 0.15).toFixed(1))
 
       setProgressMap((prev) => ({ ...prev, [selected.id]: progress }))
       setSpeedMap((prev) => ({ ...prev, [selected.id]: simulatedSpeed }))
       setStageMap((prev) => ({ ...prev, [selected.id]: progress >= 0.95 ? 'arrived' : 'in_transit' }))
+
+      // Background telemetry feed to CUSUM anomaly detector
+      fetch(`/api/dispatches/${selected.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: progress >= 0.95 ? 'arrived' : 'in_transit',
+          cold_chain_temp: simulatedTemp,
+        }),
+      }).catch(() => {})
 
       if (progress >= 1) {
         if (simTimerRef.current) clearInterval(simTimerRef.current)
@@ -151,16 +172,16 @@ export function DriverDashboard() {
   const handleCopyPin = (pin: string) => {
     navigator.clipboard?.writeText(pin)
     setCopiedPin(true)
-    notify(`PIN ${pin} copied to clipboard!`, 'info')
+    notify(`PIN ${pin} ${tCommon('copied')}`, 'info')
     setTimeout(() => setCopiedPin(false), 2000)
   }
 
   return (
     <div className="no-scrollbar h-full overflow-y-auto px-4 pb-12 sm:px-5">
       <ViewHeader
-        eyebrow="Rapid Medical Logistics"
-        title="Active Courier Portal"
-        description="Priority green corridor transit with live telemetry and hospital handshake."
+        eyebrow={tDelivery('partnerDashboardTitle')}
+        title={tDelivery('activeDispatches')}
+        description={tDelivery('subtitle')}
       />
 
       {/* Quick Launch & Active State Actions */}
@@ -171,7 +192,7 @@ export function DriverDashboard() {
             <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500"></span>
           </span>
           <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-            Green Corridor Active • Swift Rider #42
+            {tDelivery('greenCorridorActive')}
           </span>
         </div>
 
@@ -182,8 +203,26 @@ export function DriverDashboard() {
           title="Instantly generate an emergency blood transit run"
         >
           <Zap className="size-3.5" />
-          <span>⚡ 1-Click Fast Dispatch</span>
+          <span>⚡ {tDelivery('activeDispatches')}</span>
         </button>
+      </div>
+
+      {/* Direct Dispatcher / Hospital Contact Bar */}
+      <div className="mb-4 grid grid-cols-2 gap-2 text-xs font-bold">
+        <a
+          href="tel:+914428178200"
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:bg-muted text-foreground transition-colors"
+        >
+          <Hospital className="size-3.5 text-coral" />
+          <span>{tDelivery('contactDispatcher')}</span>
+        </a>
+        <a
+          href="tel:+914428290200"
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:bg-muted text-foreground transition-colors"
+        >
+          <Hospital className="size-3.5 text-emerald-500" />
+          <span>{tDelivery('contactIcu')}</span>
+        </a>
       </div>
 
       {dispatches.length === 0 ? (
@@ -197,9 +236,9 @@ export function DriverDashboard() {
             </span>
           </div>
 
-          <h2 className="mt-4 text-xl font-bold">Courier Fleet Ready & On Standby</h2>
+          <h2 className="mt-4 text-xl font-bold">{tDelivery('completedDeliveries')}</h2>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            All assigned blood units delivered safely. Start a new high-speed delivery run right now.
+            {tDelivery('tempOptimal')}
           </p>
 
           <button
@@ -208,7 +247,7 @@ export function DriverDashboard() {
             className="mt-6 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-700 hover:to-teal-700 active:scale-95"
           >
             <Zap className="size-4" />
-            Launch Urgent O- Blood Dispatch (3.2 km)
+            {tDelivery('activeDispatches')}
           </button>
         </div>
       ) : (
@@ -265,7 +304,7 @@ export function DriverDashboard() {
                 </div>
 
                 <div className="text-right">
-                  <span className="block text-xs text-muted-foreground">Distance</span>
+                  <span className="block text-xs text-muted-foreground">{tDelivery('liveRouteEta')}</span>
                   <span className="text-sm font-extrabold text-foreground">{distance.toFixed(1)} km</span>
                 </div>
               </div>
@@ -274,43 +313,43 @@ export function DriverDashboard() {
               <div className="mt-4 grid grid-cols-4 gap-1.5 rounded-2xl bg-muted/60 p-1.5 text-center text-[11px] font-bold">
                 <div
                   className={cn(
-                    'rounded-xl py-1.5 transition-colors',
+                    'rounded-xl py-1.5 transition-colors truncate px-1',
                     currentStage === 'assigned' || currentProgress > 0
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground',
                   )}
                 >
-                  1. Assigned
+                  1. {tDelivery('stageAssigned')}
                 </div>
                 <div
                   className={cn(
-                    'rounded-xl py-1.5 transition-colors',
+                    'rounded-xl py-1.5 transition-colors truncate px-1',
                     currentStage === 'picked_up' || currentProgress >= 0.1
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground',
                   )}
                 >
-                  2. Picked Up
+                  2. {tDelivery('stagePickedUp')}
                 </div>
                 <div
                   className={cn(
-                    'rounded-xl py-1.5 transition-colors',
+                    'rounded-xl py-1.5 transition-colors truncate px-1',
                     currentStage === 'in_transit' || currentProgress >= 0.2
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-muted-foreground',
                   )}
                 >
-                  3. In Transit 🚀
+                  3. {tDelivery('stageInTransit')}
                 </div>
                 <div
                   className={cn(
-                    'rounded-xl py-1.5 transition-colors',
+                    'rounded-xl py-1.5 transition-colors truncate px-1',
                     currentStage === 'arrived' || currentStage === 'delivered' || currentProgress >= 0.95
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-muted-foreground',
                   )}
                 >
-                  4. Arrived
+                  4. {tDelivery('stageArrived')}
                 </div>
               </div>
 
@@ -319,7 +358,7 @@ export function DriverDashboard() {
                 <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Navigation className="size-3.5 text-emerald-500" />
-                    <span>Route Completion</span>
+                    <span>{tDelivery('liveRouteEta')}</span>
                   </span>
                   <span className="font-mono font-bold text-foreground">{Math.round(currentProgress * 100)}%</span>
                 </div>
@@ -335,10 +374,10 @@ export function DriverDashboard() {
               <button
                 type="button"
                 onClick={() => setIsNavOpen(true)}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/25 transition-all hover:from-emerald-700 hover:to-teal-700 active:scale-98"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-600/25 transition-all hover:from-emerald-700 hover:to-teal-700 active:scale-98 cursor-pointer"
               >
                 <Navigation className="size-4 fill-white" />
-                <span>Start Full-Screen Turn-by-Turn Navigation</span>
+                <span>{tDelivery('liveRouteEta')} (GPS)</span>
               </button>
 
               {/* Fast Action Buttons */}
@@ -347,17 +386,17 @@ export function DriverDashboard() {
                   type="button"
                   disabled={isSimulating || currentStage === 'delivered'}
                   onClick={runFastSimulation}
-                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-neutral-800 py-2.5 text-xs font-bold text-neutral-200 border border-white/10 shadow-xs transition-all hover:bg-neutral-700 active:scale-95 disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-neutral-800 py-2.5 text-xs font-bold text-neutral-200 border border-white/10 shadow-xs transition-all hover:bg-neutral-700 active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   {isSimulating ? (
                     <>
                       <Loader2 className="size-3.5 animate-spin" />
-                      <span>Racing ({currentSpeed} km/h)...</span>
+                      <span>{tDelivery('speedLabel')} ({currentSpeed} km/h)...</span>
                     </>
                   ) : (
                     <>
                       <Play className="size-3.5 fill-white" />
-                      <span>⚡ Fast Run (8s Demo)</span>
+                      <span>⚡ {tDelivery('transitSimulation')}</span>
                     </>
                   )}
                 </button>
@@ -366,10 +405,10 @@ export function DriverDashboard() {
                   <button
                     type="button"
                     onClick={handleCompleteHandshake}
-                    className="flex items-center justify-center gap-1.5 rounded-2xl bg-coral-strong py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-coral active:scale-95"
+                    className="flex items-center justify-center gap-1.5 rounded-2xl bg-coral-strong py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-coral active:scale-95 cursor-pointer"
                   >
                     <CheckCircle2 className="size-3.5" />
-                    <span>1-Tap Handshake</span>
+                    <span>{tDelivery('confirmDeliveryButton')}</span>
                   </button>
                 ) : (
                   <button
@@ -378,12 +417,12 @@ export function DriverDashboard() {
                       setStageMap((prev) => ({ ...prev, [selected.id]: 'arrived' }))
                       setProgressMap((prev) => ({ ...prev, [selected.id]: 1 }))
                       setSpeedMap((prev) => ({ ...prev, [selected.id]: 0 }))
-                      notify('Arrived at hospital ICU gate!', 'info')
+                      notify(tDelivery('stageArrived'), 'info')
                     }}
-                    className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-2.5 text-xs font-bold text-foreground transition-all hover:bg-muted active:scale-95"
+                    className="flex items-center justify-center gap-1.5 rounded-2xl border border-border bg-card py-2.5 text-xs font-bold text-foreground transition-all hover:bg-muted active:scale-95 cursor-pointer"
                   >
                     <ArrowRight className="size-3.5" />
-                    <span>Skip to ICU Gate</span>
+                    <span>{tDelivery('stageArrived')}</span>
                   </button>
                 )}
               </div>
@@ -395,7 +434,7 @@ export function DriverDashboard() {
             <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-3 text-center shadow-xs">
               <ThermometerSnowflake className="size-4 text-cyan-600 dark:text-cyan-400" />
               <span className="mt-1 text-xs font-bold text-foreground">3.8°C</span>
-              <span className="text-[10px] text-muted-foreground">Cold Box Safe</span>
+              <span className="text-[10px] text-muted-foreground">{tDelivery('tempOptimal')}</span>
             </div>
 
             <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-3 text-center shadow-xs">
@@ -403,13 +442,13 @@ export function DriverDashboard() {
               <span className="mt-1 text-xs font-bold text-foreground">
                 {currentSpeed > 0 ? `${currentSpeed} km/h` : 'Standby'}
               </span>
-              <span className="text-[10px] text-muted-foreground">Speedometer</span>
+              <span className="text-[10px] text-muted-foreground">{tDelivery('speedLabel')}</span>
             </div>
 
             <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-3 text-center shadow-xs">
               <BatteryCharging className="size-4 text-emerald-600 dark:text-emerald-400" />
               <span className="mt-1 text-xs font-bold text-foreground">94%</span>
-              <span className="text-[10px] text-muted-foreground">Box Battery</span>
+              <span className="text-[10px] text-muted-foreground">{tDelivery('unitTemperatureMonitoring')}</span>
             </div>
           </section>
 
@@ -422,16 +461,16 @@ export function DriverDashboard() {
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-300">
                   <KeyRound className="size-3.5 text-emerald-400" />
-                  <span>Security Handshake PIN</span>
+                  <span>{tDelivery('deliveryOtp')}</span>
                 </span>
 
                 <button
                   type="button"
                   onClick={() => handleCopyPin(otpForLock(selected.lockId))}
-                  className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20"
+                  className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
                 >
                   {copiedPin ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
-                  <span>{copiedPin ? 'Copied' : 'Copy'}</span>
+                  <span>{copiedPin ? tCommon('copied') : tCommon('copyPin')}</span>
                 </button>
               </div>
 
@@ -453,16 +492,16 @@ export function DriverDashboard() {
               </div>
 
               <p className="mt-3 text-xs text-white/70">
-                Show this 4-digit code to <strong className="text-white">{icu?.short ?? 'ICU'}</strong> medical staff upon arrival to authorize blood unit custody.
+                {tDelivery('enterOtpPlaceholder')} ({icu?.short ?? 'ICU'}).
               </p>
 
               <button
                 type="button"
                 onClick={handleCompleteHandshake}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-sm font-bold text-white shadow-md transition-all hover:from-emerald-600 hover:to-teal-600 active:scale-98"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-sm font-bold text-white shadow-md transition-all hover:from-emerald-600 hover:to-teal-600 active:scale-98 cursor-pointer"
               >
                 <CheckCircle2 className="size-4" />
-                <span>Confirm & Release Custody to Hospital</span>
+                <span>{tDelivery('confirmDeliveryButton')}</span>
               </button>
             </section>
           )}
@@ -476,10 +515,10 @@ export function DriverDashboard() {
               <div className="flex items-center justify-between p-4">
                 <div>
                   <h2 id="driver-route-title" className="text-base font-bold text-foreground">
-                    Live Transit Route
+                    {tDelivery('liveRouteEta')}
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Real-time GPS road corridor • Police green-wave priority
+                    {bank.short} ({tDelivery('pickupLocation')}) → {icu.short} ({tDelivery('dropoffLocation')})
                   </p>
                 </div>
 
@@ -487,7 +526,7 @@ export function DriverDashboard() {
                   <button
                     type="button"
                     onClick={() => setIsNavOpen(true)}
-                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95"
+                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 active:scale-95 cursor-pointer"
                   >
                     <Navigation className="size-3 fill-white" />
                     <span>Open Nav</span>
@@ -502,8 +541,8 @@ export function DriverDashboard() {
 
               <div className="h-64 border-t">
                 <RouteMap
-                  from={{ position: bank.position, label: `Pickup · ${bank.short}`, kind: 'bank' }}
-                  to={{ position: icu.position, label: `Drop · ${icu.short}`, kind: 'icu' }}
+                  from={{ position: bank.position, label: `${tDelivery('pickupLocation')} · ${bank.short}`, kind: 'bank' }}
+                  to={{ position: icu.position, label: `${tDelivery('dropoffLocation')} · ${icu.short}`, kind: 'icu' }}
                   color="#10b981"
                   progress={currentProgress}
                   onStartNavigation={() => setIsNavOpen(true)}

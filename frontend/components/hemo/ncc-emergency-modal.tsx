@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import {
   AlertTriangle,
   Award,
@@ -21,6 +22,8 @@ import {
 import { useGrid } from './grid-store'
 
 export function NccEmergencyModal() {
+  const tIce = useTranslations('ICE')
+  const tCommon = useTranslations('Common')
   const { nccAlertOpen, nccAlertData, dismissNccAlert, notify } = useGrid()
   const [isMobilizing, setIsMobilizing] = useState(false)
   const [mobilized, setMobilized] = useState(false)
@@ -55,11 +58,11 @@ export function NccEmergencyModal() {
         setReceiptMsg('Simulated priority push delivered to Capt. Dr. Arun Balakrishnan.')
       }
       setMobilized(true)
-      notify('Emergency alert successfully dispatched to College NCC Coordinator!', 'success')
+      notify(tIce('sosTriggered'), 'success')
     } catch {
       setReceiptMsg('Simulated priority push delivered to Capt. Dr. Arun Balakrishnan.')
       setMobilized(true)
-      notify('Emergency alert dispatched to College NCC Coordinator!', 'success')
+      notify(tIce('sosTriggered'), 'success')
     } finally {
       setIsMobilizing(false)
     }
@@ -82,8 +85,8 @@ export function NccEmergencyModal() {
           <button
             type="button"
             onClick={dismissNccAlert}
-            aria-label="Close modal"
-            className="absolute top-4 right-4 grid size-8 place-items-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={tCommon('close')}
+            className="absolute top-4 right-4 grid size-8 place-items-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="size-4" />
           </button>
@@ -95,15 +98,15 @@ export function NccEmergencyModal() {
               <span className="relative inline-flex rounded-full size-3 bg-red-600" />
             </span>
             <span className="text-[11px] font-black tracking-widest text-red-600 uppercase dark:text-red-400">
-              Automatic Emergency Pop-Up
+              {tIce('sosAlertButton')}
             </span>
           </div>
 
           <h2 id="ncc-modal-title" className="text-lg font-black tracking-tight leading-snug">
-            🚨 Emergency Alert Dispatch
+            🚨 {tIce('sendEmergencyAlert')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Targeting Single Verified College Blood Club Leader
+            {tIce('verifiedCadetsReady')}
           </p>
 
           {/* Requisition Card */}
@@ -118,9 +121,9 @@ export function NccEmergencyModal() {
             </div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-black text-red-600 dark:text-red-400">
-                {units} Units {group}
+                {units} {tIce('unitsNeeded')} {group}
               </span>
-              <span className="text-xs text-muted-foreground font-medium">PRBC Required</span>
+              <span className="text-xs text-muted-foreground font-medium">PRBC</span>
             </div>
           </div>
 
@@ -189,7 +192,7 @@ export function NccEmergencyModal() {
                 type="button"
                 disabled={isMobilizing}
                 onClick={handleMobilize}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-red-500 py-3 text-xs font-bold text-white shadow-lg shadow-red-600/30 transition-all active:scale-[0.98] disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-red-500 py-3 text-xs font-bold text-white shadow-lg shadow-red-600/30 transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
               >
                 {isMobilizing ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -198,17 +201,17 @@ export function NccEmergencyModal() {
                 )}
                 <span>
                   {isMobilizing
-                    ? 'Transmitting Priority Alert...'
-                    : '⚡ Send Emergency Alert to NCC Coordinator'}
+                    ? tCommon('loading')
+                    : `⚡ ${tIce('sendEmergencyAlert')}`}
                 </span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={dismissNccAlert}
-                className="w-full rounded-2xl bg-slate-900 dark:bg-slate-100 py-3 text-xs font-bold text-white dark:text-slate-900"
+                className="w-full rounded-2xl bg-slate-900 dark:bg-slate-100 py-3 text-xs font-bold text-white dark:text-slate-900 cursor-pointer"
               >
-                Done (Alert Delivered)
+                {tCommon('close')}
               </button>
             )}
 
@@ -217,7 +220,7 @@ export function NccEmergencyModal() {
               className="w-full flex items-center justify-center gap-2 rounded-2xl border border-border bg-card hover:bg-muted py-2.5 text-xs font-bold text-foreground transition-colors"
             >
               <Phone className="size-3.5 text-emerald-500" />
-              <span>Direct Call Coordinator (+91 94471 28904)</span>
+              <span>{tIce('contactHospital')} (+91 94471 28904)</span>
             </a>
           </div>
         </motion.div>

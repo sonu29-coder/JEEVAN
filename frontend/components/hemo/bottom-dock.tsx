@@ -1,20 +1,22 @@
 'use client'
 
 import { Bell, Droplets, House, MapPin, ShieldCheck, type LucideIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useNow } from '@/hooks/use-now'
 import { isLocked, OUR_ICU_ID } from '@/lib/hemo-data'
 import { cn } from '@/lib/utils'
 import { useGrid, type Tab } from './grid-store'
 
-const ITEMS: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: 'home', label: 'Home', icon: House },
-  { id: 'map', label: 'Map', icon: MapPin },
-  { id: 'blood', label: 'Blood', icon: Droplets },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'verify', label: 'Verify', icon: ShieldCheck },
+const TABS: { id: Tab; key: 'tabHome' | 'tabMap' | 'tabBlood' | 'tabAlerts' | 'tabVerify'; icon: LucideIcon }[] = [
+  { id: 'home', key: 'tabHome', icon: House },
+  { id: 'map', key: 'tabMap', icon: MapPin },
+  { id: 'blood', key: 'tabBlood', icon: Droplets },
+  { id: 'alerts', key: 'tabAlerts', icon: Bell },
+  { id: 'verify', key: 'tabVerify', icon: ShieldCheck },
 ]
 
 export function BottomDock() {
+  const t = useTranslations('ICU')
   const { tab, setTab, emergencies, responses, stock } = useGrid()
   const now = useNow()
   const unread = emergencies.filter((e) => !responses[e.id]).length
@@ -23,8 +25,9 @@ export function BottomDock() {
   return (
     <nav aria-label="Primary" className="z-40 shrink-0 border-t bg-card pb-[env(safe-area-inset-bottom)]">
       <ul className="grid grid-cols-5">
-        {ITEMS.map(({ id, label, icon: Icon }) => {
+        {TABS.map(({ id, key, icon: Icon }) => {
           const active = tab === id || (id === 'home' && tab === 'request')
+          const label = t(key)
           return (
             <li key={id}>
               <button

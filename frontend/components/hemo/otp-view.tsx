@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion'
 import { Droplets, Loader2, PackageCheck, Truck } from 'lucide-react'
 import { useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
+import { useTranslations } from 'next-intl'
 import { useGridPost } from '@/hooks/use-grid-post'
 import { useNow } from '@/hooks/use-now'
 import { extractDetail } from '@/lib/hemo-api'
@@ -25,6 +26,7 @@ interface VerifyResponse {
 }
 
 export function OtpView() {
+  const t = useTranslations('ICU')
   const { stock, setTab } = useGrid()
   const now = useNow()
   const pending = stock.filter((s) => s.lockedByIcuId === OUR_ICU_ID && isLocked(s, now))
@@ -35,9 +37,9 @@ export function OtpView() {
   return (
     <div className="no-scrollbar h-full overflow-y-auto px-5 pb-10">
       <ViewHeader
-        eyebrow="Delivery"
-        title="Confirm blood delivery"
-        description="When the courier arrives, ask them for the 4-digit code and type it below."
+        eyebrow="JEEVAN ICU"
+        title={t('verifyTitle')}
+        description={t('verifySubtitle')}
       />
 
       {pending.length > 1 && (
@@ -76,15 +78,15 @@ export function OtpView() {
             <span className="grid size-16 place-items-center rounded-2xl bg-muted text-muted-foreground">
               <Truck className="size-7" aria-hidden="true" />
             </span>
-            <h2 className="mt-4 text-xl font-bold">No deliveries on the way</h2>
-            <p className="mt-1 text-base text-muted-foreground">Hold a unit of blood first and it will appear here.</p>
+            <h2 className="mt-4 text-xl font-bold">{t('noDeliveries')}</h2>
+            <p className="mt-1 text-base text-muted-foreground">{t('noDeliveriesHint')}</p>
             <button
               type="button"
               onClick={() => setTab('blood')}
-              className="mt-5 flex items-center gap-2 rounded-2xl bg-coral-strong px-5 py-3.5 text-base font-bold text-white"
+              className="mt-5 flex items-center gap-2 rounded-2xl bg-coral-strong px-5 py-3.5 text-base font-bold text-white cursor-pointer"
             >
               <Droplets className="size-5" aria-hidden="true" />
-              Find blood
+              {t('findBloodBtn')}
             </button>
           </div>
         )

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Building2, CalendarClock, Loader2, Lock, ShieldCheck, Timer } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   BANKS,
   COMPONENT_LABELS,
@@ -22,6 +23,7 @@ interface StockCardProps {
 }
 
 export function StockCard({ item, now, isPending, onReserve }: StockCardProps) {
+  const t = useTranslations('ICU')
   const locked = isLocked(item, now)
   const bank = siteById(BANKS, item.bankId)
   const holder = siteById(ICUS, item.lockedByIcuId)
@@ -37,7 +39,7 @@ export function StockCard({ item, now, isPending, onReserve }: StockCardProps) {
         {locked ? (
           <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
             <Lock className="size-3" aria-hidden="true" />
-            {ours ? 'Held for you' : 'On hold'}
+            {ours ? t('heldForYou') : 'On hold'}
           </span>
         ) : (
           <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
@@ -87,11 +89,11 @@ export function StockCard({ item, now, isPending, onReserve }: StockCardProps) {
           'mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-base font-bold transition-colors disabled:cursor-not-allowed',
           ours
             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200'
-            : 'bg-coral-strong text-white hover:bg-coral-strong/90 disabled:opacity-70',
+            : 'bg-coral-strong text-white hover:bg-coral-strong/90 disabled:opacity-70 cursor-pointer',
         )}
       >
         {isPending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="size-4" aria-hidden="true" />}
-        {ours ? 'Held for you' : isPending ? 'Holding…' : 'Hold this unit'}
+        {ours ? t('heldForYou') : isPending ? t('holding') : t('holdUnit')}
       </motion.button>
     </article>
   )

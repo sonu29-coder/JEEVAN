@@ -2,6 +2,7 @@
 
 import { Building2, ChevronRight, Compass, SearchX, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useGridPost } from '@/hooks/use-grid-post'
 import { useNow } from '@/hooks/use-now'
 import { extractDetail } from '@/lib/hemo-api'
@@ -50,6 +51,7 @@ function matches(item: StockItem, query: string) {
 }
 
 export function StockView() {
+  const t = useTranslations('ICU')
   const { stock, lockStock, notify, query, setQuery, openExpiryRadar } = useGrid()
   const now = useNow()
   const [pendingId, setPendingId] = useState<string | null>(null)
@@ -106,9 +108,9 @@ export function StockView() {
     <div className="no-scrollbar h-full overflow-y-auto pb-10">
       <div className="px-5">
         <ViewHeader
-          eyebrow="Blood banks near you"
-          title="Find blood"
-          description="Tap a blood group to filter. Hold a unit for 15 minutes while it is collected."
+          eyebrow="JEEVAN ICU"
+          title={t('stockTitle')}
+          description={t('stockSubtitle')}
         />
 
         {/* Blood Expiry Radar Action Banner */}
@@ -119,20 +121,20 @@ export function StockView() {
             </span>
             <div>
               <p className="text-xs font-black text-amber-950 dark:text-amber-100 flex items-center gap-1.5">
-                <span>Blood Expiry Radar</span>
+                <span>{t('expiryRadarTitle')}</span>
                 <span className="size-2 rounded-full bg-coral animate-ping" />
               </p>
               <p className="text-[11px] text-amber-800 dark:text-amber-300">
-                FEFO clinical rules & inter-hospital redistribution
+                {t('fefoRuleDesc')}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={openExpiryRadar}
-            className="flex items-center gap-1 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-amber-600 active:scale-95 dark:bg-amber-600"
+            className="flex items-center gap-1 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-amber-600 active:scale-95 dark:bg-amber-600 cursor-pointer"
           >
-            <span>Scan Radar</span>
+            <span>{t('scanRadar')}</span>
             <ChevronRight className="size-3.5" />
           </button>
         </div>

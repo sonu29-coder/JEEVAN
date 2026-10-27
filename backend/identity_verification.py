@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import hmac
 import json
@@ -6,8 +7,9 @@ import re
 import time
 from datetime import datetime, timezone
 from secrets import token_urlsafe
-from typing import Annotated
+from typing import Annotated, Any, Dict, Optional
 
+import pyotp
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -22,6 +24,51 @@ DEMO_PROVIDER = "DEMO"
 WEBHOOK_MAX_AGE_SECONDS = 300
 WEBHOOK_MAX_BODY_BYTES = 4096
 PROVIDER_REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{16,128}$")
+TOTP_INTERVAL_SECONDS = 120  # 2-minute validity window for TOTP
+
+
+def send_sms(phone_number: str, message: str) -> bool:
+    """
+    Stub function for SMS dispatch.
+    To be connected to an actual external SMS gateway provider (e.g. Fast2SMS, Twilio, AWS SNS) later.
+    Returns True indicating the SMS request was accepted.
+    """
+    # STUB: ready to connect to external SMS provider later
+    return True
+
+
+def get_totp_secret_for_user(user_id: str, seed: str = "") -> str:
+    """
+    Derives a deterministic, cryptographically secure Base32 secret for TOTP.
+    """
+    secret_key = (
+        os.getenv("JWT_SECRET_KEY")
+        or os.getenv("JEEVAN_API_KEY")
+        or "jeevan-identity-totp-secret-salt-2026"
+    ).encode("utf-8")
+    h = hmac.new(secret_key, f"{user_id}:{seed}".encode("utf-8"), hashlib.sha256).digest()
+    return base64.b32encode(h[:20]).decode("utf-8")
+
+
+def generate_totp(secret: str | None = None) -> tuple[str, str]:
+    """
+    Generates a secure 6-digit Time-based One-Time Password (TOTP) using pyotp.
+    Returns (otp_code, base32_secret).
+    """
+    sec = secret or pyotp.random_base32()
+    totp = pyotp.TOTP(sec, interval=TOTP_INTERVAL_SECONDS)
+    return totp.now(), sec
+
+
+def verify_totp(secret: str, code: str) -> bool:
+    """
+    Verifies a submitted TOTP code against the Base32 secret using pyotp with a 1-step window allowance.
+    """
+    if not secret or not code:
+        return False
+    totp = pyotp.TOTP(secret, interval=TOTP_INTERVAL_SECONDS)
+    return bool(totp.verify(str(code).strip(), valid_window=1))
+
 
 
 def get_session():
@@ -159,6 +206,78 @@ async def start_identity_verification(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Verification could not be started. Please try again.",
             ) from None
+
+    # Generate 6-digit TOTP using pyotp and dispatch via send_sms stub
+    totp_secret = get_totp_secret_for_user(user.id, record.provider_reference)
+    totp_code, _ = generate_totp(totp_secret)
+    target_phone = user.phone_number or "+919876543210"
+    send_sms(target_phone, f"Your JEEVAN donor identity verification code is {totp_code}. Valid for 2 minutes.")
+
+    # Return status WITHOUT returning the OTP in the API response
+    return public_status(record)
+
+
+@router.post("/send-otp")
+def send_identity_otp(
+    user: Annotated[User, Depends(require_persisted_donor)],
+    session: Annotated[Session, Depends(get_session)],
+) -> dict[str, object]:
+    """
+    Generates and dispatches a 6-digit TOTP code via send_sms stub.
+    Does not return the OTP value in the API response.
+    """
+    require_demo_provider()
+    record = session.get(DonorIdentityVerification, user.id)
+    if record is None:
+        record = DonorIdentityVerification(
+            user_id=user.id,
+            verification_status="pending",
+            provider=DEMO_PROVIDER,
+            provider_reference=token_urlsafe(32),
+        )
+        session.add(record)
+    else:
+        record.verification_status = "pending"
+        record.verified_at = None
+
+    session.commit()
+
+    # Generate TOTP via pyotp and dispatch via send_sms stub
+    totp_secret = get_totp_secret_for_user(user.id, record.provider_reference)
+    totp_code, _ = generate_totp(totp_secret)
+    target_phone = user.phone_number or "+919876543210"
+    send_sms(target_phone, f"Your JEEVAN verification code is {totp_code}. Valid for 2 minutes.")
+
+    # Return status without returning the OTP
+    return public_status(record)
+
+
+@router.post("/verify")
+@router.post("/verify-otp")
+def verify_identity_otp(
+    body: Dict[str, Any],
+    user: Annotated[User, Depends(require_persisted_donor)],
+    session: Annotated[Session, Depends(get_session)],
+) -> dict[str, object]:
+    """
+    Verifies submitted TOTP code using pyotp.
+    """
+    require_demo_provider()
+    record = session.get(DonorIdentityVerification, user.id)
+    if record is None or record.verification_status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No pending verification request found.")
+
+    submitted_otp = str(body.get("otp") or body.get("code") or "").strip()
+    if not submitted_otp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP code is required.")
+
+    totp_secret = get_totp_secret_for_user(user.id, record.provider_reference)
+    if not verify_totp(totp_secret, submitted_otp):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code.")
+
+    record.verification_status = "verified"
+    record.verified_at = datetime.now(timezone.utc)
+    session.commit()
     return public_status(record)
 
 

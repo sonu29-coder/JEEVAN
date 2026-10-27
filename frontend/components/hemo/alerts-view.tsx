@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckCircle2, MapPin, Plus, ShieldAlert } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   COMPONENT_LABELS,
   ICUS,
@@ -21,14 +22,15 @@ const URGENCY_CHIP: Record<Urgency, string> = {
 }
 
 export function AlertsView() {
+  const t = useTranslations('ICU')
   const { emergencies, responses, respond, notify, setTab, openNccAlert } = useGrid()
 
   return (
     <div className="no-scrollbar h-full overflow-y-auto px-5 pb-10">
       <ViewHeader
-        eyebrow="Donor alerts"
-        title="People near you need blood"
-        description="Say yes only if you are healthy and can reach the hospital soon."
+        eyebrow="JEEVAN ICU"
+        title={t('alertsTitle')}
+        description={t('alertsSubtitle')}
       />
 
       {/* Single Verified Blood Club / NCC Coordinator Emergency Trigger */}
@@ -39,19 +41,19 @@ export function AlertsView() {
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black uppercase tracking-wider text-coral">Direct Protocol</span>
+              <span className="text-xs font-black uppercase tracking-wider text-coral">{t('cadetMobilization')}</span>
               <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
                 1 Verified Leader
               </span>
             </div>
             <p className="text-xs font-bold text-foreground truncate">Capt. Dr. Arun Balakrishnan</p>
-            <p className="text-[10px] text-muted-foreground truncate">1 TN Armoured Sqn NCC Chennai • 128 Cadets on standby</p>
+            <p className="text-[10px] text-muted-foreground truncate">{t('verifiedCadetsDesc')}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => openNccAlert(emergencies[0])}
-          className="shrink-0 px-3 py-2 rounded-xl bg-coral hover:bg-coral-strong text-white text-xs font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-1"
+          className="shrink-0 px-3 py-2 rounded-xl bg-coral hover:bg-coral-strong text-white text-xs font-bold shadow-sm transition-transform active:scale-95 flex items-center gap-1 cursor-pointer"
         >
           <span>Dispatch</span>
         </button>

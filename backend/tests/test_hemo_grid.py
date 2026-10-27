@@ -339,3 +339,50 @@ def test_cors_headers_options_request(client):
     assert response.status_code == 200
     assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
     assert "authorization" in response.headers.get("access-control-allow-headers", "").lower()
+
+
+# =====================================================================
+# 7. TomTom Live Traffic Flow API & 2-Minute Caching Tests
+# =====================================================================
+
+def test_tomtom_traffic_multiplier_flow_and_cache():
+    from unittest.mock import MagicMock, patch
+    from backend.routing import clear_traffic_cache, get_tomtom_traffic_multiplier
+
+    clear_traffic_cache()
+
+    # 1. Fallback to 1.2 when no key is set
+    fallback_mult = get_tomtom_traffic_multiplier()
+    assert fallback_mult == 1.2
+
+    clear_traffic_cache()
+
+    # 2. Mock successful TomTom Traffic Flow API response
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "flowSegmentData": {
+            "currentTravelTime": 150,
+            "freeflowTravelTime": 100,
+            "currentSpeed": 30,
+            "freeflowSpeed": 45,
+        }
+    }
+
+    with patch("httpx.get", return_value=mock_resp) as mock_get:
+        # First call fetches from API and caches
+        mult1 = get_tomtom_traffic_multiplier(api_key="test_tomtom_key")
+        assert mult1 == 1.5
+        assert mock_get.call_count == 1
+
+        # Second call within 2 minutes must hit cache (no additional HTTP call)
+        mult2 = get_tomtom_traffic_multiplier(api_key="test_tomtom_key")
+        assert mult2 == 1.5
+        assert mock_get.call_count == 1
+
+    clear_traffic_cache()
+
+    # 3. Fallback to 1.2 on network/API failure
+    with patch("httpx.get", side_effect=Exception("Connection timed out")):
+        fail_mult = get_tomtom_traffic_multiplier(api_key="test_tomtom_key")
+        assert fail_mult == 1.2

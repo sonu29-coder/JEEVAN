@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Building2, CheckCircle2, Loader2, MapPin, Minus, Plus, Siren } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import { useGridPost } from '@/hooks/use-grid-post'
 import { extractDetail } from '@/lib/hemo-api'
 import {
@@ -22,11 +23,11 @@ import { cn } from '@/lib/utils'
 import { useGrid } from './grid-store'
 import { SimulatedBadge, ViewHeader } from './view-header'
 
-export const CLINICAL_REASONS = [
-  { id: 'trauma', label: '🚨 Acute Trauma / Hemorrhage', desc: 'Road accident / polytrauma bleed' },
-  { id: 'surgery', label: '🔪 Emergency Surgery (OT)', desc: 'Intraoperative resuscitation' },
-  { id: 'maternal', label: '👶 Postpartum Hemorrhage (PPH)', desc: 'Obstetric emergency delivery' },
-  { id: 'shock', label: '🫀 ICU Sepsis & Shock', desc: 'Critical care / severe anemia' },
+export const CLINICAL_REASON_KEYS = [
+  { id: 'trauma', labelKey: 'traumaBleed', descKey: 'traumaDesc' },
+  { id: 'surgery', labelKey: 'surgeryOt', descKey: 'surgeryDesc' },
+  { id: 'maternal', labelKey: 'pphMaternal', descKey: 'pphDesc' },
+  { id: 'shock', labelKey: 'sepsisShock', descKey: 'sepsisDesc' },
 ] as const
 
 interface DispatchPayload {
@@ -52,6 +53,7 @@ const URGENCY_ACTIVE: Record<Urgency, string> = {
 }
 
 export function DispatchView() {
+  const t = useTranslations('ICU')
   const { addEmergency, notify, setTab } = useGrid()
   const [icuId, setIcuId] = useState(OUR_ICU_ID)
   const [clinicalReason, setClinicalReason] = useState<string>('trauma')
@@ -88,45 +90,45 @@ export function DispatchView() {
       return
     }
     setResult({ ...res.data, simulated: res.simulated })
-    const activeReason = CLINICAL_REASONS.find((r) => r.id === clinicalReason)?.label ?? 'Acute Trauma / Hemorrhage'
+    const activeReason = t(CLINICAL_REASON_KEYS.find((r) => r.id === clinicalReason)?.labelKey as any) ?? 'Acute Trauma'
     addEmergency({ id: res.data.request_id, icuId, group, component, urgency, units, clinicalReason: activeReason })
-    notify('Request sent to nearby donors and blood banks', 'success')
+    notify(t('requestSent'), 'success')
   }
 
   return (
     <div className="no-scrollbar h-full overflow-y-auto px-5 pb-10">
       <ViewHeader
-        eyebrow="Emergency request"
-        title="Request blood"
-        description="Answer a few simple questions. We alert donors and blood banks near the hospital."
+        eyebrow="JEEVAN ICU"
+        title={t('requestTitle')}
+        description={t('requestSubtitle')}
         onBack={() => setTab('home')}
       />
 
       <div className="flex flex-col gap-4">
-        <Step number={1} title="Clinical reason for emergency blood">
+        <Step number={1} title={t('clinicalReason')}>
           <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Clinical emergency reason">
-            {CLINICAL_REASONS.map((item) => (
+            {CLINICAL_REASON_KEYS.map((item) => (
               <Choice
                 key={item.id}
                 active={item.id === clinicalReason}
                 onClick={() => setClinicalReason(item.id)}
                 className="flex flex-col items-start text-left p-3"
               >
-                <span className="text-xs font-bold leading-tight">{item.label}</span>
-                <span className="text-[10px] text-muted-foreground mt-1">{item.desc}</span>
+                <span className="text-xs font-bold leading-tight">{t(item.labelKey as any)}</span>
+                <span className="text-[10px] text-muted-foreground mt-1">{t(item.descKey as any)}</span>
               </Choice>
             ))}
           </div>
           <div className="mt-2.5 flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2 text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Building2 className="size-3.5 text-coral" />
-              Requesting Hospital:
+              {t('requestingFacility')}:
             </span>
             <span className="font-bold text-foreground">{icu.name}</span>
           </div>
         </Step>
 
-        <Step number={2} title="Patient's blood group">
+        <Step number={2} title={t('patientBloodGroup')}>
           <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Blood group">
             {BLOOD_GROUPS.map((g) => (
               <Choice key={g} active={g === group} onClick={() => setGroup(g)} className="py-3.5 text-lg font-extrabold">
@@ -134,10 +136,10 @@ export function DispatchView() {
               </Choice>
             ))}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">Not sure? Ask the doctor or check the hospital report.</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('bloodGroupHint')}</p>
         </Step>
 
-        <Step number={3} title="What does the doctor need?">
+        <Step number={3} title={t('componentNeeded')}>
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Blood component">
             {COMPONENTS.map((c) => (
               <Choice key={c} active={c === component} onClick={() => setComponent(c)}>
@@ -147,10 +149,11 @@ export function DispatchView() {
           </div>
         </Step>
 
-        <Step number={4} title="How urgent is it?">
+        <Step number={4} title={t('urgencyLevel')}>
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Urgency">
             {URGENCIES.map((u) => {
               const active = u === urgency
+              const urgencyTitle = u === 'CRITICAL' ? t('urgencyCritical') : u === 'HIGH' ? t('urgencyHigh') : t('urgencyRoutine')
               return (
                 <button
                   key={u}
@@ -163,7 +166,7 @@ export function DispatchView() {
                     active ? URGENCY_ACTIVE[u] : 'border-border bg-background text-foreground hover:bg-muted',
                   )}
                 >
-                  <span className="text-base font-bold">{URGENCY_LABELS[u].title}</span>
+                  <span className="text-base font-bold">{urgencyTitle}</span>
                   <span className="text-xs opacity-80">{URGENCY_LABELS[u].hint}</span>
                 </button>
               )
@@ -171,7 +174,7 @@ export function DispatchView() {
           </div>
         </Step>
 
-        <Step number={5} title="How many units?">
+        <Step number={5} title={t('unitsToOrder')}>
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Up to 6 per request</p>
             <div className="flex items-center gap-2 rounded-2xl border bg-background p-1.5">
@@ -207,7 +210,7 @@ export function DispatchView() {
         className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-coral-strong py-5 text-lg font-extrabold text-white shadow-[0_14px_30px_-14px_rgba(200,50,43,0.8)] disabled:opacity-70"
       >
         {isLoading ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : <Siren className="size-5" aria-hidden="true" />}
-        {isLoading ? 'Sending request…' : 'Send emergency request'}
+        {isLoading ? t('dispatching') : t('dispatchButton')}
       </motion.button>
       <p className="mt-3 text-center text-sm text-muted-foreground">
         {`${group} · ${COMPONENT_LABELS[component]} · ${units} ${units === 1 ? 'unit' : 'units'} · ${icu.short}`}
@@ -225,18 +228,18 @@ export function DispatchView() {
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-2 text-lg font-extrabold text-emerald-900 dark:text-emerald-100">
                 <CheckCircle2 className="size-5 text-mint" aria-hidden="true" />
-                Request sent
+                {t('requestSent')}
               </p>
               {result.simulated && <SimulatedBadge />}
             </div>
             <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-300">{`Reference number ${result.request_id}`}</p>
             <dl className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-2xl bg-white p-3.5 dark:bg-white/5">
-                <dt className="text-sm text-muted-foreground">Donors alerted</dt>
+                <dt className="text-sm text-muted-foreground">{t('donorsAlerted')}</dt>
                 <dd className="text-2xl font-extrabold">{result.matched_donors}</dd>
               </div>
               <div className="rounded-2xl bg-white p-3.5 dark:bg-white/5">
-                <dt className="text-sm text-muted-foreground">Expected in</dt>
+                <dt className="text-sm text-muted-foreground">{t('expectedIn')}</dt>
                 <dd className="text-2xl font-extrabold">{`${result.eta_minutes} min`}</dd>
               </div>
             </dl>
@@ -246,7 +249,7 @@ export function DispatchView() {
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-base font-bold text-white"
             >
               <MapPin className="size-5" aria-hidden="true" />
-              Track on the map
+              {t('trackOnMap')}
             </button>
           </motion.section>
         )}

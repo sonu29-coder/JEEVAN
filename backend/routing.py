@@ -7,10 +7,113 @@ Optimized for Chennai medical grid: Blood Banks, Donors, and ICU Hospitals.
 from __future__ import annotations
 
 import heapq
+import logging
 import math
+import os
+import time
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from dotenv import load_dotenv
+import httpx
+import networkx as nx
+import osmnx as ox
+
+logger = logging.getLogger(__name__)
+
+# Load environment variables from .env files
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+for env_path in (
+    PROJECT_ROOT / ".env.local",
+    PROJECT_ROOT / ".env",
+    Path(__file__).resolve().parent / ".env",
+    Path(__file__).resolve().parent / ".env" / ".env",
+):
+    if env_path.is_file():
+        load_dotenv(env_path, override=False)
+
+GRAPHML_PATH = Path(__file__).resolve().parent / "city_graph.graphml"
+
+# In-memory cache for live TomTom traffic multiplier: key -> (multiplier, expire_timestamp)
+_TOMTOM_CACHE: Dict[str, Tuple[float, float]] = {}
+CACHE_TTL_SECONDS = 120  # 2 minutes cache TTL
+DEFAULT_TRAFFIC_FACTOR = 1.2
+
+
+def clear_traffic_cache() -> None:
+    """Clear in-memory TomTom traffic cache (useful for testing)."""
+    _TOMTOM_CACHE.clear()
+
+
+def get_tomtom_traffic_multiplier(
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    api_key: Optional[str] = None,
+) -> float:
+    """
+    Fetch live traffic multiplier from TomTom Traffic Flow API using TOMTOM_API_KEY from .env.
+    Caches results for 2 minutes (120 seconds).
+    If the API fails, key is not set, or response is invalid, falls back to DEFAULT_TRAFFIC_FACTOR (1.2).
+    """
+    now = time.time()
+    if lat is not None and lng is not None:
+        point_str = f"{lat:.4f},{lng:.4f}"
+        cache_key = point_str
+    else:
+        point_str = "13.0827,80.2707"  # Chennai Central arterial corridor default
+        cache_key = "default_chennai"
+
+    # Return cached value if still valid
+    if cache_key in _TOMTOM_CACHE:
+        val, expiry = _TOMTOM_CACHE[cache_key]
+        if now < expiry:
+            return val
+
+    # Resolve API key from argument or environment (.env loaded via dotenv)
+    key = (api_key or os.getenv("TOMTOM_API_KEY", "")).strip()
+    if not key:
+        _TOMTOM_CACHE[cache_key] = (DEFAULT_TRAFFIC_FACTOR, now + CACHE_TTL_SECONDS)
+        return DEFAULT_TRAFFIC_FACTOR
+
+    url = (
+        f"https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
+        f"?key={key}&point={point_str}&unit=KMPH"
+    )
+
+    try:
+        response = httpx.get(url, timeout=3.5)
+        if response.status_code == 200:
+            data = response.json()
+            flow = data.get("flowSegmentData", {})
+            current_time = float(flow.get("currentTravelTime", 0))
+            freeflow_time = float(flow.get("freeflowTravelTime", 0))
+            current_speed = float(flow.get("currentSpeed", 0))
+            freeflow_speed = float(flow.get("freeflowSpeed", 0))
+
+            multiplier = DEFAULT_TRAFFIC_FACTOR
+            if freeflow_time > 0 and current_time > 0:
+                multiplier = current_time / freeflow_time
+            elif current_speed > 0 and freeflow_speed > 0:
+                multiplier = freeflow_speed / current_speed
+
+            # Bound traffic multiplier to sane range [1.0, 5.0]
+            multiplier = max(1.0, min(5.0, round(multiplier, 2)))
+            _TOMTOM_CACHE[cache_key] = (multiplier, now + CACHE_TTL_SECONDS)
+            return multiplier
+        else:
+            logger.warning(
+                "TomTom Traffic Flow API returned status %s for point %s",
+                response.status_code,
+                point_str,
+            )
+    except Exception as exc:
+        logger.warning("TomTom Traffic Flow API request failed: %s", exc)
+
+    # Fallback to 1.2 on any error, cached for 2 minutes
+    _TOMTOM_CACHE[cache_key] = (DEFAULT_TRAFFIC_FACTOR, now + CACHE_TTL_SECONDS)
+    return DEFAULT_TRAFFIC_FACTOR
 
 
 class RouteType(str, Enum):
@@ -94,21 +197,26 @@ class Edge:
     traffic_factor: float = 1.0  # 1.0 = clear, >1.0 = congestion slowdown
     signals_count: int = 1
     road_name: str = "Transit Road"
+    travel_time: float = 0.0  # Travel time in seconds (OSMnx / GraphML edge weight)
 
-    def transit_time_mins(self, route_type: RouteType) -> float:
+    def transit_time_mins(self, route_type: RouteType, live_traffic_multiplier: Optional[float] = None) -> float:
         """
         Calculate travel time across this edge in minutes.
-        - STANDARD: applies normal traffic multiplier and traffic light signal delay.
+        - STANDARD: uses live TomTom traffic multiplier (fallback 1.2) and signal delay.
         - GREEN_CORRIDOR: emergency green light priority (0 signal wait) + emergency speed clearance.
         """
         if route_type == RouteType.GREEN_CORRIDOR:
-            # Green corridor: emergency priority, traffic signals set to green, 0 delay, 1.25x speed
+            # Green corridor: emergency priority, traffic signals set to green, 0 delay, 1.3x speed
             effective_speed = min(80.0, self.base_speed_kmh * 1.3)
             travel_time = (self.distance_km / effective_speed) * 60.0
             return max(0.2, travel_time)
         else:
-            # Standard route: subject to traffic congestion and signal wait (avg 0.75 min / signal)
-            effective_speed = max(15.0, self.base_speed_kmh / max(0.5, self.traffic_factor))
+            tf = (
+                live_traffic_multiplier
+                if live_traffic_multiplier is not None
+                else (get_tomtom_traffic_multiplier() if self.traffic_factor == 1.2 else self.traffic_factor)
+            )
+            effective_speed = max(15.0, self.base_speed_kmh / max(0.5, tf))
             travel_time = (self.distance_km / effective_speed) * 60.0
             signal_delay = self.signals_count * 0.75
             return max(0.3, travel_time + signal_delay)
@@ -118,11 +226,13 @@ class RoadGraph:
     """
     Weighted directed road graph representing the Chennai GIS network
     connecting ICUs, Blood Banks, Donors, and key arterial road intersections.
+    Loaded via OSMnx from city_graph.graphml.
     """
 
-    def __init__(self):
+    def __init__(self, ox_graph: Optional[nx.MultiDiGraph] = None):
         self.nodes: Dict[str, Node] = {}
         self.adjacency: Dict[str, List[Edge]] = {}
+        self.ox_graph: Optional[nx.MultiDiGraph] = ox_graph
 
     def add_node(self, node: Node) -> None:
         self.nodes[node.id] = node
@@ -139,7 +249,10 @@ class RoadGraph:
         signals_count: int = 1,
         road_name: str = "Transit Road",
         bidirectional: bool = True,
+        travel_time: float = 0.0,
     ) -> None:
+        if u not in self.adjacency:
+            self.adjacency[u] = []
         self.adjacency[u].append(
             Edge(
                 target=v,
@@ -148,9 +261,12 @@ class RoadGraph:
                 traffic_factor=traffic_factor,
                 signals_count=signals_count,
                 road_name=road_name,
+                travel_time=travel_time,
             )
         )
         if bidirectional:
+            if v not in self.adjacency:
+                self.adjacency[v] = []
             self.adjacency[v].append(
                 Edge(
                     target=u,
@@ -159,6 +275,7 @@ class RoadGraph:
                     traffic_factor=traffic_factor,
                     signals_count=signals_count,
                     road_name=road_name,
+                    travel_time=travel_time,
                 )
             )
 
@@ -177,7 +294,7 @@ class RoadGraph:
     def dijkstra(self, start_id: str, goal_id: str) -> Tuple[List[str], float, float]:
         """
         Dijkstra's Algorithm for calculating standard shortest transit times
-        between nodes based on distance and traffic weights.
+        between nodes using travel_time as the edge weight with live TomTom traffic.
         Returns: (path_node_ids, total_distance_km, total_time_mins)
         """
         if start_id not in self.nodes or goal_id not in self.nodes:
@@ -186,47 +303,66 @@ class RoadGraph:
         if start_id == goal_id:
             return [start_id], 0.0, 0.0
 
-        pq: List[Tuple[float, str]] = [(0.0, start_id)]
-        distances: Dict[str, float] = {start_id: 0.0}
-        prev_node: Dict[str, Optional[str]] = {start_id: None}
-        prev_edge: Dict[str, Optional[Edge]] = {start_id: None}
+        # Fetch live TomTom traffic multiplier (cached for 2 minutes, fallback 1.2)
+        live_tf = get_tomtom_traffic_multiplier()
 
-        while pq:
-            curr_dist, u = heapq.heappop(pq)
-            if curr_dist > distances[u]:
-                continue
-            if u == goal_id:
-                break
+        # Execute Dijkstra with travel_time edge weight
+        if self.ox_graph is not None and self.ox_graph.has_node(start_id) and self.ox_graph.has_node(goal_id):
+            # Sync ox_graph edges where traffic_factor was fixed at 1.2
+            for u, v, k, d in self.ox_graph.edges(data=True, keys=True):
+                raw_tf = float(d.get("traffic_factor", 1.2))
+                tf = live_tf if raw_tf == 1.2 else raw_tf
+                length_val = float(d.get("length", 1000.0))
+                dist_km = length_val / 1000.0 if length_val > 50 else length_val
+                spd = float(d.get("speed_kph", 40.0))
+                sig = int(d.get("signals_count", 1))
+                eff_spd = max(15.0, spd / max(0.5, tf))
+                d["travel_time"] = ((dist_km / eff_spd) * 60.0 + sig * 0.75) * 60.0
 
-            for edge in self.adjacency.get(u, []):
-                v = edge.target
-                weight = edge.transit_time_mins(RouteType.STANDARD)
-                if distances.get(v, float("inf")) > curr_dist + weight:
-                    distances[v] = curr_dist + weight
-                    prev_node[v] = u
-                    prev_edge[v] = edge
-                    heapq.heappush(pq, (distances[v], v))
+            try:
+                path = nx.dijkstra_path(self.ox_graph, start_id, goal_id, weight="travel_time")
+            except (nx.NetworkXNoPath, nx.NodeNotFound):
+                raise ValueError(f"No path found between {start_id} and {goal_id}")
+        else:
+            pq: List[Tuple[float, str]] = [(0.0, start_id)]
+            distances: Dict[str, float] = {start_id: 0.0}
+            prev_node: Dict[str, Optional[str]] = {start_id: None}
 
-        if goal_id not in prev_node:
-            raise ValueError(f"No path found between {start_id} and {goal_id}")
+            while pq:
+                curr_dist, u = heapq.heappop(pq)
+                if curr_dist > distances[u]:
+                    continue
+                if u == goal_id:
+                    break
 
-        # Reconstruct path
-        path = []
-        curr = goal_id
-        while curr is not None:
-            path.append(curr)
-            curr = prev_node[curr]
-        path.reverse()
+                for edge in self.adjacency.get(u, []):
+                    v = edge.target
+                    weight = edge.transit_time_mins(RouteType.STANDARD, live_traffic_multiplier=live_tf) * 60.0
+                    if distances.get(v, float("inf")) > curr_dist + weight:
+                        distances[v] = curr_dist + weight
+                        prev_node[v] = u
+                        heapq.heappush(pq, (distances[v], v))
+
+            if goal_id not in prev_node:
+                raise ValueError(f"No path found between {start_id} and {goal_id}")
+
+            # Reconstruct path
+            path = []
+            curr = goal_id
+            while curr is not None:
+                path.append(curr)
+                curr = prev_node[curr]
+            path.reverse()
 
         # Compute total distance and total transit time
         total_distance_km = 0.0
         total_time_mins = 0.0
         for i in range(len(path) - 1):
             u_id, v_id = path[i], path[i + 1]
-            for edge in self.adjacency[u_id]:
+            for edge in self.adjacency.get(u_id, []):
                 if edge.target == v_id:
                     total_distance_km += edge.distance_km
-                    total_time_mins += edge.transit_time_mins(RouteType.STANDARD)
+                    total_time_mins += edge.transit_time_mins(RouteType.STANDARD, live_traffic_multiplier=live_tf)
                     break
 
         return path, round(total_distance_km, 2), round(total_time_mins, 1)
@@ -303,13 +439,68 @@ class RoadGraph:
         return path, round(total_distance_km, 2), round(total_time_mins, 1)
 
 
-def build_default_chennai_graph() -> RoadGraph:
+def load_graphml_with_osmnx(graphml_path: Path | str = GRAPHML_PATH) -> RoadGraph:
+    """Load road network graph from GraphML using OSMnx."""
+    path = Path(graphml_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"GraphML file not found: {path}")
+
+    ox_graph = ox.load_graphml(str(path), node_dtypes={"osmid": str})
+    g = RoadGraph(ox_graph=ox_graph)
+
+    for node_id, data in ox_graph.nodes(data=True):
+        nid = str(node_id)
+        name = str(data.get("name", nid))
+        lat = float(data.get("y", 0.0))
+        lng = float(data.get("x", 0.0))
+        node_type = str(data.get("node_type", "junction"))
+        g.add_node(Node(id=nid, name=name, lat=lat, lng=lng, node_type=node_type))
+
+    for u, v, k, data in ox_graph.edges(data=True, keys=True):
+        u_str = str(u)
+        v_str = str(v)
+        length_val = float(data.get("length", 1000.0))
+        distance_km = length_val / 1000.0 if length_val > 50 else length_val
+        base_speed = float(data.get("speed_kph", 40.0))
+        raw_tf = float(data.get("traffic_factor", 1.2))
+        # Replace fixed 1.2 traffic_factor with live TomTom multiplier (fallback 1.2)
+        traffic_factor = get_tomtom_traffic_multiplier() if raw_tf == 1.2 else raw_tf
+        signals_count = int(data.get("signals_count", 1))
+        road_name = str(data.get("name", "Transit Road"))
+        travel_time = float(data.get("travel_time", 0.0))
+
+        g.add_edge(
+            u=u_str,
+            v=v_str,
+            distance_km=distance_km,
+            base_speed_kmh=base_speed,
+            traffic_factor=traffic_factor,
+            signals_count=signals_count,
+            road_name=road_name,
+            bidirectional=False,
+            travel_time=travel_time,
+        )
+
+    return g
+
+
+def build_default_chennai_graph(graphml_path: Optional[Path | str] = None) -> RoadGraph:
     """
     Constructs the standard arterial road network graph for Chennai medical corridor.
-    Includes major ICUs, Blood Banks, Donors, and key intersections along
-    Anna Salai, Poonamallee High Road, Inner Ring Road, and OMR.
+    Loads city_graph.graphml with OSMnx.
     """
+    target_path = Path(graphml_path) if graphml_path else GRAPHML_PATH
+    if target_path.exists():
+        try:
+            return load_graphml_with_osmnx(target_path)
+        except Exception:
+            pass
+
+    # Fallback to manual graph if GraphML is unavailable
     g = RoadGraph()
+
+    # Dynamic traffic factor for arterial roads fetched from TomTom (fallback 1.2)
+    tf_default = get_tomtom_traffic_multiplier()
 
     # 1. ICUs (Chennai Synthetic Hubs)
     g.add_node(Node("icu-elite", "Kilpauk Medical & Critical Care [SYNTHETIC DEMO]", 13.0784, 80.2415, "icu"))
@@ -344,29 +535,29 @@ def build_default_chennai_graph() -> RoadGraph:
 
     # 5. Edges with realistic distances, speeds, traffic factors, and road names
     # Central & Kilpauk Corridor
-    g.add_edge("bank-gmc", "junc-central", distance_km=1.2, base_speed_kmh=35.0, traffic_factor=1.2, signals_count=1, road_name="EVR Periyar Salai")
+    g.add_edge("bank-gmc", "junc-central", distance_km=1.2, base_speed_kmh=35.0, traffic_factor=tf_default, signals_count=1, road_name="EVR Periyar Salai")
     g.add_edge("junc-central", "bank-ima", distance_km=2.8, base_speed_kmh=40.0, traffic_factor=1.3, signals_count=2, road_name="Poonamallee High Road")
     g.add_edge("bank-ima", "junc-kilpauk", distance_km=1.4, base_speed_kmh=40.0, traffic_factor=1.1, signals_count=1, road_name="Kilpauk Garden Road")
     g.add_edge("junc-kilpauk", "icu-elite", distance_km=0.4, base_speed_kmh=30.0, traffic_factor=1.0, signals_count=0, road_name="Kilpauk Medical Access")
-    g.add_edge("junc-kilpauk", "junc-anna-arch", distance_km=3.2, base_speed_kmh=45.0, traffic_factor=1.2, signals_count=2, road_name="New Avadi Road")
+    g.add_edge("junc-kilpauk", "junc-anna-arch", distance_km=3.2, base_speed_kmh=45.0, traffic_factor=tf_default, signals_count=2, road_name="New Avadi Road")
 
     # Anna Nagar & Koyambedu Corridor
     g.add_edge("junc-anna-arch", "icu-westfort", distance_km=0.5, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="2nd Avenue Anna Nagar")
     g.add_edge("junc-anna-arch", "junc-koyambedu", distance_km=2.4, base_speed_kmh=45.0, traffic_factor=1.3, signals_count=2, road_name="100 Feet Road")
-    g.add_edge("junc-koyambedu", "junc-porur", distance_km=5.6, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Poonamallee Bypass")
+    g.add_edge("junc-koyambedu", "junc-porur", distance_km=5.6, base_speed_kmh=50.0, traffic_factor=tf_default, signals_count=2, road_name="Poonamallee Bypass")
     g.add_edge("junc-porur", "icu-daya", distance_km=0.6, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=0, road_name="Mount-Poonamallee Road")
 
     # Gemini & Central Spine Corridor
-    g.add_edge("bank-ima", "junc-gemini", distance_km=2.1, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=1, road_name="Anna Salai (Mount Road)")
+    g.add_edge("bank-ima", "junc-gemini", distance_km=2.1, base_speed_kmh=40.0, traffic_factor=tf_default, signals_count=1, road_name="Anna Salai (Mount Road)")
     g.add_edge("junc-gemini", "icu-jubilee", distance_km=0.9, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=1, road_name="Greams Road")
     g.add_edge("junc-gemini", "junc-t-nagar", distance_km=1.8, base_speed_kmh=40.0, traffic_factor=1.3, signals_count=2, road_name="G.N. Chetty Road")
-    g.add_edge("junc-t-nagar", "junc-kathipara", distance_km=4.8, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Anna Salai Expressway")
+    g.add_edge("junc-t-nagar", "junc-kathipara", distance_km=4.8, base_speed_kmh=50.0, traffic_factor=tf_default, signals_count=2, road_name="Anna Salai Expressway")
 
     # South Corridor: Guindy, Kathipara & Mylapore
     g.add_edge("junc-kathipara", "bank-district", distance_km=0.5, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="Guindy Industrial Estate Link")
     g.add_edge("junc-kathipara", "junc-guindy", distance_km=1.2, base_speed_kmh=45.0, traffic_factor=1.1, signals_count=1, road_name="GST Road")
-    g.add_edge("junc-guindy", "junc-madhya-kailash", distance_km=4.6, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=2, road_name="Sardar Patel Road")
-    g.add_edge("junc-madhya-kailash", "bank-jubilee", distance_km=3.8, base_speed_kmh=45.0, traffic_factor=1.2, signals_count=2, road_name="Kamarajar Salai / Mylapore Link")
+    g.add_edge("junc-guindy", "junc-madhya-kailash", distance_km=4.6, base_speed_kmh=50.0, traffic_factor=tf_default, signals_count=2, road_name="Sardar Patel Road")
+    g.add_edge("junc-madhya-kailash", "bank-jubilee", distance_km=3.8, base_speed_kmh=45.0, traffic_factor=tf_default, signals_count=2, road_name="Kamarajar Salai / Mylapore Link")
 
     # Ambattur North-West Link
     g.add_edge("junc-anna-arch", "bank-amala", distance_km=6.8, base_speed_kmh=55.0, traffic_factor=1.1, signals_count=2, road_name="Ambattur Industrial Arterial")

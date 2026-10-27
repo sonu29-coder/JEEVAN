@@ -2,9 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { ArrowRight, CircleAlert } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useGrid } from './grid-store'
 
 export function EmergencyCta() {
+  const tIce = useTranslations('ICE')
   const { setTab } = useGrid()
 
   return (
@@ -25,17 +27,17 @@ export function EmergencyCta() {
         <span className="grid size-14 place-items-center rounded-2xl bg-white/15">
           <CircleAlert className="size-7" aria-hidden="true" />
         </span>
-        <p className="mt-6 text-lg font-semibold text-white/85">Need blood urgently?</p>
+        <p className="mt-6 text-lg font-semibold text-white/85">{tIce('sosAlertButton')}</p>
         <h2 id="emergency-cta-title" className="mt-1 text-[28px] leading-tight font-extrabold tracking-tight">
-          Create an emergency request
+          {tIce('title')}
         </h2>
         <motion.button
           type="button"
           whileTap={{ scale: 0.97 }}
           onClick={() => setTab('request')}
-          className="mt-6 flex items-center gap-3 rounded-2xl bg-white px-6 py-4 text-base font-extrabold tracking-wide text-coral-strong uppercase shadow-lg"
+          className="mt-6 flex items-center gap-3 rounded-2xl bg-white px-6 py-4 text-base font-extrabold tracking-wide text-coral-strong uppercase shadow-lg cursor-pointer"
         >
-          Start in a few taps
+          {tIce('findBlood')}
           <ArrowRight className="size-5" aria-hidden="true" />
         </motion.button>
       </div>

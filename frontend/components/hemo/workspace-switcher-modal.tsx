@@ -2,6 +2,8 @@
 
 import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import {
   ArrowRight,
   Bike,
@@ -10,11 +12,11 @@ import {
   Droplets,
   Hospital,
   LogOut,
+  Siren,
   X,
 } from 'lucide-react'
-import { PORTAL_ACCESS, type AuthRole, type Portal } from '@/lib/hemo-auth'
+import { PORTAL_ACCESS, type AuthRole } from '@/lib/hemo-auth'
 import { useGrid, type Role } from './grid-store'
-import { JeevanLogo } from './jeevan-logo'
 
 interface WorkspaceSwitcherModalProps {
   open: boolean
@@ -31,38 +33,40 @@ interface WorkspaceConfig {
   activeBorder: string
 }
 
-const ALL_WORKSPACES: WorkspaceConfig[] = [
-  {
-    id: 'hospital',
-    title: 'HOSPITAL / ICU',
-    subtitle: 'Emergency Clinical Operations',
-    description: 'Manage blood inventory, emergency requests, hospital requirements, and transfusion logistics.',
-    icon: Hospital,
-    badgeBg: 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400',
-    activeBorder: 'border-red-500/60 bg-red-500/5',
-  },
-  {
-    id: 'donor',
-    title: 'DONOR',
-    subtitle: 'Volunteer Life Saver Network',
-    description: 'View donation requests, manage appointments, and access donor-related services.',
-    icon: Droplets,
-    badgeBg: 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
-    activeBorder: 'border-rose-500/60 bg-rose-500/5',
-  },
-  {
-    id: 'driver',
-    title: 'DELIVERY / COURIER',
-    subtitle: 'Cold-Chain Green Corridor',
-    description: 'Manage blood deliveries, assigned routes, dispatch status, and delivery verification.',
-    icon: Bike,
-    badgeBg: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
-    activeBorder: 'border-emerald-500/60 bg-emerald-500/5',
-  },
-]
-
 export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModalProps) {
+  const t = useTranslations('Common')
+  const tIce = useTranslations('ICE')
   const { role, setRole, session, currentUser, logout, notify } = useGrid()
+
+  const allWorkspaces: WorkspaceConfig[] = [
+    {
+      id: 'hospital',
+      title: t('hospitalIcu'),
+      subtitle: 'Emergency Clinical Operations',
+      description: 'Manage blood inventory, emergency requests, hospital requirements, and transfusion logistics.',
+      icon: Hospital,
+      badgeBg: 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400',
+      activeBorder: 'border-red-500/60 bg-red-500/5',
+    },
+    {
+      id: 'donor',
+      title: t('bloodDonor'),
+      subtitle: 'Volunteer Life Saver Network',
+      description: 'View donation requests, manage appointments, and access donor-related services.',
+      icon: Droplets,
+      badgeBg: 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
+      activeBorder: 'border-rose-500/60 bg-rose-500/5',
+    },
+    {
+      id: 'driver',
+      title: t('logisticsCourier'),
+      subtitle: 'Cold-Chain Green Corridor',
+      description: 'Manage blood deliveries, assigned routes, dispatch status, and delivery verification.',
+      icon: Bike,
+      badgeBg: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400',
+      activeBorder: 'border-emerald-500/60 bg-emerald-500/5',
+    },
+  ]
 
   useEffect(() => {
     if (!open) return
@@ -89,12 +93,12 @@ export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModal
     )
   }
 
-  const authorizedWorkspaces = ALL_WORKSPACES.filter((w) => isAuthorized(w.id))
+  const authorizedWorkspaces = allWorkspaces.filter((w) => isAuthorized(w.id))
 
   const handleSelectWorkspace = (targetRole: Role) => {
     if (targetRole !== role) {
       setRole(targetRole)
-      notify(`Switched to ${ALL_WORKSPACES.find((w) => w.id === targetRole)?.title}`, 'success')
+      notify(`Switched to ${allWorkspaces.find((w) => w.id === targetRole)?.title}`, 'success')
     }
     onClose()
   }
@@ -126,10 +130,10 @@ export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModal
               </div>
               <div>
                 <h2 id="workspace-modal-title" className="text-base font-bold text-foreground">
-                  Switch Workspace
+                  {t('switchWorkspace')}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Authorized workspaces for {currentUser?.name || 'your account'}
+                  {currentUser?.name || 'Authorized workspaces'}
                 </p>
               </div>
             </div>
@@ -137,65 +141,81 @@ export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModal
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close dialog"
+              aria-label={t('close')}
               className="grid size-8 place-items-center rounded-full bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <X className="size-4" />
             </button>
           </div>
 
-          {/* Authorized Workspaces List */}
-          <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar">
-            {authorizedWorkspaces.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground">
-                  No additional authorized workspaces available for this account.
-                </p>
+          {/* Quick Citizen Emergency (ICE) Link Banner */}
+          <div className="px-5 pt-3">
+            <Link
+              href="/ice"
+              onClick={onClose}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-red-500/30 bg-red-50/70 dark:bg-red-950/20 p-3 hover:bg-red-100/70 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="grid size-9 place-items-center rounded-xl bg-red-600 text-white shadow-xs">
+                  <Siren className="size-4.5 animate-pulse" />
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-red-700 dark:text-red-300">
+                    {tIce('title')}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {tIce('subtitle')}
+                  </p>
+                </div>
               </div>
-            ) : (
-              authorizedWorkspaces.map((ws) => {
-                const Icon = ws.icon
-                const isActive = ws.id === role
+              <ArrowRight className="size-4 text-red-600 shrink-0" />
+            </Link>
+          </div>
 
-                return (
-                  <button
-                    key={ws.id}
-                    type="button"
-                    onClick={() => handleSelectWorkspace(ws.id)}
-                    className={`w-full text-left rounded-2xl border p-4 transition-all flex flex-col gap-2 cursor-pointer ${
-                      isActive
-                        ? `${ws.activeBorder} shadow-sm ring-1 ring-coral/30`
-                        : 'border-border bg-background hover:border-coral/40 hover:bg-muted/40 shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className={`grid size-11 place-items-center rounded-xl shrink-0 ${ws.badgeBg}`}>
-                        <Icon className="size-5.5" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-foreground">{ws.title}</h3>
-                          {isActive ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-coral bg-coral-soft px-2.5 py-0.5 rounded-full">
-                              <CheckCircle2 className="size-3" />
-                              <span>Active</span>
-                            </span>
-                          ) : (
-                            <span className="text-xs font-semibold text-coral flex items-center gap-1">
-                              <span>Open</span>
-                              <ArrowRight className="size-3" />
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                          {ws.description}
-                        </p>
+          {/* Authorized Workspaces List */}
+          <div className="p-5 space-y-3 max-h-[50vh] overflow-y-auto no-scrollbar">
+            {authorizedWorkspaces.map((ws) => {
+              const Icon = ws.icon
+              const isActive = ws.id === role
+
+              return (
+                <button
+                  key={ws.id}
+                  type="button"
+                  onClick={() => handleSelectWorkspace(ws.id)}
+                  className={`w-full text-left rounded-2xl border p-4 transition-all flex flex-col gap-2 cursor-pointer ${
+                    isActive
+                      ? `${ws.activeBorder} shadow-sm ring-1 ring-coral/30`
+                      : 'border-border bg-background hover:border-coral/40 hover:bg-muted/40 shadow-xs'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className={`grid size-11 place-items-center rounded-xl shrink-0 ${ws.badgeBg}`}>
+                      <Icon className="size-5.5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-foreground">{ws.title}</h3>
+                        {isActive ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-coral bg-coral-soft px-2.5 py-0.5 rounded-full">
+                            <CheckCircle2 className="size-3" />
+                            <span>Active</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-coral flex items-center gap-1">
+                            <span>Open</span>
+                            <ArrowRight className="size-3" />
+                          </span>
+                        )}
                       </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                        {ws.description}
+                      </p>
                     </div>
-                  </button>
-                )
-              })
-            )}
+                  </div>
+                </button>
+              )
+            })}
           </div>
 
           {/* Footer: Sign Out & Switch Account */}
@@ -206,7 +226,7 @@ export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModal
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
             >
               <LogOut className="size-3.5" />
-              <span>Sign Out & Switch Account</span>
+              <span>{t('signOut')}</span>
             </button>
 
             <button
@@ -214,7 +234,7 @@ export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModal
               onClick={onClose}
               className="rounded-xl border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
-              Done
+              {t('close')}
             </button>
           </div>
         </motion.div>

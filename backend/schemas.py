@@ -298,7 +298,7 @@ class DispatchDeliveryItem(APIModel):
     courier_id: str
     pickup_otp: str
     delivery_otp: str
-    cold_chain_temp: float = Field(default=3.8, ge=2.0, le=6.0)
+    cold_chain_temp: float = Field(default=3.8)
     stock_id: Optional[str] = None
     bank_id: Optional[str] = None
     icu_id: Optional[str] = None
@@ -306,6 +306,8 @@ class DispatchDeliveryItem(APIModel):
     component_type: Optional[str] = None
     status: str = "IN_TRANSIT"
     locked_until: Optional[int] = None
+    cold_chain_alert: Optional[bool] = Field(default=False, description="CUSUM cold-chain anomaly alarm (S_t > h)")
+    cusum_score: Optional[float] = Field(default=0.0, description="Cumulative CUSUM statistic S_t")
 
 
 # ==========================================
@@ -389,6 +391,13 @@ class ExpiryRadarItem(APIModel):
     prioritized: bool = False
     priority_reason: Optional[str] = None
     synthetic: bool = False
+    storage_temp_c: Optional[float] = Field(default=None, description="Storage temperature in Celsius")
+    adjusted_hours_remaining: Optional[float] = Field(default=None, description="Arrhenius temperature-adjusted remaining hours")
+    temperature_excursion: Optional[bool] = Field(default=False, description="True if stored temperature is outside 2-6°C")
+    arrhenius_decay_factor: Optional[float] = Field(default=1.0, description="Arrhenius degradation acceleration factor")
+    nominal_hours_remaining: Optional[int] = Field(default=None, description="Unadjusted nominal hours before temperature correction")
+    redistribution_transfer_units: Optional[int] = Field(default=None, description="Units recommended for transfer via Min-Cost Max-Flow")
+    redistribution_cost_metric: Optional[float] = Field(default=None, description="MCMF edge cost: distance - lambda*(max_expiry - expiry_days)")
 
 
 class ExpiryRadarSummary(APIModel):
@@ -400,12 +409,26 @@ class ExpiryRadarSummary(APIModel):
     fefo_candidates_count: int
     potential_wastage_units: int
     adherence_rate_pct: float
+    temperature_excursions_count: Optional[int] = Field(default=0, description="Count of units subjected to cold-chain excursions")
+    mcmf_redistributable_units: Optional[int] = Field(default=0, description="Total units recommended for redistribution via Min-Cost Max-Flow")
 
 
 class ExpiryRadarResponse(APIModel):
     summary: ExpiryRadarSummary
     items: list[ExpiryRadarItem]
     clinical_protocols: list[dict]
+    redistribution_suggestions: Optional[list[dict]] = Field(
+        default=None,
+        description="Automated inter-hospital redistribution plan computed via NetworkX Min-Cost Max-Flow",
+    )
+    mcmf_optimization_summary: Optional[dict] = Field(
+        default=None,
+        description="Min-Cost Max-Flow optimization parameters and metrics",
+    )
+    arrhenius_temperature_analysis: Optional[dict] = Field(
+        default=None,
+        description="Summary of Arrhenius cold-chain degradation across evaluated inventory",
+    )
 
 
 class PrioritizeUnitRequest(APIModel):

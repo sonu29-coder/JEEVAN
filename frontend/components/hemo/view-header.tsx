@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 
 export function ViewHeader({
   eyebrow,
@@ -14,6 +15,8 @@ export function ViewHeader({
   action?: ReactNode
   onBack?: () => void
 }) {
+  const tCommon = useTranslations('Common')
+
   return (
     <div className="pt-5 pb-5">
       {onBack && (
@@ -23,7 +26,7 @@ export function ViewHeader({
           className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back
+          {tCommon('backButton')}
         </button>
       )}
       <div className="flex items-end justify-between gap-3">
