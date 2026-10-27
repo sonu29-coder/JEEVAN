@@ -20,11 +20,10 @@ for env_path in (
     if env_path.is_file():
         load_dotenv(env_path, override=False)
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg://jeevan:jeevan@localhost:5432/jeevan",
-).strip()
-if DATABASE_URL.startswith("postgres://"):
+DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
+if not DATABASE_URL:
+    DATABASE_URL = "postgresql+psycopg://jeevan:jeevan@localhost:5432/jeevan"
+elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)

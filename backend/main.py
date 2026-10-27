@@ -10,7 +10,7 @@ from typing import Annotated, Any, Dict, List, Literal, Optional
 from uuid import uuid4
 
 import networkx as nx
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, ConfigDict, Field
@@ -353,11 +353,24 @@ async def background_work_worker() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    from backend.database import ensure_column_migrations
-    ensure_column_migrations(engine)
+    # Retry database connection up to 5 times (total ~10s) to allow managed Postgres to become ready
+    db_connected = False
+    for attempt in range(1, 6):
+        try:
+            Base.metadata.create_all(bind=engine)
+            from backend.database import ensure_column_migrations
+            ensure_column_migrations(engine)
+            db_connected = True
+            break
+        except Exception as exc:
+            logger.warning("Database startup attempt %d/5 failed: %s. Retrying in 2 seconds...", attempt, exc)
+            if attempt < 5:
+                await asyncio.sleep(2)
+            else:
+                logger.error("Database connection could not be established on startup after 5 attempts: %s", exc)
+
     # Automatically seed default users and baseline demonstration data only if explicitly enabled (e.g. Render production)
-    if os.getenv("DEMO_DATA_ENABLED", "false").lower() in ("true", "1", "yes"):
+    if db_connected and os.getenv("DEMO_DATA_ENABLED", "false").lower() in ("true", "1", "yes"):
         try:
             from backend.seed_users import seed_users
             seed_users()
@@ -435,7 +448,7 @@ def root():
 
 
 @app.get("/health")
-def health():
+def health(response: Response):
     checks = {"database": "connected", "redis": "connected"}
     try:
         with SessionLocal() as session:
@@ -448,6 +461,8 @@ def health():
     except Exception:
         checks["redis"] = "unavailable"
     healthy = checks["database"] == "connected"
+    if not healthy:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {"status": "healthy" if healthy else "degraded", **checks}
 
 

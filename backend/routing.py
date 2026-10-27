@@ -19,7 +19,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 import httpx
 import networkx as nx
-import osmnx as ox
+
+try:
+    import osmnx as ox
+except ImportError:
+    ox = None
 
 logger = logging.getLogger(__name__)
 
@@ -440,12 +444,21 @@ class RoadGraph:
 
 
 def load_graphml_with_osmnx(graphml_path: Path | str = GRAPHML_PATH) -> RoadGraph:
-    """Load road network graph from GraphML using OSMnx."""
+    """Load road network graph from GraphML using OSMnx or native NetworkX fallback."""
     path = Path(graphml_path)
     if not path.is_file():
         raise FileNotFoundError(f"GraphML file not found: {path}")
 
-    ox_graph = ox.load_graphml(str(path), node_dtypes={"osmid": str})
+    ox_graph = None
+    if ox is not None:
+        try:
+            ox_graph = ox.load_graphml(str(path), node_dtypes={"osmid": str})
+        except Exception as exc:
+            logger.warning("ox.load_graphml failed (%s); falling back to nx.read_graphml", exc)
+
+    if ox_graph is None:
+        ox_graph = nx.read_graphml(str(path), force_multigraph=True)
+
     g = RoadGraph(ox_graph=ox_graph)
 
     for node_id, data in ox_graph.nodes(data=True):
@@ -468,6 +481,13 @@ def load_graphml_with_osmnx(graphml_path: Path | str = GRAPHML_PATH) -> RoadGrap
         signals_count = int(data.get("signals_count", 1))
         road_name = str(data.get("name", "Transit Road"))
         travel_time = float(data.get("travel_time", 0.0))
+
+        # Ensure edge data attributes are numeric for NetworkX Dijkstra operations
+        data["travel_time"] = travel_time
+        data["traffic_factor"] = traffic_factor
+        data["length"] = length_val
+        data["speed_kph"] = base_speed
+        data["signals_count"] = signals_count
 
         g.add_edge(
             u=u_str,
