@@ -450,10 +450,12 @@ export default function DonorLoginPage() {
                 {/* Real Google / Gmail Authentication Component */}
                 <GoogleAuthButton
                   portal="new_donor"
+                  label="Continue with Google"
                   className="mb-3"
                   onSuccess={(res) => {
                     setSuccessMsg(res.message)
-                    setTimeout(() => router.push('/?role=new_donor'), 500)
+                    const target = res.is_new_donor ? 'new_donor' : 'donor'
+                    setTimeout(() => router.push(`/?role=${target}`), 500)
                   }}
                   onError={(err) => setErrorMsg(err)}
                 />
@@ -586,9 +588,11 @@ export default function DonorLoginPage() {
                   </div>
                   <GoogleAuthButton
                     portal="new_donor"
+                    label="Continue with Google"
                     onSuccess={(res) => {
                       setSuccessMsg(res.message)
-                      setTimeout(() => router.push('/?role=new_donor'), 500)
+                      const target = res.is_new_donor ? 'new_donor' : 'donor'
+                      setTimeout(() => router.push(`/?role=${target}`), 500)
                     }}
                     onError={(err) => setErrorMsg(err)}
                   />

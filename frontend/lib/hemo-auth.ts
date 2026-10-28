@@ -442,7 +442,15 @@ export async function loginUser(
 export async function loginWithGoogle(
   portal: Portal,
   emailOrToken?: string,
-): Promise<{ success: boolean; message: string; role: AuthRole; user: any; token: string }> {
+): Promise<{
+  success: boolean
+  message: string
+  role: AuthRole
+  user: any
+  token: string
+  is_new_donor?: boolean
+  portal?: Portal
+}> {
   const defaultEmail = emailOrToken || 'user@gmail.com'
   const expectedAuthRole: AuthRole =
     portal === 'hospital'
@@ -465,20 +473,23 @@ export async function loginWithGoogle(
 
     if (res.ok) {
       const data = await res.json()
+      const isNewDonor = Boolean(data.is_new_donor)
       const actualRole: AuthRole = (data.role as AuthRole) || expectedAuthRole
       const actualPortal: Portal =
-        portal === 'new_donor'
-          ? 'new_donor'
-          : actualRole === 'REGISTERED_DONOR'
-          ? 'donor'
+        portal === 'new_donor' || portal === 'donor' || actualRole === 'REGISTERED_DONOR'
+          ? isNewDonor
+            ? 'new_donor'
+            : 'donor'
           : actualRole === 'DELIVERY_PARTNER'
           ? 'driver'
           : 'hospital'
+
       const userMeta = {
         ...data,
         name: data.label || data.name || defaultEmail.split('@')[0],
         email: data.email || defaultEmail,
         role: actualRole,
+        is_new_donor: isNewDonor,
         allowed_roles: actualRole === 'ADMIN' ? 'ICU_HOSPITAL,REGISTERED_DONOR,DELIVERY_PARTNER,ADMIN' : actualRole,
       }
       saveAuthSession(actualRole, actualPortal, userMeta)
@@ -488,6 +499,8 @@ export async function loginWithGoogle(
         role: actualRole,
         user: userMeta,
         token: data.access_token || CREDENTIALS[actualRole]?.token || 'AUTH-TOKEN',
+        is_new_donor: isNewDonor,
+        portal: actualPortal,
       }
     } else {
       const err = await res.json().catch(() => ({}))

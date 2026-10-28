@@ -49,6 +49,7 @@ interface GridContextValue {
   completeDelivery: (id: string) => void
   emergencies: Emergency[]
   addEmergency: (emergency: Emergency) => void
+  refreshEmergencies: () => Promise<void>
   responses: Record<string, Response>
   respond: (id: string, response: Response) => void
   toast: Toast | null
@@ -273,25 +274,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       })
       .catch(() => {})
 
-    fetch('/api/requests/icu-view', {
-      headers: { Authorization: 'Bearer HOSP-9042' },
-      signal: AbortSignal.timeout(3000),
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((reqs) => {
-        if (Array.isArray(reqs) && reqs.length > 0) {
-          const liveEmergencies: Emergency[] = reqs.map((r: any) => ({
-            id: r.id,
-            icuId: 'icu-elite',
-            group: r.blood_type,
-            component: 'PRBC',
-            urgency: r.urgency_level === 'CRITICAL' ? 'CRITICAL' : r.urgency_level === 'ROUTINE' ? 'ROUTINE' : 'HIGH',
-            units: r.units,
-          }))
-          setEmergencies(liveEmergencies)
-        }
-      })
-      .catch(() => {})
+    refreshEmergencies()
   }, [])
 
   const [responses, setResponses] = useState<Record<string, Response>>({})
@@ -400,9 +383,49 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
     return true
   }, [])
 
+  const refreshEmergencies = useCallback(async () => {
+    try {
+      const saved = loadSavedAuth()
+      const token =
+        currentUser?.token ||
+        currentUser?.access_token ||
+        saved?.user?.token ||
+        saved?.user?.access_token ||
+        'HOSP-9042'
+      const res = await fetch('/api/requests/icu-view', {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(3500),
+      })
+      if (res.ok) {
+        const reqs = await res.json()
+        if (Array.isArray(reqs) && reqs.length > 0) {
+          const liveEmergencies: Emergency[] = reqs.map((r: any) => ({
+            id: r.id,
+            icuId: r.icu_id || 'icu-elite',
+            group: r.blood_type,
+            component:
+              r.component === 'Platelets'
+                ? 'Platelets'
+                : r.component === 'Whole Blood'
+                ? 'Whole Blood'
+                : 'PRBC',
+            urgency:
+              r.urgency_level === 'CRITICAL'
+                ? 'CRITICAL'
+                : r.urgency_level === 'ROUTINE'
+                ? 'ROUTINE'
+                : 'HIGH',
+            units: r.units,
+          }))
+          setEmergencies(liveEmergencies)
+        }
+      }
+    } catch {}
+  }, [currentUser])
+
   const addEmergency = useCallback(
     (emergency: Emergency) => {
-      setEmergencies((list) => [emergency, ...list])
+      setEmergencies((list) => [emergency, ...list.filter((e) => e.id !== emergency.id)])
       // Automatically trigger high-priority NCC Coordinator Pop-Up!
       openNccAlert({
         hospital_name: emergency.icuId === 'icu-elite' ? 'Kilpauk Medical College Hospital' : 'Apollo Greams Trauma ICU',
@@ -482,6 +505,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       completeDelivery,
       emergencies,
       addEmergency,
+      refreshEmergencies,
       responses,
       respond,
       toast,
@@ -523,6 +547,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       completeDelivery,
       emergencies,
       addEmergency,
+      refreshEmergencies,
       responses,
       respond,
       toast,

@@ -12,9 +12,10 @@ declare global {
 
 interface GoogleAuthButtonProps {
   portal?: Portal
-  onSuccess: (result: { message: string; user?: any; role?: any }) => void
+  onSuccess: (result: { message: string; user?: any; role?: any; is_new_donor?: boolean; portal?: Portal }) => void
   onError: (error: string) => void
   className?: string
+  label?: string
 }
 
 export function GoogleIcon({ className = 'size-4' }: { className?: string }) {
@@ -40,7 +41,13 @@ export function GoogleIcon({ className = 'size-4' }: { className?: string }) {
   )
 }
 
-export function GoogleAuthButton({ portal = 'hospital', onSuccess, onError, className = '' }: GoogleAuthButtonProps) {
+export function GoogleAuthButton({
+  portal = 'hospital',
+  onSuccess,
+  onError,
+  className = '',
+  label = 'Continue with Google / Gmail',
+}: GoogleAuthButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [gmailInput, setGmailInput] = useState('')
@@ -149,7 +156,7 @@ export function GoogleAuthButton({ portal = 'hospital', onSuccess, onError, clas
         ) : (
           <GoogleIcon className="size-4" />
         )}
-        <span>{isLoading ? 'Authenticating with Google...' : 'Continue with Google / Gmail'}</span>
+        <span>{isLoading ? 'Authenticating with Google...' : label}</span>
       </button>
 
       {/* Hidden container for Google Identity Services official button render */}

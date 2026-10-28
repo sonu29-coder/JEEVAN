@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { ActiveIcuRequestsCard } from './active-icu-requests-card'
 import { AvailabilityStrip } from './availability-strip'
 import { DonorCascadeCard } from './donor-cascade-card'
 import { EmergencyCta } from './emergency-cta'
@@ -43,6 +44,7 @@ export function HomeView() {
 
       <div className="mt-7 flex flex-col gap-8">
         <EmergencyCta />
+        <ActiveIcuRequestsCard />
         <LockMatrixCard />
         <VerifyHandshakeCard />
         <AvailabilityStrip />

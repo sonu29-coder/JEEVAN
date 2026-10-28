@@ -54,7 +54,7 @@ const URGENCY_ACTIVE: Record<Urgency, string> = {
 
 export function DispatchView() {
   const t = useTranslations('ICU')
-  const { addEmergency, notify, setTab } = useGrid()
+  const { addEmergency, notify, setTab, refreshEmergencies } = useGrid()
   const [icuId, setIcuId] = useState(OUR_ICU_ID)
   const [clinicalReason, setClinicalReason] = useState<string>('trauma')
   const [group, setGroup] = useState<BloodGroup>('O-')
@@ -92,6 +92,7 @@ export function DispatchView() {
     setResult({ ...res.data, simulated: res.simulated })
     const activeReason = t(CLINICAL_REASON_KEYS.find((r) => r.id === clinicalReason)?.labelKey as any) ?? 'Acute Trauma'
     addEmergency({ id: res.data.request_id, icuId, group, component, urgency, units, clinicalReason: activeReason })
+    refreshEmergencies()
     notify(t('requestSent'), 'success')
   }
 
@@ -243,14 +244,23 @@ export function DispatchView() {
                 <dd className="text-2xl font-extrabold">{`${result.eta_minutes} min`}</dd>
               </div>
             </dl>
-            <button
-              type="button"
-              onClick={() => setTab('map')}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-base font-bold text-white"
-            >
-              <MapPin className="size-5" aria-hidden="true" />
-              {t('trackOnMap')}
-            </button>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTab('home')}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-coral hover:bg-coral-strong py-3 text-sm font-bold text-white shadow-xs transition"
+              >
+                <span>View on Dashboard</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab('map')}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-ink hover:bg-ink/90 py-3 text-sm font-bold text-white shadow-xs transition"
+              >
+                <MapPin className="size-4" aria-hidden="true" />
+                <span>{t('trackOnMap')}</span>
+              </button>
+            </div>
           </motion.section>
         )}
       </AnimatePresence>

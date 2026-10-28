@@ -111,6 +111,8 @@ class TokenResponse(APIModel):
     label: str
     badge: str
     expires_in_seconds: int = 86400
+    is_new_donor: Optional[bool] = False
+    email: Optional[str] = None
 
 
 class UserPayload(APIModel):
@@ -227,6 +229,8 @@ class ICUHospitalBloodRequest(APIModel):
     status: Literal["PENDING", "RESERVED", "DISPATCHED", "DELIVERED"]
     created_at: Optional[datetime] = None
     eta_minutes: Optional[int] = None
+    component: Optional[str] = "PRBC"
+    icu_id: Optional[str] = "icu-elite"
 
 
 class ReservePayload(APIModel):

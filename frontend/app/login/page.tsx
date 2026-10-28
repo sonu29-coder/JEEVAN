@@ -120,6 +120,30 @@ export default function LoginPage() {
               onError={(err) => setAuthMsg(err)}
             />
 
+            {/* New Donor? Register Here Section */}
+            <div className="mb-3 rounded-2xl border border-coral/30 bg-coral/5 p-3 text-left">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="grid size-6 place-items-center rounded-lg bg-coral/15 text-coral">
+                  <Droplets className="size-3.5" />
+                </span>
+                <div>
+                  <h2 className="text-xs font-bold text-foreground">New Donor? Register Here</h2>
+                  <p className="text-[10px] text-muted-foreground">Register with genuine Google OAuth authentication</p>
+                </div>
+              </div>
+              <GoogleAuthButton
+                portal="new_donor"
+                label="Continue with Google"
+                className="w-full py-2 text-xs font-semibold bg-background hover:bg-card border border-coral/30"
+                onSuccess={(res) => {
+                  setAuthMsg(res.message)
+                  const targetRole = res.is_new_donor ? 'new_donor' : 'donor'
+                  setTimeout(() => router.push(`/?role=${targetRole}`), 400)
+                }}
+                onError={(err) => setAuthMsg(err)}
+              />
+            </div>
+
             {/* Divider */}
             <div className="relative flex items-center justify-center my-3">
               <div className="w-full border-t border-border" />

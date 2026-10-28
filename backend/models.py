@@ -120,7 +120,7 @@ class BloodRequest(Base):
     request_code: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     hospital_id: Mapped[str | None] = mapped_column(ForeignKey("hospitals.id"))
     hospital_name: Mapped[str] = mapped_column(String(240), nullable=False, index=True)
-    patient_blood_group: Mapped[str] = mapped_column(String(3), nullable=False)
+    patient_blood_group: Mapped[str] = mapped_column(String(20), nullable=False)
     component: Mapped[str] = mapped_column(String(40), nullable=False)
     units_required: Mapped[int] = mapped_column(Integer, nullable=False)
     urgency: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")

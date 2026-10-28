@@ -123,6 +123,8 @@ def ensure_column_migrations(target_engine=None):
 
             if "blood_requests" in tables:
                 req_cols = {c["name"] for c in inspector.get_columns("blood_requests")}
+                if not is_sqlite:
+                    conn.execute(text("ALTER TABLE blood_requests ALTER COLUMN patient_blood_group TYPE VARCHAR(20)"))
                 if "department" not in req_cols:
                     conn.execute(text("ALTER TABLE blood_requests ADD COLUMN department VARCHAR(100)"))
                 if "patient_identifier" not in req_cols:

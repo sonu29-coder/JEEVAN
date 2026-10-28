@@ -143,7 +143,13 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
   }
 
   // Handle Google Auth Success
-  const handleGoogleSuccess = (result: { message: string; user?: any; role?: any }) => {
+  const handleGoogleSuccess = (result: {
+    message: string
+    user?: any
+    role?: any
+    is_new_donor?: boolean
+    portal?: Portal
+  }) => {
     setErrorMessage('')
     const gUser = result.user || {}
     const userRole = result.role || gUser.role || 'ICU_HOSPITAL'
@@ -158,8 +164,48 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
       token: gUser.token || 'GOOGLE-AUTH-TOKEN',
     }
 
+    if (result.portal === 'new_donor' || result.is_new_donor) {
+      enterWorkspace('new_donor', 'REGISTERED_DONOR', userObj)
+      if (onCancel) onCancel()
+      return
+    }
+
+    if (result.portal === 'donor') {
+      enterWorkspace('donor', 'REGISTERED_DONOR', userObj)
+      if (onCancel) onCancel()
+      return
+    }
+
     setAuthenticatedUser(userObj)
     setStage('select')
+  }
+
+  // Handle dedicated New Donor Registration with genuine Google OAuth
+  const handleDonorRegisterGoogleSuccess = (result: {
+    message: string
+    user?: any
+    role?: any
+    is_new_donor?: boolean
+    portal?: Portal
+  }) => {
+    setErrorMessage('')
+    const gUser = result.user || {}
+    const userRole: AuthRole = 'REGISTERED_DONOR'
+
+    const userObj = {
+      ...gUser,
+      name: gUser.name || fullName || 'Google Verified Donor',
+      email: gUser.email || email || 'donor@gmail.com',
+      phone: gUser.phone || phone || '+91 98765 43210',
+      role: userRole,
+      allowed_roles: userRole,
+      token: gUser.token || 'GOOGLE-AUTH-TOKEN',
+    }
+
+    // New donors go to New Donor Dashboard; existing donors go to saved Donor Dashboard
+    const targetPortal: Portal = result.is_new_donor === false ? 'donor' : 'new_donor'
+    enterWorkspace(targetPortal, userRole, userObj)
+    if (onCancel) onCancel()
   }
 
   // Quick demo presets populate form fields for genuine authentication
@@ -271,6 +317,26 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
                   portal="hospital"
                   className="w-full py-2.5 text-xs font-semibold"
                   onSuccess={handleGoogleSuccess}
+                  onError={(err) => setErrorMessage(err)}
+                />
+              </div>
+
+              {/* New Donor? Register Here Section */}
+              <div className="rounded-2xl border border-coral/30 bg-coral/5 p-3.5 text-left transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="grid size-7 place-items-center rounded-lg bg-coral/15 text-coral">
+                    <Droplets className="size-4" />
+                  </span>
+                  <div>
+                    <h2 className="text-xs font-bold text-foreground">New Donor? Register Here</h2>
+                    <p className="text-[11px] text-muted-foreground">Join Kerala's life-saving donor registry</p>
+                  </div>
+                </div>
+                <GoogleAuthButton
+                  portal="new_donor"
+                  label="Continue with Google"
+                  className="w-full py-2.5 text-xs font-semibold bg-background hover:bg-card border border-coral/30"
+                  onSuccess={handleDonorRegisterGoogleSuccess}
                   onError={(err) => setErrorMessage(err)}
                 />
               </div>

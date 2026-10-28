@@ -2839,10 +2839,13 @@ def get_system_stats(
 
 
 @hemo_router.post("/auth/google", response_model=TokenResponse)
-def google_auth(body: Dict[str, Any]):
+def google_auth(
+    body: Dict[str, Any],
+    session: Annotated[Session, Depends(get_session)],
+):
     """
     Authenticate using Google OAuth ID token or Google credential.
-    Returns signed JWT access token and Google profile details.
+    Returns signed JWT access token, Google profile details, and is_new_donor flag.
     """
     credential = body.get("credential") or body.get("token") or body.get("id_token") or body.get("email")
     target_role = body.get("target_role", "ICU_HOSPITAL")
@@ -2853,6 +2856,35 @@ def google_auth(body: Dict[str, Any]):
     role = google_user["role"]
     label = google_user["name"]
     badge = google_user["badge"]
+    email = google_user.get("email", "")
+
+    # Differentiate new donor vs existing donor for voluntary donor logins
+    is_new_donor = False
+    norm_role = normalize_role(role)
+    if norm_role == "REGISTERED_DONOR" or target_role in ["REGISTERED_DONOR", "DONOR", "donor", "new_donor"]:
+        existing_user = session.scalar(select(User).where(func.lower(User.email) == email.lower()))
+        existing_donor = session.scalar(select(Donor).where(func.lower(Donor.email) == email.lower()))
+        known_existing_emails = {"sneha.donor@gmail.com", "donor.aarav@gmail.com"}
+
+        if existing_user or existing_donor or email.lower() in known_existing_emails:
+            is_new_donor = False
+        else:
+            is_new_donor = True
+            # Persist newly registered donor account into database
+            try:
+                new_u = User(
+                    id=user_id,
+                    email=email,
+                    name=label,
+                    hashed_password=hash_password("GoogleAuth2026!"),
+                    role="REGISTERED_DONOR",
+                    is_active=True,
+                    phone_verified=True,
+                )
+                session.add(new_u)
+                session.commit()
+            except Exception:
+                session.rollback()
 
     access_token = create_access_token(
         user_id=user_id,
@@ -2869,6 +2901,8 @@ def google_auth(body: Dict[str, Any]):
         label=label,
         badge=badge,
         expires_in_seconds=86400,
+        is_new_donor=is_new_donor,
+        email=email,
     )
 
 
@@ -3326,14 +3360,30 @@ def request_blood_dispatch(
     except Exception:
         matching_count = 3
 
-    # Persist request in database
+    # Map hospital name and position
+    HOSPITAL_NAME_MAP = {
+        "icu-elite": "Kilpauk Medical College Hospital",
+        "icu-westfort": "Anna Nagar Superspeciality Hospital",
+        "icu-daya": "Porur Emergency Care Centre",
+        "icu-jubilee": "Apollo Greams Trauma ICU",
+    }
+    hosp_name = HOSPITAL_NAME_MAP.get(body.icu_id, body.icu_id.replace("icu-", "").title() + " Hospital")
+
+    # Persist request in database (PostgreSQL / SQLite)
     try:
-        icu_lat = body.location.lat if body.location else 10.5089
-        icu_lng = body.location.lng if body.location else 76.2052
+        icu_lat = body.location.lat if body.location else 13.0784
+        icu_lng = body.location.lng if body.location else 80.2415
+
+        # Query hospital record if exists
+        hospital = session.scalar(select(Hospital).where(Hospital.id == body.icu_id))
+        if not hospital:
+            hospital = session.scalar(select(Hospital).where(func.lower(Hospital.name) == hosp_name.lower()))
+
         db_request = BloodRequest(
             id=req_id,
             request_code=f"BR-{uuid4().hex[:8].upper()}",
-            hospital_name=body.icu_id.replace("icu-", "").title() + " Hospital",
+            hospital_id=hospital.id if hospital else None,
+            hospital_name=hosp_name,
             patient_blood_group=body.blood_group,
             component=body.component_type,
             units_required=body.units,
@@ -3344,9 +3394,11 @@ def request_blood_dispatch(
         )
         session.add(db_request)
         session.commit()
-    except Exception:
+        session.refresh(db_request)
+        logger.info(f"Successfully saved BloodRequest {req_id} to database for {hosp_name}")
+    except Exception as exc:
         session.rollback()
-        logger.warning("Could not persist BloodRequest to database; proceeding with response")
+        logger.error(f"Error persisting BloodRequest to database: {exc}")
 
     return DispatchResponse(
         request_id=req_id,
@@ -3363,23 +3415,30 @@ def list_icu_requests(
 ):
     """
     Returns blood requests formatted strictly for the ICU Hospital View schema:
-    id, hospital_name, blood_type, units, urgency_level, status.
+    id, hospital_name, blood_type, units, urgency_level, status, component, icu_id.
     """
     try:
         db_requests = list(session.scalars(select(BloodRequest).order_by(BloodRequest.created_at.desc()).limit(50)))
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"Error reading blood requests from database: {exc}")
         db_requests = []
 
     status_map = {
         "pending": "PENDING",
+        "sent": "PENDING",
         "matched": "RESERVED",
+        "reserved": "RESERVED",
+        "dispatched": "DISPATCHED",
         "fulfilled": "DELIVERED",
+        "delivered": "DELIVERED",
         "cancelled": "DELIVERED",
     }
     urgency_map = {
         "critical": "CRITICAL",
         "urgent": "HIGH",
+        "high": "HIGH",
         "normal": "ROUTINE",
+        "routine": "ROUTINE",
     }
 
     if not db_requests:
@@ -3387,33 +3446,40 @@ def list_icu_requests(
         return [
             ICUHospitalBloodRequest(
                 id="REQ-4F2A",
-                hospital_name="Elite Mission Hospital",
+                hospital_name="Kilpauk Medical College Hospital",
                 blood_type="O-",
                 units=2,
                 urgency_level="CRITICAL",
                 status="PENDING",
                 eta_minutes=9,
+                component="PRBC",
+                icu_id="icu-elite",
             ),
             ICUHospitalBloodRequest(
                 id="REQ-9B17",
-                hospital_name="West Fort Hospital",
+                hospital_name="Anna Nagar Superspeciality Hospital",
                 blood_type="B+",
                 units=2,
                 urgency_level="HIGH",
                 status="RESERVED",
                 eta_minutes=24,
+                component="Platelets",
+                icu_id="icu-westfort",
             ),
             ICUHospitalBloodRequest(
                 id="REQ-1C8E",
-                hospital_name="Daya General Hospital",
+                hospital_name="Porur Emergency Care Centre",
                 blood_type="A+",
                 units=1,
                 urgency_level="ROUTINE",
                 status="DELIVERED",
                 eta_minutes=60,
+                component="Whole Blood",
+                icu_id="icu-daya",
             ),
         ]
 
+    # Map database requests to ICU Hospital View
     return [
         ICUHospitalBloodRequest(
             id=r.id,
@@ -3423,7 +3489,9 @@ def list_icu_requests(
             urgency_level=urgency_map.get(r.urgency.lower(), "HIGH"),
             status=status_map.get(r.status.lower(), "PENDING"),
             created_at=r.created_at,
-            eta_minutes=9 if r.urgency.lower() == "critical" else 25,
+            eta_minutes=9 if r.urgency.lower() == "critical" else 24 if r.urgency.lower() in ["urgent", "high"] else 60,
+            component=r.component or "PRBC",
+            icu_id=r.hospital_id if r.hospital_id in ["icu-elite", "icu-westfort", "icu-daya", "icu-jubilee"] else "icu-elite",
         )
         for r in db_requests
     ]
