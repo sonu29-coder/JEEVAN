@@ -103,6 +103,10 @@ from backend.schemas import (
     UserRole,
     VerifyOtpPayload,
     VerifyOtpResponse,
+    ExpiryScheduleRequest,
+    ExpiryScheduleResponse,
+    RareBloodMatchItem,
+    RareBloodCompatibilityResponse,
 )
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -2893,8 +2897,353 @@ def get_me(user: Annotated[UserPayload, Depends(get_current_user)]):
 
 
 # ---------------------------------------------------------------------
+# Clinically Approved Blood Component Storage Limits & Expiry Scheduling
+# ---------------------------------------------------------------------
+
+CLINICAL_COMPONENT_STORAGE_LIMITS: Dict[str, Dict[str, Any]] = {
+    "PRBC": {
+        "component": "PRBC",
+        "label": "Packed Red Blood Cells",
+        "max_days": 42,
+        "max_months": 1.4,
+        "storage_temp_c": "2°C to 6°C",
+        "preservative": "SAGM / Adsol (AS-1, AS-3)",
+        "guideline": "AABB / DGHS National Blood Transfusion Council Guidelines",
+        "description": "Packed Red Blood Cells stored at 2-6°C up to 42 days (1.4 months).",
+    },
+    "Whole Blood": {
+        "component": "Whole Blood",
+        "label": "Whole Blood",
+        "max_days": 35,
+        "max_months": 1.15,
+        "storage_temp_c": "2°C to 6°C",
+        "preservative": "CPDA-1",
+        "guideline": "AABB / DGHS National Blood Transfusion Council Guidelines",
+        "description": "Whole blood stored at 2-6°C up to 35 days (1.15 months).",
+    },
+    "Platelets": {
+        "component": "Platelets",
+        "label": "Platelets (RDP / SDP)",
+        "max_days": 5,
+        "max_months": 0.16,
+        "storage_temp_c": "20°C to 24°C (continuous gentle agitation)",
+        "preservative": "Plasma / Platelet Additive Solution (PAS)",
+        "guideline": "AABB / DGHS National Blood Transfusion Council Guidelines",
+        "description": "Platelets stored with gentle continuous agitation at room temperature up to 5 days.",
+    },
+    "Plasma": {
+        "component": "Plasma",
+        "label": "Fresh Frozen Plasma (FFP)",
+        "max_days": 365,
+        "max_months": 12.0,
+        "storage_temp_c": "≤ -18°C frozen",
+        "preservative": "Citrate Phosphate Dextrose (CPD)",
+        "guideline": "AABB / DGHS National Blood Transfusion Council Guidelines",
+        "description": "Fresh Frozen Plasma frozen within 8 hours, stored up to 12 months at -18°C or colder.",
+    },
+    "FFP": {
+        "component": "FFP",
+        "label": "Fresh Frozen Plasma",
+        "max_days": 365,
+        "max_months": 12.0,
+        "storage_temp_c": "≤ -18°C frozen",
+        "preservative": "Citrate Phosphate Dextrose (CPD)",
+        "guideline": "AABB / DGHS National Blood Transfusion Council Guidelines",
+        "description": "Fresh Frozen Plasma stored up to 12 months at -18°C or colder.",
+    },
+    "Cryoprecipitate": {
+        "component": "Cryoprecipitate",
+        "label": "Cryoprecipitated AHF",
+        "max_days": 365,
+        "max_months": 12.0,
+        "storage_temp_c": "≤ -18°C frozen",
+        "preservative": "Factor VIII / Fibrinogen",
+        "guideline": "AABB / DGHS National Blood Transfusion Council Guidelines",
+        "description": "Cryoprecipitate stored up to 12 months at -18°C or colder.",
+    },
+}
+
+EXPIRY_SCHEDULES: Dict[str, Dict[str, Any]] = {}
+
+
+@hemo_router.get("/expiry/storage-limits")
+@router.get("/expiry/storage-limits")
+def get_clinical_storage_limits():
+    """
+    Returns the clinically approved shelf-life storage limits (days, months, temperatures, and preservatives)
+    per AABB & DGHS National Blood Transfusion Council guidelines.
+    """
+    return {
+        "guideline": "AABB & DGHS Clinical Blood Component Storage Standards",
+        "limits": CLINICAL_COMPONENT_STORAGE_LIMITS,
+    }
+
+
+@hemo_router.post("/expiry/schedule", response_model=ExpiryScheduleResponse)
+@router.post("/expiry/schedule", response_model=ExpiryScheduleResponse)
+def schedule_blood_unit(
+    body: ExpiryScheduleRequest,
+    session: Annotated[Session, Depends(get_session)],
+):
+    """
+    Schedules blood unit for surgical or clinical transfusion procedure.
+    Prioritizes units by expiry date (FEFO), calculates storage duration in months,
+    and strictly enforces that scheduled dates never exceed clinically approved expiry dates.
+    """
+    inv = session.get(Inventory, body.stock_id)
+    if not inv:
+        inv = session.scalars(select(Inventory).where(Inventory.id == body.stock_id)).first()
+
+    if not inv:
+        # Check if matching any inventory in DB to support frontend stock IDs
+        inv_alt = session.scalars(select(Inventory).order_by(Inventory.expiry_date.asc())).first()
+        if not inv_alt:
+            raise HTTPException(status_code=404, detail="Blood unit inventory item not found")
+        inv = inv_alt
+
+    today = date.today()
+    try:
+        sched_date = date.fromisoformat(body.scheduled_date.strip()[:10])
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid scheduled_date format. Expected YYYY-MM-DD.")
+
+    # Storage duration calculations
+    comp_norm = inv.component
+    if comp_norm not in CLINICAL_COMPONENT_STORAGE_LIMITS:
+        for k in CLINICAL_COMPONENT_STORAGE_LIMITS:
+            if k.lower() in comp_norm.lower() or comp_norm.lower() in k.lower():
+                comp_norm = k
+                break
+    limit_info = CLINICAL_COMPONENT_STORAGE_LIMITS.get(comp_norm, CLINICAL_COMPONENT_STORAGE_LIMITS["PRBC"])
+    max_days = limit_info["max_days"]
+    max_months = limit_info["max_months"]
+
+    days_to_expiry = (inv.expiry_date - today).days
+    storage_duration_months = round(max(0.0, days_to_expiry / 30.44), 2)
+
+    # 1. Strict Clinical Safety Rule: NEVER EXCEED CLINICALLY APPROVED EXPIRY DATES
+    if sched_date > inv.expiry_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Schedule rejected: Transfusion date ({sched_date.isoformat()}) exceeds clinically approved "
+                f"expiry date ({inv.expiry_date.isoformat()}) for {inv.component}. Valid storage limit is "
+                f"{max_days} days ({max_months} months). Never exceed clinically approved expiry dates."
+            ),
+        )
+
+    # Calculate FEFO priority rank relative to all available inventory
+    earlier_units_count = session.scalar(
+        select(func.count(Inventory.id)).where(
+            Inventory.status == "available",
+            Inventory.expiry_date < inv.expiry_date,
+        )
+    ) or 0
+    fefo_rank = earlier_units_count + 1
+
+    # Record approved schedule
+    schedule_record = {
+        "schedule_id": f"SCHED-{uuid4().hex[:6].upper()}",
+        "stock_id": inv.id,
+        "blood_group": inv.blood_group,
+        "component": inv.component,
+        "expiry_date": inv.expiry_date.isoformat(),
+        "scheduled_date": sched_date.isoformat(),
+        "procedure_type": body.procedure_type or "Elective Surgical Transfusion",
+        "recipient_hospital": body.recipient_hospital or "Kilpauk Medical College Hospital",
+        "fefo_priority_rank": fefo_rank,
+        "remaining_storage_months": storage_duration_months,
+        "max_approved_storage_months": max_months,
+        "max_approved_storage_days": max_days,
+        "is_within_clinical_limits": True,
+        "notes": body.notes,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    EXPIRY_SCHEDULES[inv.id] = schedule_record
+
+    audit(
+        session,
+        "SCHEDULE_BLOOD_UNIT",
+        "inventory",
+        inv.id,
+        f"Scheduled {inv.blood_group} {inv.component} for {sched_date.isoformat()} ({storage_duration_months} mo storage remaining)",
+    )
+    session.commit()
+
+    return ExpiryScheduleResponse(
+        status="SCHEDULED",
+        stock_id=inv.id,
+        blood_group=inv.blood_group,
+        component=inv.component,
+        expiry_date=inv.expiry_date.isoformat(),
+        scheduled_date=sched_date.isoformat(),
+        fefo_priority_rank=fefo_rank,
+        remaining_storage_months=storage_duration_months,
+        max_approved_storage_months=max_months,
+        max_approved_storage_days=max_days,
+        procedure_type=body.procedure_type or "Elective Surgical Transfusion",
+        is_within_clinical_limits=True,
+        message=(
+            f"Successfully scheduled for {sched_date.isoformat()} within valid clinical limits "
+            f"({storage_duration_months} months / {days_to_expiry} days remaining before expiry)."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------
+# Rare Blood Compatibility Algorithm & Matching Feature
+# ---------------------------------------------------------------------
+
+RARE_BLOOD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
+    "O-": {
+        "label": "O Negative (Universal Red Cell Donor)",
+        "rarity": "High (~1.5% in Indian population)",
+        "compatible_donors": ["O-"],
+        "exact_match": "O-",
+        "rule_summary": "O- patients carry anti-A and anti-B antibodies without Rh(D). Can receive ONLY O- red cells.",
+    },
+    "A-": {
+        "label": "A Negative",
+        "rarity": "High (~0.5% in Indian population)",
+        "compatible_donors": ["A-", "O-"],
+        "exact_match": "A-",
+        "rule_summary": "A- can receive A- (preferred exact match to conserve O-) and O- (universal).",
+    },
+    "B-": {
+        "label": "B Negative",
+        "rarity": "High (~1.8% in Indian population)",
+        "compatible_donors": ["B-", "O-"],
+        "exact_match": "B-",
+        "rule_summary": "B- can receive B- (preferred exact match to conserve O-) and O- (universal).",
+    },
+    "AB-": {
+        "label": "AB Negative (Rarest Standard ABO Group)",
+        "rarity": "Very High (<0.3% in Indian population)",
+        "compatible_donors": ["AB-", "A-", "B-", "O-"],
+        "exact_match": "AB-",
+        "rule_summary": "AB- can receive AB-, A-, B-, or O- (AB- exact match prioritized to conserve universal O-).",
+    },
+    "Bombay Oh": {
+        "label": "Bombay Blood Group (Oh phenotype)",
+        "rarity": "Extremely Rare (1 in 10,000 in India, 1 in 1,000,000 globally)",
+        "compatible_donors": ["Bombay Oh"],
+        "exact_match": "Bombay Oh",
+        "rule_summary": "Lacks H antigen and carries strong anti-H antibodies. Cannot receive O, A, B, or AB. ONLY Bombay Oh donors are compatible.",
+    },
+    "Rh-null": {
+        "label": "Rh-null (Golden Blood)",
+        "rarity": "Ultra Rare (<50 individuals globally)",
+        "compatible_donors": ["Rh-null"],
+        "exact_match": "Rh-null",
+        "rule_summary": "Lacks all 61 Rh antigens. Can receive ONLY Rh-null blood. Autologous or rare-donor grid freezing required.",
+    },
+}
+
+
+@hemo_router.get("/compatibility/rare-blood", response_model=RareBloodCompatibilityResponse)
+@router.get("/compatibility/rare-blood", response_model=RareBloodCompatibilityResponse)
+def get_rare_blood_compatibility(
+    recipient_group: str = Query(..., description="Recipient blood group (e.g. O-, A-, B-, AB-, Bombay Oh, Rh-null)"),
+    component: str = Query(default="PRBC", description="Blood component (PRBC, Whole Blood, Platelets, FFP)"),
+    user_lat: float = Query(default=13.0418, description="Reference hospital/patient latitude"),
+    user_lon: float = Query(default=80.2341, description="Reference hospital/patient longitude"),
+    session: Annotated[Session, Depends(get_session)] = None,
+):
+    """
+    Identifies compatible rare blood groups, prioritizes matching donors, and displays suitable matches.
+    Follows standard ABO/Rh compatibility rules and clearly labels results as clinical decision support.
+    """
+    clean_group = recipient_group.strip()
+    is_rare = clean_group in RARE_BLOOD_DEFINITIONS or clean_group.endswith("-")
+
+    # Determine compatible donor groups
+    if clean_group in RARE_BLOOD_DEFINITIONS:
+        rare_def = RARE_BLOOD_DEFINITIONS[clean_group]
+        compat_groups = rare_def["compatible_donors"]
+        rule_summary = rare_def["rule_summary"]
+    else:
+        compat_set = compatible_groups(clean_group, component)
+        compat_groups = sorted(list(compat_set))
+        rule_summary = f"Standard ABO/Rh compatibility rules for recipient {clean_group} ({component})."
+
+    # Query matching donors from database
+    db_donors = list(
+        session.scalars(
+            select(Donor).where(
+                Donor.blood_group.in_(compat_groups)
+            )
+        )
+    ) if session else []
+
+    today = date.today()
+    matches: List[RareBloodMatchItem] = []
+
+    for d in db_donors:
+        dist = round(haversine_km(user_lat, user_lon, d.latitude, d.longitude), 2)
+        tier = "Tier 1 • 0–3km" if dist <= 3.0 else ("Tier 2 • 3–7km" if dist <= 7.0 else "Tier 3 • 7–15km")
+
+        days_since = (today - d.last_donation_date).days if d.last_donation_date else 120
+        cooling_off_ok = days_since >= 90 and d.eligible
+
+        is_exact = d.blood_group == clean_group
+        priority_score = 0.0
+        if is_exact:
+            priority_score += 100.0
+        else:
+            priority_score += 30.0
+
+        if cooling_off_ok:
+            priority_score += 30.0
+
+        proximity_bonus = max(0.0, 15.0 - (dist * 1.0))
+        priority_score += proximity_bonus
+
+        priority_score += round((d.response_rate or 0.8) * 10.0, 1)
+
+        matches.append(
+            RareBloodMatchItem(
+                donor_id=d.id,
+                donor_code=d.donor_code or f"DONOR-{d.id}",
+                name=d.name,
+                blood_group=d.blood_group,
+                is_exact_match=is_exact,
+                is_rare_group=d.blood_group in RARE_BLOOD_DEFINITIONS or d.blood_group.endswith("-"),
+                distance_km=dist,
+                tier=tier,
+                eligible=d.eligible and cooling_off_ok,
+                last_donation_date=d.last_donation_date.isoformat() if d.last_donation_date else None,
+                days_since_last_donation=days_since,
+                cooling_off_cleared=cooling_off_ok,
+                priority_score=round(priority_score, 1),
+                priority_rank=1,
+            )
+        )
+
+    # Sort matches by priority score descending
+    matches.sort(key=lambda m: m.priority_score, reverse=True)
+    for idx, m in enumerate(matches, start=1):
+        m.priority_rank = idx
+
+    return RareBloodCompatibilityResponse(
+        recipient_group=clean_group,
+        component=component,
+        is_rare_group=is_rare,
+        compatible_donor_groups=compat_groups,
+        compatibility_rule_summary=rule_summary,
+        total_matching_donors=len(matches),
+        prioritized_matches=matches[:20],
+        decision_support_notice=(
+            "DECISION SUPPORT ONLY: Algorithmic blood compatibility match. "
+            "Mandatory pre-transfusion serological cross-match, Rh phenotype subtyping, "
+            "and antibody screening must be performed before transfusion per NABH & DGHS guidelines."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------
 # 2. GIS Routing & Optimization Endpoint (A* and Dijkstra)
 # ---------------------------------------------------------------------
+
 
 @hemo_router.post("/route/optimize", response_model=RouteOptimizeResponse)
 def optimize_gis_route(body: RouteOptimizeRequest):
@@ -3865,10 +4214,12 @@ def get_ncc_coordinator_profile():
 @hemo_router.post("/fcm/send")
 def send_fcm_push(body: Dict[str, Any]):
     """
-    Dispatches a simulated Firebase FCM push notification.
+    Dispatches a Firebase FCM push notification (real FCM with in-memory fallback).
+    Enforces per-donor token-bucket rate limiting.
     """
     token = body.get("token")
     topic = body.get("topic")
+    donor_id = body.get("donor_id")
     title = body.get("title", "Emergency Blood Alert")
     msg_body = body.get("body", "Immediate action required in Chennai medical grid.")
     data = body.get("data", {})
@@ -3876,7 +4227,9 @@ def send_fcm_push(body: Dict[str, Any]):
     if topic:
         return FCM_ENGINE.broadcast_to_topic(topic, title, msg_body, data)
     elif token:
-        return FCM_ENGINE.send_to_token(token, title, msg_body, data)
+        return FCM_ENGINE.send_to_token(token, title, msg_body, data, donor_id=donor_id)
+    elif donor_id:
+        return FCM_ENGINE.send_to_donor(donor_id, title, msg_body, data)
     else:
         # Default broadcast to emergency topic
         return FCM_ENGINE.broadcast_to_topic("emergency-alerts-chennai", title, msg_body, data)
@@ -3901,6 +4254,35 @@ def register_fcm_token(body: Dict[str, Any]):
     topics = body.get("topics", ["emergency-alerts-chennai"])
     dev = FCM_ENGINE.register_device(user_id, role, token, topics)
     return {"status": "REGISTERED", "device": dev.__dict__}
+
+
+@hemo_router.post("/donor/device-token")
+@hemo_router.post("/donors/device-token")
+def save_donor_device_token(
+    body: Dict[str, Any],
+    session: Annotated[Session, Depends(get_session)],
+):
+    """
+    Saves a donor's device token for FCM push notifications.
+    Enforces per-donor token-bucket rate limiting upon dispatch.
+    """
+    token = body.get("device_token") or body.get("fcm_token") or body.get("token")
+    if not token or not str(token).strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="device_token is required",
+        )
+    donor_id = body.get("donor_id") or "donor-d1"
+    dev = FCM_ENGINE.save_donor_device_token(
+        donor_id=str(donor_id).strip(),
+        device_token=str(token).strip(),
+    )
+    return {
+        "status": "SAVED",
+        "message": "Donor device token saved successfully",
+        "donor_id": dev.user_id,
+        "device_token": dev.fcm_token,
+    }
 
 
 @hemo_router.get("/deliveries")

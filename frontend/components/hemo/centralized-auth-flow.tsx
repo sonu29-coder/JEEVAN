@@ -212,7 +212,7 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
     const userRole = authenticatedUser?.role as AuthRole | undefined
     if (userRole === 'ADMIN') return true
     if (targetPortal === 'hospital') return userRole === 'ICU_HOSPITAL'
-    if (targetPortal === 'donor') return userRole === 'REGISTERED_DONOR'
+    if (targetPortal === 'donor' || targetPortal === 'new_donor') return userRole === 'REGISTERED_DONOR'
     if (targetPortal === 'driver') return userRole === 'DELIVERY_PARTNER'
     return false
   }
@@ -521,6 +521,41 @@ export function CentralizedAuthFlow({ initialStage = 'auth', onCancel }: Central
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-xs transition-colors cursor-pointer"
                       >
                         <span>Open Workspace</span>
+                        <ArrowRight className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isDashboardAuthorized('new_donor') && (
+                  <div
+                    className="rounded-2xl border border-rose-200 dark:border-rose-900/40 bg-gradient-to-br from-rose-50/50 to-background dark:from-rose-950/20 dark:to-card p-4 transition-all shadow-xs hover:border-rose-500/40 flex flex-col gap-3"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <span className="grid size-11 place-items-center rounded-xl shrink-0 bg-rose-100 text-rose-600 dark:bg-rose-950/70 dark:text-rose-400">
+                        <Sparkles className="size-5" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-bold text-foreground">
+                            NEW DONOR PORTAL
+                          </h3>
+                          <span className="rounded-full bg-rose-100 dark:bg-rose-950/60 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                            New Dashboard
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          First-time donor onboarding, orientation checklist, clinical preparation guides, and first donation booking.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-border/50 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleDashboardSelect('new_donor')}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer"
+                      >
+                        <span>Open New Donor Dashboard</span>
                         <ArrowRight className="size-3.5" />
                       </button>
                     </div>

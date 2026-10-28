@@ -7,7 +7,7 @@ import { BANKS, SEED_EMERGENCIES, seedStock, siteById, type Emergency, type Stoc
 export type Tab = 'home' | 'map' | 'blood' | 'alerts' | 'verify' | 'request'
 export type ToastTone = 'success' | 'error' | 'info'
 export type Response = 'help' | 'declined'
-export type Role = 'hospital' | 'donor' | 'driver'
+export type Role = 'hospital' | 'donor' | 'driver' | 'new_donor'
 
 interface Toast {
   id: number
@@ -77,7 +77,11 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
   const [isWorkspaceLoading, setIsWorkspaceLoading] = useState<boolean>(false)
   const [role, setRoleState] = useState<Role>(initialRole || 'hospital')
   const [session, setSessionState] = useState<AuthRole>(
-    initialRole === 'donor' ? 'REGISTERED_DONOR' : initialRole === 'driver' ? 'DELIVERY_PARTNER' : 'ICU_HOSPITAL'
+    initialRole === 'donor' || initialRole === 'new_donor'
+      ? 'REGISTERED_DONOR'
+      : initialRole === 'driver'
+      ? 'DELIVERY_PARTNER'
+      : 'ICU_HOSPITAL'
   )
   const [forbidden, setForbidden] = useState<ForbiddenInfo | null>(null)
   const dismissForbidden = useCallback(() => setForbidden(null), [])
@@ -102,6 +106,8 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
           ? '/icu/dashboard'
           : targetRole === 'donor'
           ? '/donor/dashboard'
+          : targetRole === 'new_donor'
+          ? '/new-donor/dashboard'
           : '/delivery/dashboard'
       try {
         window.history.replaceState(null, '', targetRoute)
@@ -160,7 +166,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
     const params = new URLSearchParams(window.location.search)
     const roleParam = params.get('role') as Role | null
     const targetRole =
-      roleParam && (roleParam === 'hospital' || roleParam === 'donor' || roleParam === 'driver')
+      roleParam && (roleParam === 'hospital' || roleParam === 'donor' || roleParam === 'driver' || roleParam === 'new_donor')
         ? roleParam
         : initialRole
 

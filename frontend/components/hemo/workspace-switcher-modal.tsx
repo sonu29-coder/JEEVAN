@@ -49,6 +49,15 @@ export function WorkspaceSwitcherModal({ open, onClose }: WorkspaceSwitcherModal
       activeBorder: 'border-red-500/60 bg-red-500/5',
     },
     {
+      id: 'new_donor',
+      title: 'New Donor Portal',
+      subtitle: 'First-Time Life Saver Onboarding',
+      description: 'Orientation checklist, clinical preparation guides, first donation appointment, and rare blood lookup.',
+      icon: Droplets,
+      badgeBg: 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400',
+      activeBorder: 'border-rose-500/60 bg-rose-500/5',
+    },
+    {
       id: 'donor',
       title: t('bloodDonor'),
       subtitle: 'Volunteer Life Saver Network',

@@ -1,5 +1,5 @@
 export type AuthRole = 'ICU_HOSPITAL' | 'REGISTERED_DONOR' | 'DELIVERY_PARTNER' | 'ADMIN'
-export type Portal = 'hospital' | 'donor' | 'driver'
+export type Portal = 'hospital' | 'donor' | 'driver' | 'new_donor'
 
 export interface Credential {
   role: AuthRole
@@ -64,11 +64,27 @@ export const DEMO_USERS: Record<Portal, DemoUser[]> = {
       email: 'donor.aarav@gmail.com',
       token: 'DONOR-1108',
       defaultPassword: 'DonorPassword2026!',
-      title: 'Active Blood Donor (B+)',
-      badge: 'Active Blood Donor (B+) • 8 Donations',
+      title: 'Emergency Donor (B+)',
+      badge: 'Emergency Donor (B+) • 8 Donations',
       avatar: '🩸',
-      entityName: 'Chennai Central Donor Registry',
-      details: 'Verified donor available for immediate local emergency dispatch in Chennai.',
+      entityName: 'Chennai Voluntary Donor Network',
+      details: 'Regular donor with 8 past donations across Chennai hospitals.',
+    },
+  ],
+  new_donor: [
+    {
+      id: 'usr-new-donor-01',
+      portal: 'new_donor',
+      role: 'REGISTERED_DONOR',
+      name: 'Sneha Menon',
+      email: 'sneha.donor@gmail.com',
+      token: 'DONOR-1108',
+      defaultPassword: 'DonorPassword2026!',
+      title: 'First-Time Registered Donor (O-)',
+      badge: 'Google Verified Donor • O- Compatible',
+      avatar: '✨',
+      entityName: 'Jeevan Voluntary Donor Onboarding Network',
+      details: 'First-time voluntary donor completing orientation and scheduling first donation.',
     },
   ],
   driver: [
@@ -133,6 +149,12 @@ export const PORTAL_ACCESS: Record<Portal, { required: AuthRole; name: string; d
     required: 'REGISTERED_DONOR',
     name: 'Donor Portal',
     denial: 'Donor Portal requires an active Donor Profile & Health Clearance.',
+    probePath: '/portal/donor',
+  },
+  new_donor: {
+    required: 'REGISTERED_DONOR',
+    name: 'New Donor Dashboard',
+    denial: 'New Donor Dashboard requires registered donor verification.',
     probePath: '/portal/donor',
   },
   driver: {
@@ -423,9 +445,13 @@ export async function loginWithGoogle(
 ): Promise<{ success: boolean; message: string; role: AuthRole; user: any; token: string }> {
   const defaultEmail = emailOrToken || 'user@gmail.com'
   const expectedAuthRole: AuthRole =
-    portal === 'hospital' ? 'ICU_HOSPITAL' : portal === 'donor' ? 'REGISTERED_DONOR' : 'DELIVERY_PARTNER'
+    portal === 'hospital'
+      ? 'ICU_HOSPITAL'
+      : (portal === 'donor' || portal === 'new_donor')
+      ? 'REGISTERED_DONOR'
+      : 'DELIVERY_PARTNER'
 
-  // Attempt live backend Google authentication
+  // Live backend Google authentication with genuine token verification
   try {
     const res = await fetch('/api/auth/google', {
       method: 'POST',
@@ -434,14 +460,20 @@ export async function loginWithGoogle(
         credential: defaultEmail,
         target_role: expectedAuthRole,
       }),
-      signal: AbortSignal.timeout(3500),
+      signal: AbortSignal.timeout(4500),
     })
 
     if (res.ok) {
       const data = await res.json()
       const actualRole: AuthRole = (data.role as AuthRole) || expectedAuthRole
       const actualPortal: Portal =
-        actualRole === 'REGISTERED_DONOR' ? 'donor' : actualRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
+        portal === 'new_donor'
+          ? 'new_donor'
+          : actualRole === 'REGISTERED_DONOR'
+          ? 'donor'
+          : actualRole === 'DELIVERY_PARTNER'
+          ? 'driver'
+          : 'hospital'
       const userMeta = {
         ...data,
         name: data.label || data.name || defaultEmail.split('@')[0],
@@ -457,27 +489,45 @@ export async function loginWithGoogle(
         user: userMeta,
         token: data.access_token || CREDENTIALS[actualRole]?.token || 'AUTH-TOKEN',
       }
+    } else {
+      const err = await res.json().catch(() => ({}))
+      if (portal === 'donor' || portal === 'new_donor') {
+        return {
+          success: false,
+          message: err.detail || 'Google authentication failed: Genuine Google verification required for donor access.',
+          role: expectedAuthRole,
+          user: null,
+          token: '',
+        }
+      }
     }
-  } catch {}
+  } catch {
+    if (portal === 'donor' || portal === 'new_donor') {
+      return {
+        success: false,
+        message: 'Could not connect to Google authentication service. Please check your connection and try again.',
+        role: expectedAuthRole,
+        user: null,
+        token: '',
+      }
+    }
+  }
 
-  // Seamless offline fallback
+  // Non-donor demo fallback for local environments
   const lowerEmail = defaultEmail.toLowerCase()
   const resolvedRole: AuthRole =
-    lowerEmail.includes('donor') || lowerEmail.includes('sneha') || lowerEmail.includes('aarav')
-      ? 'REGISTERED_DONOR'
-      : lowerEmail.includes('driver') || lowerEmail.includes('rider') || lowerEmail.includes('arun')
+    lowerEmail.includes('driver') || lowerEmail.includes('rider') || lowerEmail.includes('arun')
       ? 'DELIVERY_PARTNER'
       : 'ICU_HOSPITAL'
 
-  const resolvedPortal: Portal =
-    resolvedRole === 'REGISTERED_DONOR' ? 'donor' : resolvedRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
+  const resolvedPortal: Portal = resolvedRole === 'DELIVERY_PARTNER' ? 'driver' : 'hospital'
 
   const userMeta = {
     name: defaultEmail.split('@')[0].replace('.', ' ').toUpperCase(),
     email: defaultEmail,
     role: resolvedRole,
     allowed_roles: resolvedRole,
-    badge: `${resolvedPortal === 'hospital' ? 'Hospital ICU' : resolvedPortal === 'donor' ? 'Blood Donor' : 'Medical Logistics'}`,
+    badge: `${resolvedPortal === 'hospital' ? 'Hospital ICU' : 'Medical Logistics'}`,
     portal: resolvedPortal,
   }
   saveAuthSession(resolvedRole, resolvedPortal, userMeta)

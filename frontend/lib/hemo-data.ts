@@ -314,3 +314,159 @@ export function computeExpiryRadarUnits(stock: StockItem[], now: number): Expiry
   })
 }
 
+// =====================================================================
+// Clinical Blood Component Storage Limits & Expiry Standards
+// =====================================================================
+
+export interface ComponentStorageLimit {
+  component: string
+  label: string
+  maxDays: number
+  maxMonths: number
+  tempRange: string
+  preservative: string
+  regulatorySource: string
+  description: string
+}
+
+export const CLINICAL_STORAGE_LIMITS: Record<string, ComponentStorageLimit> = {
+  PRBC: {
+    component: 'PRBC',
+    label: 'Packed Red Blood Cells',
+    maxDays: 42,
+    maxMonths: 1.4,
+    tempRange: '2°C to 6°C',
+    preservative: 'SAGM / Adsol (AS-1, AS-3)',
+    regulatorySource: 'AABB & DGHS National Blood Transfusion Council',
+    description: 'Packed Red Blood Cells stored at 2-6°C up to 42 days (approx. 1.4 months).',
+  },
+  'Whole Blood': {
+    component: 'Whole Blood',
+    label: 'Whole Blood',
+    maxDays: 35,
+    maxMonths: 1.15,
+    tempRange: '2°C to 6°C',
+    preservative: 'CPDA-1 Solution',
+    regulatorySource: 'AABB & DGHS National Blood Transfusion Council',
+    description: 'Whole blood stored at 2-6°C up to 35 days (approx. 1.15 months).',
+  },
+  Platelets: {
+    component: 'Platelets',
+    label: 'Platelets (RDP / SDP)',
+    maxDays: 5,
+    maxMonths: 0.16,
+    tempRange: '20°C to 24°C with continuous agitation',
+    preservative: 'Platelet Additive Solution (PAS) / Plasma',
+    regulatorySource: 'AABB & DGHS National Blood Transfusion Council',
+    description: 'Platelets stored with gentle continuous agitation at room temp up to 5 days.',
+  },
+  Plasma: {
+    component: 'Plasma',
+    label: 'Fresh Frozen Plasma (FFP)',
+    maxDays: 365,
+    maxMonths: 12.0,
+    tempRange: '≤ -18°C frozen',
+    preservative: 'Citrate Phosphate Dextrose (CPD)',
+    regulatorySource: 'AABB & DGHS National Blood Transfusion Council',
+    description: 'Fresh Frozen Plasma frozen within 8 hours, stored up to 12 months at ≤ -18°C.',
+  },
+  FFP: {
+    component: 'FFP',
+    label: 'Fresh Frozen Plasma',
+    maxDays: 365,
+    maxMonths: 12.0,
+    tempRange: '≤ -18°C frozen',
+    preservative: 'Citrate Phosphate Dextrose (CPD)',
+    regulatorySource: 'AABB & DGHS National Blood Transfusion Council',
+    description: 'Fresh Frozen Plasma stored up to 12 months at ≤ -18°C or colder.',
+  },
+  Cryoprecipitate: {
+    component: 'Cryoprecipitate',
+    label: 'Cryoprecipitated AHF',
+    maxDays: 365,
+    maxMonths: 12.0,
+    tempRange: '≤ -18°C frozen',
+    preservative: 'Factor VIII & Fibrinogen Concentrate',
+    regulatorySource: 'AABB & DGHS National Blood Transfusion Council',
+    description: 'Cryoprecipitate stored up to 12 months at ≤ -18°C or colder.',
+  },
+}
+
+// =====================================================================
+// Rare Blood Group Compatibility & Matching Algorithm
+// =====================================================================
+
+export interface RareBloodDefinition {
+  group: string
+  label: string
+  rarity: string
+  prevalenceIndia: string
+  compatibleDonors: string[]
+  exactMatch: string
+  ruleSummary: string
+  clinicalGuidelines: string
+}
+
+export const RARE_BLOOD_DEFINITIONS: Record<string, RareBloodDefinition> = {
+  'O-': {
+    group: 'O-',
+    label: 'O Negative',
+    rarity: 'High',
+    prevalenceIndia: '~1.5% in Indian population',
+    compatibleDonors: ['O-'],
+    exactMatch: 'O-',
+    ruleSummary: 'O- patients carry strong anti-A and anti-B antibodies without Rh(D). Compatible ONLY with O- red cells.',
+    clinicalGuidelines: 'Universal red blood cell donor, but strictly restricted to receiving O- units.',
+  },
+  'A-': {
+    group: 'A-',
+    label: 'A Negative',
+    rarity: 'High',
+    prevalenceIndia: '~0.5% in Indian population',
+    compatibleDonors: ['A-', 'O-'],
+    exactMatch: 'A-',
+    ruleSummary: 'A- patients can receive A- (preferred exact match to conserve O-) and O- (universal donor).',
+    clinicalGuidelines: 'Exact A- match prioritized to conserve universal O- supply for emergencies.',
+  },
+  'B-': {
+    group: 'B-',
+    label: 'B Negative',
+    rarity: 'High',
+    prevalenceIndia: '~1.8% in Indian population',
+    compatibleDonors: ['B-', 'O-'],
+    exactMatch: 'B-',
+    ruleSummary: 'B- patients can receive B- (preferred exact match to conserve O-) and O- (universal donor).',
+    clinicalGuidelines: 'Exact B- match prioritized to conserve emergency O- stock.',
+  },
+  'AB-': {
+    group: 'AB-',
+    label: 'AB Negative',
+    rarity: 'Very High',
+    prevalenceIndia: '<0.3% in Indian population (Rarest standard ABO group)',
+    compatibleDonors: ['AB-', 'A-', 'B-', 'O-'],
+    exactMatch: 'AB-',
+    ruleSummary: 'AB- can receive AB-, A-, B-, or O-. AB- exact match prioritized to conserve negative reserves.',
+    clinicalGuidelines: 'Universal plasma donor; rarest standard red cell recipient.',
+  },
+  'Bombay Oh': {
+    group: 'Bombay Oh',
+    label: 'Bombay Blood Group (Oh phenotype)',
+    rarity: 'Extremely Rare',
+    prevalenceIndia: '1 in 10,000 in India (discovered in Mumbai; carries anti-H)',
+    compatibleDonors: ['Bombay Oh'],
+    exactMatch: 'Bombay Oh',
+    ruleSummary: 'Lacks H antigen and carries anti-H antibodies. Cannot receive O, A, B, or AB. Compatible ONLY with Bombay Oh donors.',
+    clinicalGuidelines: 'Critical emergency: requires contacting National Rare Donor Registry or regional cryopreserved stock.',
+  },
+  'Rh-null': {
+    group: 'Rh-null',
+    label: 'Rh-null (Golden Blood)',
+    rarity: 'Ultra Rare',
+    prevalenceIndia: '<50 known individuals worldwide',
+    compatibleDonors: ['Rh-null'],
+    exactMatch: 'Rh-null',
+    ruleSummary: 'Lacks all 61 Rh antigens. Can receive ONLY Rh-null red cells due to potential anti-Rh antibodies.',
+    clinicalGuidelines: 'Requires autologous pre-donation or international rare donor exchange.',
+  },
+}
+

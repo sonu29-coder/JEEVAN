@@ -440,3 +440,59 @@ class RedistributeUnitRequest(APIModel):
     target_bank_id: str
     courier_notes: Optional[str] = Field(default=None)
 
+
+# ==========================================
+# 8. Expiry Scheduling & Rare Blood Schemas
+# ==========================================
+
+class ExpiryScheduleRequest(APIModel):
+    stock_id: str = Field(description="Inventory or stock unit ID")
+    scheduled_date: str = Field(description="ISO format YYYY-MM-DD for scheduled transfusion/procedure")
+    procedure_type: Optional[str] = Field(default="Elective Surgical Transfusion")
+    recipient_hospital: Optional[str] = Field(default="Kilpauk Medical College Hospital")
+    notes: Optional[str] = None
+
+
+class ExpiryScheduleResponse(APIModel):
+    status: str
+    stock_id: str
+    blood_group: str
+    component: str
+    expiry_date: str
+    scheduled_date: str
+    fefo_priority_rank: int
+    remaining_storage_months: float
+    max_approved_storage_months: float
+    max_approved_storage_days: int
+    procedure_type: str
+    is_within_clinical_limits: bool
+    message: str
+
+
+class RareBloodMatchItem(APIModel):
+    donor_id: str
+    donor_code: str
+    name: str
+    blood_group: str
+    is_exact_match: bool
+    is_rare_group: bool
+    distance_km: Optional[float] = None
+    tier: str
+    eligible: bool
+    last_donation_date: Optional[str] = None
+    days_since_last_donation: Optional[int] = None
+    cooling_off_cleared: bool
+    priority_score: float
+    priority_rank: int
+
+
+class RareBloodCompatibilityResponse(APIModel):
+    recipient_group: str
+    component: str
+    is_rare_group: bool
+    compatible_donor_groups: list[str]
+    compatibility_rule_summary: str
+    total_matching_donors: int
+    prioritized_matches: list[RareBloodMatchItem]
+    decision_support_notice: str
+

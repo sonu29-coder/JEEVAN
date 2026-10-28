@@ -18,6 +18,7 @@ export function AppHeader() {
     hospital: { emoji: '🏥', label: t('hospitalIcu') },
     donor: { emoji: '🩸', label: t('bloodDonor') },
     driver: { emoji: '🛵', label: t('logisticsCourier') },
+    new_donor: { emoji: '✨', label: 'New Donor Portal' },
   }
   const currentWorkspace = workspaceLabels[role] || { emoji: '🏥', label: t('hospitalIcu') }
 

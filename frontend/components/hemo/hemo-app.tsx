@@ -10,6 +10,7 @@ import { BottomDock } from './bottom-dock'
 import { CentralizedAuthFlow } from './centralized-auth-flow'
 import { DispatchView } from './dispatch-view'
 import { DonorDashboard } from './donor-dashboard'
+import { NewDonorDashboard } from './new-donor-dashboard'
 import { DriverDashboard } from './driver-dashboard'
 import { GridProvider, useGrid } from './grid-store'
 import { GridToast } from './grid-toast'
@@ -52,7 +53,14 @@ function AppShell() {
     setShowDashboardSelector,
   } = useGrid()
   const authorized = hasPortalAccess(session, role)
-  const PortalView = role === 'donor' ? DonorDashboard : role === 'driver' ? DriverDashboard : VIEWS[tab]
+  const PortalView =
+    role === 'new_donor'
+      ? NewDonorDashboard
+      : role === 'donor'
+      ? DonorDashboard
+      : role === 'driver'
+      ? DriverDashboard
+      : VIEWS[tab]
   const View = authorized ? PortalView : AccessDenied
   const viewKey = `${authorized ? 'ok' : 'denied'}-${role === 'hospital' ? `hospital-${tab}` : role}`
 

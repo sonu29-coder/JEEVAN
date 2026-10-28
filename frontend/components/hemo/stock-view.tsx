@@ -22,6 +22,8 @@ import { ConflictModal, type ConflictInfo } from './conflict-modal'
 import { useGrid } from './grid-store'
 import { StockCard } from './stock-card'
 import { SectionTitle, ViewHeader } from './view-header'
+import { RareBloodCompatibility } from './rare-blood-compatibility'
+import { BloodExpiryScheduler } from './blood-expiry-scheduler'
 
 interface ReservePayload {
   stock_id: string
@@ -138,6 +140,10 @@ export function StockView() {
             <ChevronRight className="size-3.5" />
           </button>
         </div>
+
+        {/* Clinical Expiry Scheduling & Rare Blood Matching Directly Below Expiry Radar */}
+        <RareBloodCompatibility className="mb-4" />
+        <BloodExpiryScheduler className="mb-4" />
 
         <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="radiogroup" aria-label="Filter by blood group">
           {['All', ...BLOOD_GROUPS].map((g) => {

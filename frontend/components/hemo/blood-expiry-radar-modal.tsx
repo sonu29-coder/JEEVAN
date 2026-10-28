@@ -34,6 +34,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { useNow } from '@/hooks/use-now'
+import { RareBloodCompatibility } from './rare-blood-compatibility'
+import { BloodExpiryScheduler } from './blood-expiry-scheduler'
 import {
   BANKS,
   BLOOD_GROUPS,
@@ -396,6 +398,12 @@ export function BloodExpiryRadarModal() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </section>
+
+          {/* Clinical Rare Blood Compatibility & Expiry Scheduling Directly Below Radar UI */}
+          <section aria-label="Clinical Decision Support and Scheduling" className="mt-4 space-y-4">
+            <RareBloodCompatibility />
+            <BloodExpiryScheduler />
           </section>
 
           {/* Filter Bar */}

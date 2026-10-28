@@ -21,8 +21,41 @@ from backend.main import (
 from backend.models import BloodBank, Hospital, Inventory
 
 
+from sqlalchemy import func, select
+
+
 @pytest.fixture
 def client():
+    with SessionLocal() as session:
+        count = session.scalar(select(func.count(Inventory.id))) or 0
+        if count == 0:
+            bank = session.get(BloodBank, "BB_RADAR")
+            if not bank:
+                bank = BloodBank(
+                    id="BB_RADAR",
+                    name="Test Blood Bank",
+                    address="Test Road",
+                    state="Tamil Nadu",
+                    phone="+91-9999999999",
+                    latitude=13.0827,
+                    longitude=80.2707,
+                    area="Central",
+                    city="Chennai",
+                    synthetic=True,
+                )
+                session.add(bank)
+            inv = Inventory(
+                id="INV_RADAR_01",
+                blood_bank_id="BB_RADAR",
+                blood_group="O+",
+                component="PRBC",
+                units=8,
+                expiry_date=date.today() + timedelta(days=20),
+                status="available",
+                synthetic=True,
+            )
+            session.add(inv)
+            session.commit()
     with TestClient(app) as test_client:
         yield test_client
 

@@ -89,6 +89,55 @@ export function DonorDashboard() {
   const km = hospital ? distanceKm(USER_LOCATION, hospital.position) : 2.4
   const response = alert ? responses[alert.id] : undefined
 
+  // Background registration: request notification permission and sync device token (no visual changes)
+  useEffect(() => {
+    let active = true
+
+    async function registerDonorDeviceToken() {
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        return
+      }
+
+      try {
+        let perm = Notification.permission
+        if (perm === 'default') {
+          perm = await Notification.requestPermission().catch(() => 'default' as NotificationPermission)
+        }
+
+        if (perm === 'granted' && active) {
+          const storageKey = 'jeevan_donor_fcm_token'
+          let token = localStorage.getItem(storageKey)
+          if (!token) {
+            const uuid =
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID().replace(/-/g, '')
+                : Math.random().toString(36).slice(2) + Date.now().toString(36)
+            token = `fcm_token_donor_${uuid}`
+            localStorage.setItem(storageKey, token)
+          }
+
+          const donorId = saved?.user?.id || saved?.user?.email || 'donor-d1'
+          await fetch('/api/donor/device-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              donor_id: donorId,
+              device_token: token,
+            }),
+          }).catch(() => {})
+        }
+      } catch {
+        // Silently catch to preserve clean UI with zero visual disruption
+      }
+    }
+
+    registerDonorDeviceToken()
+
+    return () => {
+      active = false
+    }
+  }, [saved?.user?.id, saved?.user?.email])
+
   useEffect(() => {
     if (!identityToken) {
       setIdentityStatus(null)

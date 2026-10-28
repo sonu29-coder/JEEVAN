@@ -311,7 +311,7 @@ export default function DonorLoginPage() {
       if (res.success) {
         setSuccessMsg(res.message)
         setTimeout(() => {
-          router.push('/?role=donor')
+          router.push('/?role=new_donor')
         }, 600)
       } else {
         setErrorMsg(res.message)
@@ -449,11 +449,11 @@ export default function DonorLoginPage() {
               <div>
                 {/* Real Google / Gmail Authentication Component */}
                 <GoogleAuthButton
-                  portal="donor"
+                  portal="new_donor"
                   className="mb-3"
                   onSuccess={(res) => {
                     setSuccessMsg(res.message)
-                    setTimeout(() => router.push('/?role=donor'), 500)
+                    setTimeout(() => router.push('/?role=new_donor'), 500)
                   }}
                   onError={(err) => setErrorMsg(err)}
                 />
@@ -576,6 +576,31 @@ export default function DonorLoginPage() {
             {/* ========================================================= */}
             {authMode === 'signup' && (
               <div className="space-y-4">
+                {/* Instant Genuine Google Sign Up */}
+                <div className="rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Sign up with Google</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                      Fast Track
+                    </span>
+                  </div>
+                  <GoogleAuthButton
+                    portal="new_donor"
+                    onSuccess={(res) => {
+                      setSuccessMsg(res.message)
+                      setTimeout(() => router.push('/?role=new_donor'), 500)
+                    }}
+                    onError={(err) => setErrorMsg(err)}
+                  />
+                </div>
+
+                <div className="relative flex items-center justify-center my-1">
+                  <div className="w-full border-t border-border" />
+                  <span className="absolute bg-background px-2 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    or register with phone
+                  </span>
+                </div>
+
                 {/* Stage 1: Phone Number Verification */}
                 {!phoneVerified ? (
                   <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">

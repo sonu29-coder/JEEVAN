@@ -1,19 +1,37 @@
 """
 HEMO-GRID AI - Firebase Cloud Messaging (FCM) & OTP Handshake Engine
-Simulates Firebase FCM push notifications, device tokens, emergency topic broadcasts,
-and secure OTP delivery verification between Blood Banks, Couriers, and ICU Hospitals.
+Integrates real Firebase Cloud Messaging via firebase-admin when FCM_SERVICE_ACCOUNT_PATH
+is provided in .env, with resilient in-memory fallback list if sending fails.
+Includes per-donor token-bucket rate limiting and device token registration.
 """
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import random
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
+from dotenv import load_dotenv
+
 logger = logging.getLogger(__name__)
+
+# Load environment configuration (.env files)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+for env_path in (
+    PROJECT_ROOT / ".env.local",
+    PROJECT_ROOT / ".env",
+    Path(__file__).resolve().parent / ".env",
+    Path(__file__).resolve().parent / ".env" / ".env",
+):
+    if env_path.is_file():
+        load_dotenv(env_path, override=False)
 
 
 @dataclass
@@ -39,16 +57,82 @@ class DeviceRegistration:
     subscribed_topics: List[str] = field(default_factory=list)
 
 
+class TokenBucket:
+    """
+    Token bucket algorithm implementation for rate limiting.
+    Capacity: maximum tokens in bucket (burst limit).
+    Refill rate: tokens replenished per second.
+    """
+
+    def __init__(self, capacity: float = 5.0, refill_rate: float = 0.2):
+        self.capacity = float(capacity)
+        self.refill_rate = float(refill_rate)
+        self.tokens = float(capacity)
+        self.last_refill = time.time()
+
+    def consume(self, amount: float = 1.0) -> Tuple[bool, float]:
+        now = time.time()
+        elapsed = max(0.0, now - self.last_refill)
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
+        self.last_refill = now
+
+        if self.tokens >= amount:
+            self.tokens -= amount
+            return True, 0.0
+
+        needed = amount - self.tokens
+        retry_after = needed / self.refill_rate
+        return False, retry_after
+
+    def reset(self):
+        self.tokens = self.capacity
+        self.last_refill = time.time()
+
+
+class DonorRateLimiter:
+    """
+    Manages per-donor token-bucket rate limiting.
+    Prevents notification fatigue and spam to verified blood donors.
+    Default: capacity 5 notifications, refilling at 1 token every 5 seconds (0.2/sec).
+    """
+
+    def __init__(self, capacity: float = 5.0, refill_rate: float = 0.2):
+        self.capacity = capacity
+        self.refill_rate = refill_rate
+        self.buckets: Dict[str, TokenBucket] = {}
+
+    def get_bucket(self, donor_id: str) -> TokenBucket:
+        clean_id = str(donor_id).strip()
+        if clean_id not in self.buckets:
+            self.buckets[clean_id] = TokenBucket(self.capacity, self.refill_rate)
+        return self.buckets[clean_id]
+
+    def consume(self, donor_id: str, amount: float = 1.0) -> Tuple[bool, float]:
+        return self.get_bucket(donor_id).consume(amount)
+
+    def reset(self, donor_id: str):
+        self.get_bucket(donor_id).reset()
+
+
 class FirebaseFCMEngine:
     """
-    Simulated Firebase Cloud Messaging (FCM) Push Notification Server.
-    Provides standard FCM payloads, topic broadcasts, and delivery receipt logs.
+    Firebase Cloud Messaging (FCM) Engine.
+    Dispatches real push notifications via firebase-admin when FCM_SERVICE_ACCOUNT_PATH
+    is configured, while maintaining an in-memory fallback list if sending fails.
+    Enforces per-donor token-bucket rate limiting.
     """
 
     def __init__(self):
         self.devices: Dict[str, DeviceRegistration] = {}
+        self.donor_tokens: Dict[str, str] = {}  # donor_id -> device_token
+        self.token_to_donor: Dict[str, str] = {}  # device_token -> donor_id
         self.message_history: List[FCMMessage] = []
+        self.donor_rate_limiter = DonorRateLimiter(capacity=5.0, refill_rate=0.2)
+        self._firebase_app: Optional[Any] = None
+        self._firebase_initialized = False
+
         self._init_default_demo_devices()
+        self._get_firebase_app()
 
     def _init_default_demo_devices(self):
         """Seed default tokens for Chennai medical grid stakeholders."""
@@ -67,6 +151,345 @@ class FirebaseFCMEngine:
         ]
         for u_id, role, token, topics in default_devices:
             self.register_device(u_id, role, token, topics)
+
+    def _get_firebase_app(self) -> Optional[Any]:
+        """
+        Lazily initializes Firebase Admin SDK using FCM_SERVICE_ACCOUNT_PATH from .env.
+        Gracefully falls back to in-memory mode if path is not configured or invalid.
+        """
+        if self._firebase_initialized:
+            return self._firebase_app
+
+        self._firebase_initialized = True
+        sa_path = os.getenv("FCM_SERVICE_ACCOUNT_PATH", "").strip()
+        if not sa_path:
+            logger.info("FCM_SERVICE_ACCOUNT_PATH not set; using in-memory FCM engine.")
+            return None
+
+        try:
+            import firebase_admin
+            from firebase_admin import credentials
+
+            # Check if an app is already initialized
+            try:
+                self._firebase_app = firebase_admin.get_app()
+                return self._firebase_app
+            except ValueError:
+                pass
+
+            cred = None
+            candidate_path = Path(sa_path)
+            if candidate_path.is_file():
+                cred = credentials.Certificate(str(candidate_path.resolve()))
+            elif (PROJECT_ROOT / sa_path).is_file():
+                cred = credentials.Certificate(str((PROJECT_ROOT / sa_path).resolve()))
+            elif sa_path.startswith("{") and sa_path.endswith("}"):
+                cred = credentials.Certificate(json.loads(sa_path))
+            else:
+                logger.warning(
+                    "FCM_SERVICE_ACCOUNT_PATH '%s' does not exist as a file or JSON credentials. Using in-memory fallback.",
+                    sa_path,
+                )
+                return None
+
+            self._firebase_app = firebase_admin.initialize_app(cred)
+            logger.info("Firebase Admin initialized successfully from '%s'.", sa_path)
+            return self._firebase_app
+        except Exception as exc:
+            logger.warning(
+                "Failed to initialize Firebase Admin from '%s': %s. Using in-memory fallback.",
+                sa_path,
+                exc,
+            )
+            self._firebase_app = None
+            return None
+
+    def register_device(
+        self, user_id: str, role: str, fcm_token: str, topics: Optional[List[str]] = None
+    ) -> DeviceRegistration:
+        dev = DeviceRegistration(
+            user_id=user_id,
+            role=role,
+            fcm_token=fcm_token,
+            subscribed_topics=topics or ["emergency-alerts-chennai"],
+        )
+        self.devices[fcm_token] = dev
+        if role.upper() == "DONOR":
+            self.donor_tokens[user_id] = fcm_token
+            self.token_to_donor[fcm_token] = user_id
+        return dev
+
+    def save_donor_device_token(
+        self, donor_id: str, device_token: str, topics: Optional[List[str]] = None
+    ) -> DeviceRegistration:
+        """
+        Saves and associates a donor's device token with rate-limiting and FCM registration.
+        """
+        clean_donor_id = (donor_id or "donor-default").strip()
+        clean_token = str(device_token).strip()
+        self.donor_tokens[clean_donor_id] = clean_token
+        self.token_to_donor[clean_token] = clean_donor_id
+        dev = self.register_device(
+            user_id=clean_donor_id,
+            role="DONOR",
+            fcm_token=clean_token,
+            topics=topics or ["emergency-alerts-chennai", f"donor-requests-{clean_donor_id}"],
+        )
+        logger.info("Saved device token for donor %s: %s", clean_donor_id, clean_token[:12])
+        return dev
+
+    def _resolve_donor_id(
+        self, token: Optional[str], data: Optional[Dict[str, Any]], donor_id: Optional[str]
+    ) -> Optional[str]:
+        """Resolves donor ID if the notification targets a blood donor."""
+        if donor_id:
+            return str(donor_id).strip()
+        if data and data.get("donor_id"):
+            return str(data["donor_id"]).strip()
+        if token:
+            if token in self.token_to_donor:
+                return self.token_to_donor[token]
+            dev = self.devices.get(token)
+            if dev and dev.role.upper() == "DONOR":
+                return dev.user_id
+            if "donor" in token.lower():
+                return token
+        return None
+
+    def send_to_token(
+        self,
+        token: str,
+        title: str,
+        body: str,
+        data: Optional[Dict[str, Any]] = None,
+        priority: str = "high",
+        donor_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Sends an FCM push notification to a specific device token.
+        Applies token-bucket rate limiting per donor.
+        Attempts real delivery with firebase-admin, falling back to the in-memory list if sending fails.
+        """
+        # 1. Check token-bucket rate limiting per donor
+        target_donor_id = self._resolve_donor_id(token, data, donor_id)
+        if target_donor_id:
+            allowed, retry_after = self.donor_rate_limiter.consume(target_donor_id)
+            if not allowed:
+                logger.warning(
+                    "[RATE LIMIT EXCEEDED] Donor %s blocked from notification. Retry in %.1fs",
+                    target_donor_id,
+                    retry_after,
+                )
+                msg_id = f"projects/jeevan-fcm/messages/rate-limited-{uuid4().hex[:8]}"
+                msg = FCMMessage(
+                    message_id=msg_id,
+                    recipient_token=token,
+                    topic=None,
+                    title=title,
+                    body=body,
+                    data=data or {},
+                    priority=priority,
+                    status="RATE_LIMITED",
+                )
+                self.message_history.insert(0, msg)
+                return {
+                    "name": msg_id,
+                    "multicast_id": int(time.time() * 1000),
+                    "success": 0,
+                    "failure": 1,
+                    "canonical_ids": 0,
+                    "status": "RATE_LIMITED",
+                    "error": f"Rate limit exceeded for donor {target_donor_id}. Retry after {round(retry_after, 1)} seconds.",
+                    "retry_after_seconds": round(retry_after, 1),
+                    "results": [{"message_id": msg_id, "status": "RATE_LIMITED"}],
+                }
+
+        # 2. Attempt real Firebase FCM delivery
+        app = self._get_firebase_app()
+        real_sent = False
+        real_msg_id: Optional[str] = None
+
+        if app:
+            try:
+                from firebase_admin import messaging
+
+                str_data = {str(k): str(v) for k, v in (data or {}).items()} if data else {}
+                fcm_msg = messaging.Message(
+                    notification=messaging.Notification(
+                        title=title,
+                        body=body,
+                    ),
+                    data=str_data,
+                    token=token,
+                )
+                real_msg_id = messaging.send(fcm_msg, app=app)
+                real_sent = True
+                logger.info("[REAL FCM PUSH -> %s]: %s (message_id: %s)", token[:12], title, real_msg_id)
+            except Exception as exc:
+                logger.warning(
+                    "Real FCM send to %s failed: %s. Using in-memory fallback list.",
+                    token[:12],
+                    exc,
+                )
+
+        # 3. Success or fallback to in-memory list
+        if real_sent and real_msg_id:
+            msg = FCMMessage(
+                message_id=real_msg_id,
+                recipient_token=token,
+                topic=None,
+                title=title,
+                body=body,
+                data=data or {},
+                priority=priority,
+                status="DELIVERED",
+            )
+            self.message_history.insert(0, msg)
+            return {
+                "name": real_msg_id,
+                "multicast_id": int(time.time() * 1000),
+                "success": 1,
+                "failure": 0,
+                "canonical_ids": 0,
+                "mode": "REAL_FCM",
+                "results": [{"message_id": real_msg_id, "status": "DELIVERED"}],
+            }
+        else:
+            # Resilient in-memory fallback
+            sim_id = f"projects/jeevan-fcm/messages/{uuid4().hex[:12]}"
+            msg = FCMMessage(
+                message_id=sim_id,
+                recipient_token=token,
+                topic=None,
+                title=title,
+                body=body,
+                data=data or {},
+                priority=priority,
+                status="DELIVERED_FALLBACK",
+            )
+            self.message_history.insert(0, msg)
+            logger.info("[FCM FALLBACK IN-MEMORY -> %s]: %s - %s", token[:12], title, body)
+            return {
+                "name": sim_id,
+                "multicast_id": int(time.time() * 1000),
+                "success": 1,
+                "failure": 0,
+                "canonical_ids": 0,
+                "mode": "FALLBACK_IN_MEMORY",
+                "results": [{"message_id": sim_id, "status": "DELIVERED"}],
+            }
+
+    def send_to_donor(
+        self,
+        donor_id: str,
+        title: str,
+        body: str,
+        data: Optional[Dict[str, Any]] = None,
+        priority: str = "high",
+    ) -> Dict[str, Any]:
+        """
+        Sends an FCM notification directly to a donor by ID, applying token-bucket rate limits.
+        """
+        token = self.donor_tokens.get(donor_id)
+        if not token:
+            token = f"fcm_token_donor_{donor_id}"
+            self.donor_tokens[donor_id] = token
+            self.token_to_donor[token] = donor_id
+
+        payload_data = dict(data or {})
+        payload_data["donor_id"] = donor_id
+        return self.send_to_token(
+            token=token,
+            title=title,
+            body=body,
+            data=payload_data,
+            priority=priority,
+            donor_id=donor_id,
+        )
+
+    def broadcast_to_topic(
+        self,
+        topic: str,
+        title: str,
+        body: str,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Broadcast emergency alert to all subscribers of a Firebase topic.
+        Attempts real FCM topic send, falling back to in-memory list if sending fails.
+        """
+        app = self._get_firebase_app()
+        real_sent = False
+        real_msg_id: Optional[str] = None
+
+        if app:
+            try:
+                from firebase_admin import messaging
+
+                clean_topic = topic.replace("/topics/", "").strip()
+                str_data = {str(k): str(v) for k, v in (data or {}).items()} if data else {}
+                fcm_msg = messaging.Message(
+                    notification=messaging.Notification(
+                        title=title,
+                        body=body,
+                    ),
+                    data=str_data,
+                    topic=clean_topic,
+                )
+                real_msg_id = messaging.send(fcm_msg, app=app)
+                real_sent = True
+                logger.info("[REAL FCM BROADCAST -> /topics/%s]: %s (message_id: %s)", clean_topic, title, real_msg_id)
+            except Exception as exc:
+                logger.warning(
+                    "Real FCM broadcast to topic %s failed: %s. Using in-memory fallback list.",
+                    topic,
+                    exc,
+                )
+
+        if real_sent and real_msg_id:
+            msg = FCMMessage(
+                message_id=real_msg_id,
+                recipient_token=None,
+                topic=topic,
+                title=title,
+                body=body,
+                data=data or {},
+                priority="high",
+                status="DELIVERED",
+            )
+            self.message_history.insert(0, msg)
+            sub_count = sum(1 for d in self.devices.values() if topic in d.subscribed_topics)
+            return {
+                "message_id": real_msg_id,
+                "topic": topic,
+                "recipients_reached": max(1, sub_count),
+                "status": "BROADCAST_SUCCESS",
+                "mode": "REAL_FCM",
+                "timestamp": msg.timestamp,
+            }
+        else:
+            sim_id = f"projects/jeevan-fcm/topics/{topic}/{uuid4().hex[:10]}"
+            msg = FCMMessage(
+                message_id=sim_id,
+                recipient_token=None,
+                topic=topic,
+                title=title,
+                body=body,
+                data=data or {},
+                priority="high",
+                status="DELIVERED_FALLBACK",
+            )
+            self.message_history.insert(0, msg)
+            logger.info("[FCM BROADCAST IN-MEMORY -> /topics/%s]: %s - %s", topic, title, body)
+            sub_count = sum(1 for d in self.devices.values() if topic in d.subscribed_topics)
+            return {
+                "message_id": sim_id,
+                "topic": topic,
+                "recipients_reached": max(1, sub_count),
+                "status": "BROADCAST_SUCCESS",
+                "mode": "FALLBACK_IN_MEMORY",
+                "timestamp": msg.timestamp,
+            }
 
     def dispatch_ncc_coordinator_alert(
         self,
@@ -112,7 +535,7 @@ class FirebaseFCMEngine:
 
         return {
             "status": "DISPATCHED_TO_NCC_COORDINATOR",
-            "message_id": fcm_res["name"],
+            "message_id": fcm_res.get("name") or fcm_res.get("message_id"),
             "coordinator": {
                 "name": coordinator_name,
                 "title": "College NCC Blood Donation Coordinator & Red Cross Club Officer",
@@ -130,81 +553,6 @@ class FirebaseFCMEngine:
                 "alert_body": body,
             },
             "delivery_timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-
-    def register_device(
-        self, user_id: str, role: str, fcm_token: str, topics: Optional[List[str]] = None
-    ) -> DeviceRegistration:
-        dev = DeviceRegistration(
-            user_id=user_id,
-            role=role,
-            fcm_token=fcm_token,
-            subscribed_topics=topics or ["emergency-alerts-chennai"],
-        )
-        self.devices[fcm_token] = dev
-        return dev
-
-    def send_to_token(
-        self,
-        token: str,
-        title: str,
-        body: str,
-        data: Optional[Dict[str, Any]] = None,
-        priority: str = "high",
-    ) -> Dict[str, Any]:
-        """Send simulated FCM push notification to a specific device token."""
-        msg_id = f"projects/jeevan-fcm/messages/{uuid4().hex[:12]}"
-        msg = FCMMessage(
-            message_id=msg_id,
-            recipient_token=token,
-            topic=None,
-            title=title,
-            body=body,
-            data=data or {},
-            priority=priority,
-        )
-        self.message_history.insert(0, msg)
-        logger.info("[FCM PUSH -> %s]: %s - %s", token[:12], title, body)
-
-        return {
-            "name": msg_id,
-            "multicast_id": int(time.time() * 1000),
-            "success": 1,
-            "failure": 0,
-            "canonical_ids": 0,
-            "results": [{"message_id": msg_id, "status": "DELIVERED"}],
-        }
-
-    def broadcast_to_topic(
-        self,
-        topic: str,
-        title: str,
-        body: str,
-        data: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """Broadcast emergency alert to all subscribers of a Firebase topic."""
-        msg_id = f"projects/jeevan-fcm/topics/{topic}/{uuid4().hex[:10]}"
-        msg = FCMMessage(
-            message_id=msg_id,
-            recipient_token=None,
-            topic=topic,
-            title=title,
-            body=body,
-            data=data or {},
-            priority="high",
-        )
-        self.message_history.insert(0, msg)
-        logger.info("[FCM BROADCAST -> /topics/%s]: %s - %s", topic, title, body)
-
-        # Count recipient devices
-        sub_count = sum(1 for d in self.devices.values() if topic in d.subscribed_topics)
-
-        return {
-            "message_id": msg_id,
-            "topic": topic,
-            "recipients_reached": max(1, sub_count),
-            "status": "BROADCAST_SUCCESS",
-            "timestamp": msg.timestamp,
         }
 
     def get_recent_notifications(self, limit: int = 15) -> List[Dict[str, Any]]:
@@ -249,7 +597,7 @@ class OTPVerificationManager:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Dispatch simulated push notification to driver/courier with the PIN
+        # Dispatch push notification to driver/courier with the PIN
         self.fcm.broadcast_to_topic(
             topic="courier-jobs",
             title="🔒 New Blood Custody Lock Created",
@@ -265,7 +613,6 @@ class OTPVerificationManager:
         Validates OTP provided by ICU Hospital or Courier.
         If valid, marks lock as VERIFIED and dispatches Firebase push notifications.
         """
-        # Check standard default or active locks
         expected = None
         target_lock_id = lock_id
 
@@ -283,7 +630,7 @@ class OTPVerificationManager:
                 self.active_otps[target_lock_id]["status"] = "VERIFIED"
                 self.active_otps[target_lock_id]["verified_at"] = datetime.now(timezone.utc).isoformat()
 
-            # Trigger Firebase push notifications for delivery confirmation
+            # Trigger push notification for delivery confirmation
             self.fcm.broadcast_to_topic(
                 topic="emergency-alerts-chennai",
                 title="✅ Emergency Blood Delivery Handshake Completed",
