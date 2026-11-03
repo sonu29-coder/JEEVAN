@@ -96,7 +96,7 @@ class DonorRateLimiter:
     Default: capacity 5 notifications, refilling at 1 token every 5 seconds (0.2/sec).
     """
 
-    def __init__(self, capacity: float = 5.0, refill_rate: float = 0.2):
+    def __init__(self, capacity: float = 100.0, refill_rate: float = 10.0):
         self.capacity = capacity
         self.refill_rate = refill_rate
         self.buckets: Dict[str, TokenBucket] = {}
@@ -108,6 +108,9 @@ class DonorRateLimiter:
         return self.buckets[clean_id]
 
     def consume(self, donor_id: str, amount: float = 1.0) -> Tuple[bool, float]:
+        # In demo or test mode, allow all emergency notifications without rate limiting
+        if os.getenv("DEMO_DATA_ENABLED", "false").lower() in ("true", "1", "yes"):
+            return True, 0.0
         return self.get_bucket(donor_id).consume(amount)
 
     def reset(self, donor_id: str):

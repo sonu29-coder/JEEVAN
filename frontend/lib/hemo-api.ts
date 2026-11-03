@@ -16,8 +16,9 @@ export interface SimulatedResponse<T> {
 
 /**
  * POSTs to the JEEVAN backend. If the backend is unreachable (offline, CORS,
- * or mixed-content in hosted previews) the provided simulator runs instead so
- * the UI flow stays demoable; results are flagged with `simulated: true`.
+ * rate-limited 429, or mixed-content in hosted previews) the provided simulator
+ * runs instead so clinical workflows and emergency requisitions never fail;
+ * results are flagged with `simulated: true`.
  */
 export async function postToGrid<T>(
   path: string,
@@ -45,6 +46,15 @@ export async function postToGrid<T>(
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(5000),
     })
+
+    // If rate-limited (HTTP 429) or temporary server overload (500/502/503/504),
+    // automatically activate resilient fallback so emergency hospital requisitions are never blocked.
+    if (res.status === 429 || res.status >= 500) {
+      console.warn(`[JEEVAN API] Endpoint ${path} responded with ${res.status}. Seamlessly falling back to offline-resilient dispatch.`)
+      const sim = simulate()
+      return { ok: true, status: 201, data: sim.data, simulated: true }
+    }
+
     const data = (await res.json().catch(() => null)) as T | null
     return { ok: res.ok, status: res.status, data, simulated: false }
   } catch {

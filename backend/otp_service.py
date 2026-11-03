@@ -96,17 +96,20 @@ def send_donor_phone_otp(
 
     if record:
         last_sent = ensure_utc(record.last_otp_sent_at)
-        # Check 60-second resend cooldown
-        if last_sent and (now - last_sent).total_seconds() < OTP_RESEND_COOLDOWN_SECONDS:
-            remaining = int(OTP_RESEND_COOLDOWN_SECONDS - (now - last_sent).total_seconds())
+        # Check resend cooldown - bypass in demo mode to prevent 429 lockouts
+        is_demo = os.getenv("DEMO_DATA_ENABLED", "false").lower() in ("true", "1", "yes") or os.getenv("SMS_PROVIDER", "").lower() == "test"
+        cooldown = 1 if is_demo else OTP_RESEND_COOLDOWN_SECONDS
+        if last_sent and (now - last_sent).total_seconds() < cooldown:
+            remaining = int(cooldown - (now - last_sent).total_seconds())
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail=f"Please wait {remaining} seconds before requesting another code.",
             )
 
-        # Check hourly rate limit
+        # Check hourly rate limit - relaxed in demo mode
+        max_hourly = 1000 if is_demo else MAX_SENDS_PER_HOUR
         if last_sent and (now - last_sent).total_seconds() < 3600:
-            if record.send_count_hour >= MAX_SENDS_PER_HOUR:
+            if record.send_count_hour >= max_hourly:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     detail="Too many attempts. Please try again later.",
