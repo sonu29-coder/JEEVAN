@@ -87,7 +87,7 @@ def get_tomtom_traffic_multiplier(
     )
 
     try:
-        response = httpx.get(url, timeout=3.5)
+        response = httpx.get(url, timeout=1.0)
         if response.status_code == 200:
             data = response.json()
             flow = data.get("flowSegmentData", {})
@@ -501,6 +501,24 @@ def load_graphml_with_osmnx(graphml_path: Path | str = GRAPHML_PATH) -> RoadGrap
             travel_time=travel_time,
         )
 
+    
+    # New Chennai Hospital Connections
+    g.add_edge("junc-central", "icu-rggh", distance_km=0.6, base_speed_kmh=30.0, traffic_factor=1.0, signals_count=0, road_name="MMC Emergency Access")
+    g.add_edge("junc-gemini", "icu-apollo", distance_km=0.8, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=1, road_name="Greams Road")
+    g.add_edge("junc-central", "icu-stanley", distance_km=3.5, base_speed_kmh=35.0, traffic_factor=1.2, signals_count=2, road_name="Old Jail Road")
+    g.add_edge("junc-kilpauk", "icu-kmc", distance_km=0.4, base_speed_kmh=30.0, traffic_factor=1.0, signals_count=0, road_name="Kilpauk Medical Access")
+    g.add_edge("junc-kathipara", "icu-miot", distance_km=2.2, base_speed_kmh=45.0, traffic_factor=1.1, signals_count=1, road_name="Mount Poonamallee Road")
+    g.add_edge("junc-porur", "icu-srmc", distance_km=1.5, base_speed_kmh=40.0, traffic_factor=1.1, signals_count=1, road_name="Porur Highway")
+    g.add_edge("junc-gemini", "icu-kauvery", distance_km=2.4, base_speed_kmh=35.0, traffic_factor=1.2, signals_count=2, road_name="TTK Road")
+    g.add_edge("junc-madhya-kailash", "icu-fortis", distance_km=1.2, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="Gandhi Nagar 1st Main")
+    g.add_edge("junc-koyambedu", "icu-sims", distance_km=2.6, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=2, road_name="Jawaharlal Nehru Salai")
+    g.add_edge("junc-anna-arch", "icu-billroth", distance_km=1.1, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="Shenoy Nagar Main Rd")
+    g.add_edge("junc-gemini", "icu-grh", distance_km=1.6, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=1, road_name="Royapettah High Rd")
+    g.add_edge("junc-koyambedu", "icu-vijaya", distance_km=2.8, base_speed_kmh=40.0, traffic_factor=1.2, signals_count=2, road_name="NSK Salai")
+    g.add_edge("junc-kilpauk", "icu-mehta", distance_km=1.2, base_speed_kmh=35.0, traffic_factor=1.0, signals_count=1, road_name="McNichols Road")
+    g.add_edge("junc-anna-arch", "icu-mgm", distance_km=1.8, base_speed_kmh=35.0, traffic_factor=1.1, signals_count=1, road_name="Nelson Manickam Road")
+    g.add_edge("junc-madhya-kailash", "icu-gleneagles", distance_km=9.8, base_speed_kmh=50.0, traffic_factor=1.2, signals_count=3, road_name="Rajiv Gandhi Salai OMR")
+
     return g
 
 
@@ -522,11 +540,27 @@ def build_default_chennai_graph(graphml_path: Optional[Path | str] = None) -> Ro
     # Dynamic traffic factor for arterial roads fetched from TomTom (fallback 1.2)
     tf_default = get_tomtom_traffic_multiplier()
 
-    # 1. ICUs (Chennai Synthetic Hubs)
-    g.add_node(Node("icu-elite", "Kilpauk Medical & Critical Care [SYNTHETIC DEMO]", 13.0784, 80.2415, "icu"))
-    g.add_node(Node("icu-westfort", "Anna Nagar Multispecialty Hospital [SYNTHETIC DEMO]", 13.0850, 80.2101, "icu"))
-    g.add_node(Node("icu-daya", "Porur Surgical Institute [SYNTHETIC DEMO]", 13.0382, 80.1565, "icu"))
-    g.add_node(Node("icu-jubilee", "Apollo-Greams Corridor Care [SYNTHETIC DEMO]", 13.0610, 80.2510, "icu"))
+    # 1. ICUs (Chennai Premier Hospital Hubs)
+    g.add_node(Node("icu-rggh", "Rajiv Gandhi Government General Hospital (MMC)", 13.0827, 80.2785, "icu"))
+    g.add_node(Node("icu-apollo", "Apollo Hospital, Greams Road", 13.0558, 80.2514, "icu"))
+    g.add_node(Node("icu-stanley", "Government Stanley Medical College Hospital", 13.1075, 80.2872, "icu"))
+    g.add_node(Node("icu-kmc", "Government Kilpauk Medical College Hospital", 13.0784, 80.2415, "icu"))
+    g.add_node(Node("icu-miot", "MIOT International Hospital", 13.0189, 80.1793, "icu"))
+    g.add_node(Node("icu-srmc", "Sri Ramachandra Medical Centre", 13.0382, 80.1428, "icu"))
+    g.add_node(Node("icu-kauvery", "Kauvery Hospital, Alwarpet", 13.0336, 80.2520, "icu"))
+    g.add_node(Node("icu-fortis", "Fortis Malar Hospital, Adyar", 13.0063, 80.2565, "icu"))
+    g.add_node(Node("icu-sims", "SIMS Hospital, Vadapalani", 13.0515, 80.2120, "icu"))
+    g.add_node(Node("icu-billroth", "Billroth Hospital, Shenoy Nagar", 13.0772, 80.2248, "icu"))
+    g.add_node(Node("icu-grh", "Government Royapettah Hospital", 13.0554, 80.2642, "icu"))
+    g.add_node(Node("icu-vijaya", "Vijaya Hospital, Vadapalani", 13.0505, 80.2105, "icu"))
+    g.add_node(Node("icu-mehta", "Dr. Mehta's Multispecialty Hospital", 13.0715, 80.2390, "icu"))
+    g.add_node(Node("icu-mgm", "MGM Healthcare, Aminjikarai", 13.0712, 80.2215, "icu"))
+    g.add_node(Node("icu-gleneagles", "Gleneagles Global Health City", 12.9063, 80.2014, "icu"))
+    # Legacy compatibility nodes
+    g.add_node(Node("icu-elite", "Rajiv Gandhi Govt General Hospital [MMC]", 13.0827, 80.2785, "icu"))
+    g.add_node(Node("icu-westfort", "Anna Nagar Multispecialty Hospital", 13.0850, 80.2101, "icu"))
+    g.add_node(Node("icu-daya", "Porur Surgical Institute", 13.0382, 80.1565, "icu"))
+    g.add_node(Node("icu-jubilee", "Apollo-Greams Corridor Care", 13.0610, 80.2510, "icu"))
 
     # 2. Blood Banks (Chennai Synthetic Hubs)
     g.add_node(Node("bank-gmc", "Madras Govt Medical College Blood Centre [SYNTHETIC DEMO]", 13.0833, 80.2783, "bank"))

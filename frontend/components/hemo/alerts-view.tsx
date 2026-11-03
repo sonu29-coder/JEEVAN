@@ -71,7 +71,7 @@ export function AlertsView() {
                   {e.group}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-lg font-bold">{hospital?.name}</p>
+                  <p className="text-lg font-bold">{e.hospitalName || hospital?.name || "Chennai Emergency Care Hospital"}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {`${e.units} ${e.units === 1 ? 'unit' : 'units'} of ${COMPONENT_LABELS[e.component].toLowerCase()}`}
                   </p>

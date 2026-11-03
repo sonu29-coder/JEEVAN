@@ -63,7 +63,7 @@ export function ActiveIcuRequestsCard() {
       {emergencies.length > 0 ? (
         <ul className="mt-4 flex flex-col divide-y divide-border/60">
           {emergencies.map((req) => {
-            const facility = siteById(ICUS, req.icuId)?.short || req.icuId || 'Central ICU'
+            const facility = req.hospitalName || siteById(ICUS, req.icuId)?.name || siteById(ICUS, req.icuId)?.short || req.icuId || 'Central ICU'
             const isCritical = req.urgency === 'CRITICAL'
 
             return (

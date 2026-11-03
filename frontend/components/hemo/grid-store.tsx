@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { clearSavedAuth, loadSavedAuth, logoutUser, saveAuthSession, type AuthRole } from '@/lib/hemo-auth'
-import { BANKS, SEED_EMERGENCIES, seedStock, siteById, type Emergency, type StockItem } from '@/lib/hemo-data'
+import { BANKS, ICUS, SEED_EMERGENCIES, seedStock, siteById, type Emergency, type StockItem } from '@/lib/hemo-data'
 
 export type Tab = 'home' | 'map' | 'blood' | 'alerts' | 'verify' | 'request'
 export type ToastTone = 'success' | 'error' | 'info'
@@ -399,24 +399,28 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
       if (res.ok) {
         const reqs = await res.json()
         if (Array.isArray(reqs) && reqs.length > 0) {
-          const liveEmergencies: Emergency[] = reqs.map((r: any) => ({
-            id: r.id,
-            icuId: r.icu_id || 'icu-elite',
-            group: r.blood_type,
-            component:
-              r.component === 'Platelets'
-                ? 'Platelets'
-                : r.component === 'Whole Blood'
-                ? 'Whole Blood'
-                : 'PRBC',
-            urgency:
-              r.urgency_level === 'CRITICAL'
-                ? 'CRITICAL'
-                : r.urgency_level === 'ROUTINE'
-                ? 'ROUTINE'
-                : 'HIGH',
-            units: r.units,
-          }))
+          const liveEmergencies: Emergency[] = reqs.map((r: any) => {
+            const matchedHosp = r.hospital_name ? ICUS.find((h: any) => h.name.toLowerCase() === r.hospital_name.toLowerCase()) : undefined
+            return {
+              id: r.id,
+              icuId: r.icu_id || matchedHosp?.id || 'icu-rggh',
+              hospitalName: r.hospital_name || matchedHosp?.name,
+              group: r.blood_type,
+              component:
+                r.component === 'Platelets'
+                  ? 'Platelets'
+                  : r.component === 'Whole Blood'
+                  ? 'Whole Blood'
+                  : 'PRBC',
+              urgency:
+                r.urgency_level === 'CRITICAL'
+                  ? 'CRITICAL'
+                  : r.urgency_level === 'ROUTINE'
+                  ? 'ROUTINE'
+                  : 'HIGH',
+              units: r.units,
+            }
+          })
           setEmergencies(liveEmergencies)
         }
       }
@@ -427,8 +431,9 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
     (emergency: Emergency) => {
       setEmergencies((list) => [emergency, ...list.filter((e) => e.id !== emergency.id)])
       // Automatically trigger high-priority NCC Coordinator Pop-Up!
+      const hospObj = siteById(ICUS, emergency.icuId)
       openNccAlert({
-        hospital_name: emergency.icuId === 'icu-elite' ? 'Kilpauk Medical College Hospital' : 'Apollo Greams Trauma ICU',
+        hospital_name: emergency.hospitalName || hospObj?.name || 'Chennai Emergency Care Hospital',
         blood_group: emergency.group,
         units: emergency.units,
         urgency: emergency.urgency,
@@ -442,7 +447,7 @@ export function GridProvider({ children, initialRole }: { children: ReactNode; i
   }, [])
 
   const createFastDispatch = useCallback(
-    (group: string = 'O-', bankId: string = 'bank-ima', icuId: string = 'icu-elite') => {
+    (group: string = 'O-', bankId: string = 'bank-ima', icuId: string = 'icu-rggh') => {
       const newLockId = `LCK-${Math.random().toString(16).slice(2, 6).toUpperCase()}`
       const newStockId = `s-${Date.now().toString(36)}`
       const newDispatch: StockItem = {

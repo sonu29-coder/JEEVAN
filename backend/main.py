@@ -2325,7 +2325,7 @@ HEMO_LOCKS: dict[str, dict] = {
         "bank_id": "bank-ima",
         "icu_id": "icu-elite",
         "locked_until": int((datetime.now(timezone.utc) + timedelta(minutes=13)).timestamp() * 1000),
-        "holder": "Kilpauk Medical & Critical Care [SYNTHETIC DEMO]",
+        "holder": "Rajiv Gandhi Govt General Hospital [MMC DEMO]",
         "otp": "8492",
     },
 }
@@ -3084,7 +3084,7 @@ def schedule_blood_unit(
         "expiry_date": inv.expiry_date.isoformat(),
         "scheduled_date": sched_date.isoformat(),
         "procedure_type": body.procedure_type or "Elective Surgical Transfusion",
-        "recipient_hospital": body.recipient_hospital or "Kilpauk Medical College Hospital",
+        "recipient_hospital": body.recipient_hospital or "Rajiv Gandhi Government General Hospital (MMC)",
         "fefo_priority_rank": fefo_rank,
         "remaining_storage_months": storage_duration_months,
         "max_approved_storage_months": max_months,
@@ -3362,12 +3362,37 @@ def request_blood_dispatch(
 
     # Map hospital name and position
     HOSPITAL_NAME_MAP = {
-        "icu-elite": "Kilpauk Medical College Hospital",
+        "icu-rggh": "Rajiv Gandhi Government General Hospital (MMC)",
+        "icu-apollo": "Apollo Hospital, Greams Road",
+        "icu-apollo-greams": "Apollo Hospital, Greams Road",
+        "icu-stanley": "Government Stanley Medical College Hospital",
+        "icu-kmc": "Government Kilpauk Medical College Hospital",
+        "icu-miot": "MIOT International Hospital",
+        "icu-srmc": "Sri Ramachandra Medical Centre (SRMC)",
+        "icu-kauvery": "Kauvery Hospital, Alwarpet",
+        "icu-fortis": "Fortis Malar Hospital, Adyar",
+        "icu-sims": "SIMS Hospital, Vadapalani",
+        "icu-billroth": "Billroth Hospital, Shenoy Nagar",
+        "icu-grh": "Government Royapettah Hospital",
+        "icu-vijaya": "Vijaya Hospital, Vadapalani",
+        "icu-mehta": "Dr. Mehta's Multispecialty Hospital",
+        "icu-mgm": "MGM Healthcare, Aminjikarai",
+        "icu-gleneagles": "Gleneagles Global Health City",
         "icu-westfort": "Anna Nagar Superspeciality Hospital",
         "icu-daya": "Porur Emergency Care Centre",
         "icu-jubilee": "Apollo Greams Trauma ICU",
+        "icu-elite": "Rajiv Gandhi Government General Hospital (MMC)",
     }
-    hosp_name = HOSPITAL_NAME_MAP.get(body.icu_id, body.icu_id.replace("icu-", "").title() + " Hospital")
+    hosp_name = HOSPITAL_NAME_MAP.get(body.icu_id)
+    if not hosp_name:
+        try:
+            db_hosp = session.scalar(select(Hospital).where(Hospital.id == body.icu_id))
+            if db_hosp:
+                hosp_name = db_hosp.name
+        except Exception:
+            pass
+    if not hosp_name:
+        hosp_name = body.icu_id.replace("icu-", "").replace("-", " ").title() + " Hospital"
 
     # Persist request in database (PostgreSQL / SQLite)
     try:
@@ -3442,40 +3467,95 @@ def list_icu_requests(
     }
 
     if not db_requests:
-        # Provide seed fallback items matching Next.js SEED_EMERGENCIES
+        # Provide seed fallback items matching Next.js SEED_EMERGENCIES across Chennai hospitals
         return [
             ICUHospitalBloodRequest(
                 id="REQ-4F2A",
-                hospital_name="Kilpauk Medical College Hospital",
+                hospital_name="Rajiv Gandhi Government General Hospital (MMC)",
                 blood_type="O-",
                 units=2,
                 urgency_level="CRITICAL",
                 status="PENDING",
                 eta_minutes=9,
                 component="PRBC",
-                icu_id="icu-elite",
+                icu_id="icu-rggh",
             ),
             ICUHospitalBloodRequest(
                 id="REQ-9B17",
-                hospital_name="Anna Nagar Superspeciality Hospital",
+                hospital_name="Apollo Hospital, Greams Road",
                 blood_type="B+",
                 units=2,
                 urgency_level="HIGH",
                 status="RESERVED",
                 eta_minutes=24,
                 component="Platelets",
-                icu_id="icu-westfort",
+                icu_id="icu-apollo",
             ),
             ICUHospitalBloodRequest(
                 id="REQ-1C8E",
-                hospital_name="Porur Emergency Care Centre",
+                hospital_name="Government Stanley Medical College Hospital",
                 blood_type="A+",
                 units=1,
                 urgency_level="ROUTINE",
                 status="DELIVERED",
                 eta_minutes=60,
                 component="Whole Blood",
-                icu_id="icu-daya",
+                icu_id="icu-stanley",
+            ),
+            ICUHospitalBloodRequest(
+                id="REQ-7D32",
+                hospital_name="MIOT International Hospital",
+                blood_type="AB-",
+                units=3,
+                urgency_level="HIGH",
+                status="PENDING",
+                eta_minutes=18,
+                component="PRBC",
+                icu_id="icu-miot",
+            ),
+            ICUHospitalBloodRequest(
+                id="REQ-3E51",
+                hospital_name="Sri Ramachandra Medical Centre (SRMC)",
+                blood_type="O+",
+                units=2,
+                urgency_level="ROUTINE",
+                status="DELIVERED",
+                eta_minutes=45,
+                component="Whole Blood",
+                icu_id="icu-srmc",
+            ),
+            ICUHospitalBloodRequest(
+                id="REQ-8A64",
+                hospital_name="Kauvery Hospital, Alwarpet",
+                blood_type="A-",
+                units=1,
+                urgency_level="CRITICAL",
+                status="PENDING",
+                eta_minutes=12,
+                component="PRBC",
+                icu_id="icu-kauvery",
+            ),
+            ICUHospitalBloodRequest(
+                id="REQ-5K90",
+                hospital_name="SIMS Hospital, Vadapalani",
+                blood_type="B-",
+                units=2,
+                urgency_level="HIGH",
+                status="PENDING",
+                eta_minutes=20,
+                component="PRBC",
+                icu_id="icu-sims",
+            ),
+            ICUHospitalBloodRequest(
+                id="REQ-2M44",
+                hospital_name="Fortis Malar Hospital, Adyar",
+                blood_type="AB+",
+                units=4,
+                urgency_level="ROUTINE",
+                status="DELIVERED",
+                eta_minutes=50,
+                component="Platelets",
+                icu_id="icu-fortis",
             ),
         ]
 

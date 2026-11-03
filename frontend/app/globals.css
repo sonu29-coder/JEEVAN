@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter, system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, monospace);
 
   --color-coral: #e8524a;
   --color-coral-strong: #c8322b;

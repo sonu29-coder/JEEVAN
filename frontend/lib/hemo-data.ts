@@ -22,20 +22,37 @@ export const URGENCY_LABELS: Record<Urgency, { title: string; hint: string }> = 
 }
 
 export const LOCK_DURATION_MS = 15 * 60 * 1000
-export const OUR_ICU_ID = 'icu-elite'
+export const OUR_ICU_ID = 'icu-rggh'
 
 export interface Site {
   id: string
   name: string
   short: string
   position: [number, number]
+  zone?: string
+  phone?: string
 }
 
 export const ICUS: Site[] = [
-  { id: 'icu-elite', name: 'Kilpauk Medical College Hospital', short: 'Kilpauk MCH', position: [13.0784, 80.2415] },
-  { id: 'icu-westfort', name: 'Anna Nagar Superspeciality Hospital', short: 'Anna Nagar SSH', position: [13.0850, 80.2101] },
-  { id: 'icu-daya', name: 'Porur Emergency Care Centre', short: 'Porur ECC', position: [13.0382, 80.1565] },
-  { id: 'icu-jubilee', name: 'Apollo Greams Trauma ICU', short: 'Greams Trauma', position: [13.0528, 80.2508] },
+  { id: 'icu-rggh', name: 'Rajiv Gandhi Government General Hospital (MMC)', short: 'RGGH MMC', position: [13.0827, 80.2785], zone: 'Park Town / Central Chennai', phone: '+91 44 2530 5000' },
+  { id: 'icu-apollo', name: 'Apollo Hospital, Greams Road', short: 'Apollo Greams', position: [13.0558, 80.2514], zone: 'Thousand Lights / Greams Rd', phone: '+91 44 2829 0200' },
+  { id: 'icu-stanley', name: 'Government Stanley Medical College Hospital', short: 'Stanley MCH', position: [13.1075, 80.2872], zone: 'Old Jail Rd, Royapuram', phone: '+91 44 2528 1351' },
+  { id: 'icu-kmc', name: 'Government Kilpauk Medical College Hospital', short: 'Kilpauk MCH', position: [13.0784, 80.2415], zone: 'Kilpauk, Poonamallee High Rd', phone: '+91 44 2836 4951' },
+  { id: 'icu-miot', name: 'MIOT International Hospital', short: 'MIOT Hospital', position: [13.0189, 80.1793], zone: 'Manapakkam, Mount Poonamallee', phone: '+91 44 4200 2288' },
+  { id: 'icu-srmc', name: 'Sri Ramachandra Medical Centre (SRMC)', short: 'SRMC Porur', position: [13.0382, 80.1428], zone: 'Porur, Chennai West', phone: '+91 44 4592 8500' },
+  { id: 'icu-kauvery', name: 'Kauvery Hospital, Alwarpet', short: 'Kauvery Alwarpet', position: [13.0336, 80.2520], zone: 'Alwarpet / TTK Road', phone: '+91 44 4000 6000' },
+  { id: 'icu-fortis', name: 'Fortis Malar Hospital, Adyar', short: 'Fortis Malar', position: [13.0063, 80.2565], zone: 'Gandhi Nagar, Adyar', phone: '+91 44 4289 2222' },
+  { id: 'icu-sims', name: 'SIMS Hospital, Vadapalani', short: 'SIMS Vadapalani', position: [13.0515, 80.2120], zone: 'Jawaharlal Nehru Salai, Vadapalani', phone: '+91 44 2000 2001' },
+  { id: 'icu-billroth', name: 'Billroth Hospital, Shenoy Nagar', short: 'Billroth Hospital', position: [13.0772, 80.2248], zone: 'Shenoy Nagar, Chennai', phone: '+91 44 4292 1777' },
+  { id: 'icu-grh', name: 'Government Royapettah Hospital', short: 'Royapettah Govt', position: [13.0554, 80.2642], zone: 'Royapettah High Rd', phone: '+91 44 2848 3051' },
+  { id: 'icu-vijaya', name: 'Vijaya Hospital, Vadapalani', short: 'Vijaya Hospital', position: [13.0505, 80.2105], zone: 'NSK Salai, Vadapalani', phone: '+91 44 6664 6664' },
+  { id: 'icu-mehta', name: "Dr. Mehta's Multispecialty Hospital", short: "Dr. Mehta's", position: [13.0715, 80.2390], zone: 'McNichols Rd, Chetpet', phone: '+91 44 4227 1001' },
+  { id: 'icu-mgm', name: 'MGM Healthcare, Aminjikarai', short: 'MGM Healthcare', position: [13.0712, 80.2215], zone: 'Nelson Manickam Rd', phone: '+91 44 4524 2424' },
+  { id: 'icu-gleneagles', name: 'Gleneagles Global Health City', short: 'Gleneagles Global', position: [12.9063, 80.2014], zone: 'Perumbakkam, OMR Link', phone: '+91 44 4477 7000' },
+  { id: 'icu-westfort', name: 'Anna Nagar Superspeciality Hospital', short: 'Anna Nagar SSH', position: [13.0850, 80.2101], zone: 'Anna Nagar West', phone: '+91 44 2626 1234' },
+  { id: 'icu-daya', name: 'Porur Emergency Care Centre', short: 'Porur ECC', position: [13.0382, 80.1565], zone: 'Porur Junction', phone: '+91 44 2476 5432' },
+  { id: 'icu-jubilee', name: 'Apollo Greams Trauma ICU', short: 'Greams Trauma', position: [13.0528, 80.2508], zone: 'Greams Lane', phone: '+91 44 2829 3333' },
+  { id: 'icu-elite', name: 'Rajiv Gandhi Government General Hospital (MMC)', short: 'RGGH MMC', position: [13.0827, 80.2785], zone: 'Central Chennai', phone: '+91 44 2530 5000' },
 ]
 
 export const BANKS: Site[] = [
@@ -54,10 +71,12 @@ export interface Donor {
 }
 
 export const DONORS: Donor[] = [
-  { id: 'd1', group: 'O-', position: [13.0600, 80.2400], icuId: 'icu-elite' },
-  { id: 'd2', group: 'O-', position: [13.0450, 80.2300], icuId: 'icu-elite' },
-  { id: 'd3', group: 'B+', position: [13.0800, 80.2150], icuId: 'icu-westfort' },
-  { id: 'd4', group: 'B+', position: [13.0350, 80.1600], icuId: 'icu-westfort' },
+  { id: 'd1', group: 'O-', position: [13.0820, 80.2750], icuId: 'icu-rggh' },
+  { id: 'd2', group: 'O-', position: [13.0540, 80.2500], icuId: 'icu-apollo' },
+  { id: 'd3', group: 'B+', position: [13.0180, 80.1800], icuId: 'icu-miot' },
+  { id: 'd4', group: 'B+', position: [13.0370, 80.1450], icuId: 'icu-srmc' },
+  { id: 'd5', group: 'A-', position: [13.0320, 80.2510], icuId: 'icu-kauvery' },
+  { id: 'd6', group: 'AB-', position: [13.0500, 80.2110], icuId: 'icu-sims' },
 ]
 
 export interface StockItem {
@@ -80,15 +99,16 @@ export interface Emergency {
   urgency: Urgency
   units: number
   clinicalReason?: string
+  hospitalName?: string
 }
 
 export function seedStock(now: number): StockItem[] {
   const free = { lockedByIcuId: null, lockedUntil: null, lockId: null }
   return [
-    { id: 's1', bankId: 'bank-ima', group: 'O-', component: 'PRBC', units: 4, expiresInDays: 9, lockedByIcuId: 'icu-westfort', lockedUntil: now + 11 * 60_000 + 23_000, lockId: 'LCK-8F21' },
+    { id: 's1', bankId: 'bank-ima', group: 'O-', component: 'PRBC', units: 4, expiresInDays: 9, lockedByIcuId: 'icu-apollo', lockedUntil: now + 11 * 60_000 + 23_000, lockId: 'LCK-8F21' },
     { id: 's2', bankId: 'bank-gmc', group: 'O+', component: 'Whole Blood', units: 12, expiresInDays: 14, ...free },
     { id: 's3', bankId: 'bank-jubilee', group: 'A+', component: 'Platelets', units: 6, expiresInDays: 2, ...free },
-    { id: 's4', bankId: 'bank-district', group: 'B-', component: 'PRBC', units: 2, expiresInDays: 11, lockedByIcuId: 'icu-daya', lockedUntil: now + 6 * 60_000 + 8_000, lockId: 'LCK-2C9A' },
+    { id: 's4', bankId: 'bank-district', group: 'B-', component: 'PRBC', units: 2, expiresInDays: 11, lockedByIcuId: 'icu-miot', lockedUntil: now + 6 * 60_000 + 8_000, lockId: 'LCK-2C9A' },
     { id: 's5', bankId: 'bank-amala', group: 'AB+', component: 'Platelets', units: 3, expiresInDays: 1, ...free },
     { id: 's6', bankId: 'bank-ima', group: 'A-', component: 'Whole Blood', units: 5, expiresInDays: 18, lockedByIcuId: OUR_ICU_ID, lockedUntil: now + 13 * 60_000 + 40_000, lockId: 'LCK-71D4' },
     { id: 's7', bankId: 'bank-gmc', group: 'B+', component: 'PRBC', units: 9, expiresInDays: 3, ...free },
@@ -99,12 +119,23 @@ export function seedStock(now: number): StockItem[] {
 }
 
 export const SEED_EMERGENCIES: Emergency[] = [
-  { id: 'REQ-9B17', icuId: 'icu-westfort', group: 'B+', component: 'Whole Blood', urgency: 'HIGH', units: 2 },
-  { id: 'REQ-4F2A', icuId: 'icu-elite', group: 'O-', component: 'PRBC', urgency: 'CRITICAL', units: 2 },
-  { id: 'REQ-1C8E', icuId: 'icu-daya', group: 'A+', component: 'Platelets', urgency: 'ROUTINE', units: 1 },
+  { id: 'REQ-4F2A', icuId: 'icu-rggh', group: 'O-', component: 'PRBC', urgency: 'CRITICAL', units: 2 },
+  { id: 'REQ-9B17', icuId: 'icu-apollo', group: 'B+', component: 'Whole Blood', urgency: 'HIGH', units: 2 },
+  { id: 'REQ-1C8E', icuId: 'icu-stanley', group: 'A+', component: 'Platelets', urgency: 'ROUTINE', units: 1 },
+  { id: 'REQ-7D32', icuId: 'icu-miot', group: 'AB-', component: 'PRBC', urgency: 'HIGH', units: 3 },
+  { id: 'REQ-3E51', icuId: 'icu-srmc', group: 'O+', component: 'Whole Blood', urgency: 'ROUTINE', units: 2 },
+  { id: 'REQ-8A64', icuId: 'icu-kauvery', group: 'A-', component: 'PRBC', urgency: 'CRITICAL', units: 1 },
+  { id: 'REQ-5K90', icuId: 'icu-sims', group: 'B-', component: 'PRBC', urgency: 'HIGH', units: 2 },
+  { id: 'REQ-2M44', icuId: 'icu-fortis', group: 'AB+', component: 'Platelets', urgency: 'ROUTINE', units: 4 },
 ]
 
-export const siteById = (sites: Site[], id: string | null) => sites.find((s) => s.id === id)
+export const siteById = (sites: Site[], id: string | null) => {
+  if (!id) return undefined
+  const found = sites.find((s) => s.id === id)
+  if (found) return found
+  const norm = id.toLowerCase()
+  return sites.find((s) => s.name.toLowerCase() === norm || s.short.toLowerCase() === norm)
+}
 
 export function isLocked(item: StockItem, now: number) {
   if (item.lockedUntil === null) return false

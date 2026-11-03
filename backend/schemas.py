@@ -453,7 +453,7 @@ class ExpiryScheduleRequest(APIModel):
     stock_id: str = Field(description="Inventory or stock unit ID")
     scheduled_date: str = Field(description="ISO format YYYY-MM-DD for scheduled transfusion/procedure")
     procedure_type: Optional[str] = Field(default="Elective Surgical Transfusion")
-    recipient_hospital: Optional[str] = Field(default="Kilpauk Medical College Hospital")
+    recipient_hospital: Optional[str] = Field(default="Rajiv Gandhi Government General Hospital (MMC)")
     notes: Optional[str] = None
 
 

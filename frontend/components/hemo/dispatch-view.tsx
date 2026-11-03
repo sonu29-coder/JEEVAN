@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Building2, CheckCircle2, Loader2, MapPin, Minus, Plus, Siren } from 'lucide-react'
+import { Building2, CheckCircle2, ChevronDown, Loader2, MapPin, Minus, Plus, Siren } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { useGridPost } from '@/hooks/use-grid-post'
@@ -91,7 +91,7 @@ export function DispatchView() {
     }
     setResult({ ...res.data, simulated: res.simulated })
     const activeReason = t(CLINICAL_REASON_KEYS.find((r) => r.id === clinicalReason)?.labelKey as any) ?? 'Acute Trauma'
-    addEmergency({ id: res.data.request_id, icuId, group, component, urgency, units, clinicalReason: activeReason })
+    addEmergency({ id: res.data.request_id, icuId, group, component, urgency, units, clinicalReason: activeReason, hospitalName: icu.name })
     refreshEmergencies()
     notify(t('requestSent'), 'success')
   }
@@ -120,12 +120,47 @@ export function DispatchView() {
               </Choice>
             ))}
           </div>
-          <div className="mt-2.5 flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2 text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Building2 className="size-3.5 text-coral" />
-              {t('requestingFacility')}:
-            </span>
-            <span className="font-bold text-foreground">{icu.name}</span>
+          {/* Selectable Hospital in Chennai */}
+          <div className="mt-3 rounded-2xl border border-border/80 bg-muted/40 p-3 shadow-xs">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="flex items-center gap-1.5 font-bold text-foreground">
+                <Building2 className="size-4 text-coral" />
+                {t('requestingFacility')}:
+              </span>
+              <span className="text-[11px] font-semibold text-coral bg-coral/10 px-2 py-0.5 rounded-full border border-coral/20">
+                {ICUS.length} Chennai Hospitals
+              </span>
+            </div>
+            
+            <div className="relative">
+              <select
+                value={icuId}
+                onChange={(e) => setIcuId(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-border bg-background py-2.5 pl-3.5 pr-9 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-coral/40 cursor-pointer shadow-xs transition-colors hover:border-coral/50"
+                aria-label="Select Chennai Hospital"
+              >
+                {ICUS.map((hosp) => (
+                  <option key={hosp.id} value={hosp.id}>
+                    {hosp.name} {hosp.zone ? `• ${hosp.zone}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            </div>
+
+            {icu.zone && (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-[11px] text-muted-foreground px-1">
+                <span className="flex items-center gap-1 font-medium">
+                  <MapPin className="size-3 text-coral" />
+                  {icu.zone}
+                </span>
+                {icu.phone && (
+                  <span className="font-mono text-[10px] text-muted-foreground/80 bg-background/80 px-2 py-0.5 rounded-md border border-border/50">
+                    📞 {icu.phone}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </Step>
 

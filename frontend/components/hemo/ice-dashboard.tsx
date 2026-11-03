@@ -6,7 +6,12 @@ import { useTranslations } from 'next-intl'
 import {
   AlertCircle,
   Building2,
+  Calendar,
+  CalendarDays,
+  Check,
   CheckCircle2,
+  ClipboardList,
+  Clock,
   ChevronRight,
   Flame,
   HeartHandshake,
@@ -242,6 +247,35 @@ export function IceDashboard() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false)
   const recognitionRef = useRef<any>(null)
 
+  // Mode: 'sos' (Emergency SOS & Voice Triage) vs 'questions' (Professional Blood Triage & 4-Month Scheduler)
+  const [activeMode, setActiveMode] = useState<'sos' | 'questions'>('questions')
+
+  // Professional Blood Questions State
+  const [urgencyMode, setUrgencyMode] = useState<'immediate' | 'urgent' | 'schedule'>('schedule')
+  const [componentType, setComponentType] = useState<string>('PRBC')
+  const [clinicalDiagnosis, setClinicalDiagnosis] = useState<string>('cardio')
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string>('icu-rggh')
+
+  // 4-Month Schedule State: generate 4 upcoming calendar months dynamically
+  const now = new Date()
+  const fourMonths = React.useMemo(() => {
+    return Array.from({ length: 4 }).map((_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1)
+      return {
+        monthIndex: i,
+        monthName: d.toLocaleDateString('en-US', { month: 'short' }),
+        fullMonth: d.toLocaleDateString('en-US', { month: 'long' }),
+        year: d.getFullYear(),
+        daysCount: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(),
+      }
+    })
+  }, [])
+
+  const [selectedMonthIdx, setSelectedMonthIdx] = useState<number>(0)
+  const [selectedDay, setSelectedDay] = useState<number>(14)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('11:45 AM')
+  const [scheduleSuccess, setScheduleSuccess] = useState<boolean>(false)
+
   // Language mapping supporting en-IN, ml-IN, ta-IN, hi-IN
   const SPEECH_LANG_MAP: Record<string, string> = {
     en: 'en-IN',
@@ -260,6 +294,16 @@ export function IceDashboard() {
       }
     }
   }, [])
+
+  const handleConfirmSchedule = () => {
+    const m = fourMonths[selectedMonthIdx]
+    const hosp = ICUS.find((h) => h.id === selectedHospitalId) || ICUS[0]
+    setScheduleSuccess(true)
+    notify(
+      `✅ Transfusion successfully scheduled for ${selectedDay} ${m.fullMonth} ${m.year} at ${selectedTimeSlot} at ${hosp.name}!`,
+      'success'
+    )
+  }
 
   const handleSos = () => {
     setSosActive(true)
@@ -419,6 +463,379 @@ export function IceDashboard() {
 
       {/* Main Content Area */}
       <main className="no-scrollbar flex-1 overflow-y-auto px-4 py-4 pb-12 space-y-4">
+        {/* VIEW MODE SELECTOR: EMERGENCY SOS vs CLINICAL BLOOD QUESTIONS */}
+        <div className="flex rounded-2xl bg-muted/80 p-1 gap-1 border border-border shadow-xs">
+          <button
+            type="button"
+            onClick={() => setActiveMode('questions')}
+            className={`flex-1 py-2 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeMode === 'questions'
+                ? 'bg-card text-foreground shadow-sm ring-1 ring-border text-coral'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ClipboardList className="size-3.5 text-coral" />
+            <span>Blood Assessment & Schedule</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMode('sos')}
+            className={`flex-1 py-2 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeMode === 'sos'
+                ? 'bg-red-600 text-white shadow-sm font-black'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Siren className="size-3.5" />
+            <span>Emergency SOS</span>
+          </button>
+        </div>
+
+        {/* CLINICAL BLOOD ASSESSMENT & 4-MONTH ADVANCE SCHEDULER */}
+        {activeMode === 'questions' && (
+          <div className="space-y-4">
+            {/* Header info card */}
+            <div className="rounded-3xl border border-coral/30 bg-coral/5 p-4 shadow-xs">
+              <div className="flex items-center gap-2 mb-1">
+                <ClipboardList className="size-4 text-coral" />
+                <h2 className="text-sm font-black text-foreground">Clinical Transfusion Assessment</h2>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Answer professional blood protocol questions to allocate blood units or schedule elective procedures across Chennai hospital network.
+              </p>
+            </div>
+
+            {/* QUESTION 1: Transfusion Protocol & Urgency */}
+            <section className="rounded-3xl border border-border bg-card p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-foreground flex items-center gap-1.5">
+                  <span className="grid size-5 place-items-center rounded-full bg-coral/15 text-coral text-[11px] font-bold">1</span>
+                  Requirement Timing & Protocol
+                </span>
+                <span className="text-[10px] text-muted-foreground font-semibold">Select 1 option</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUrgencyMode('immediate')
+                    setScheduleSuccess(false)
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    urgencyMode === 'immediate'
+                      ? 'border-red-500 bg-red-500/10 ring-2 ring-red-400'
+                      : 'border-border bg-muted/30 hover:bg-muted/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                      🚨 Acute Massive Bleeding / Trauma (MTP)
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-600">
+                      Immediate (&lt;15 min)
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Emergency uncrossmatched O- or type-specific blood mobilization.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUrgencyMode('urgent')
+                    setScheduleSuccess(false)
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    urgencyMode === 'urgent'
+                      ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-400'
+                      : 'border-border bg-muted/30 hover:bg-muted/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                      ⚡ Urgent Inpatient Transfusion
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                      Within 2–4 Hours
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Standard cross-match for severe anemia or urgent surgical preparation.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUrgencyMode('schedule')
+                    setScheduleSuccess(false)
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                    urgencyMode === 'schedule'
+                      ? 'border-coral bg-coral/10 ring-2 ring-coral'
+                      : 'border-border bg-muted/30 hover:bg-muted/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                      📅 Scheduled Elective Transfusion (4-Month Window)
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-coral/20 text-coral">
+                      Schedule Slot
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Lock transfusion date, month, and time across the next 4 months for elective surgeries or oncology cycles.
+                  </p>
+                </button>
+              </div>
+            </section>
+
+            {/* 4-MONTH ADVANCE SCHEDULER PANEL (Shown when Schedule is chosen) */}
+            {urgencyMode === 'schedule' && (
+              <section className="rounded-3xl border-2 border-coral/40 bg-card p-4 shadow-md space-y-3.5 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between border-b border-border/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="size-4 text-coral" />
+                    <div>
+                      <h3 className="text-xs font-black text-foreground">4-Month Transfusion Horizon</h3>
+                      <p className="text-[10px] text-muted-foreground">Select appointment Month, Date &amp; Time slot</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-coral bg-coral/10 px-2 py-0.5 rounded-full border border-coral/20">
+                    4 Months Active
+                  </span>
+                </div>
+
+                {/* 1. Month Picker (Next 4 Months) */}
+                <div>
+                  <label className="text-[11px] font-bold text-foreground mb-1.5 block">
+                    Step 1: Choose Month ({fourMonths[0].monthName} – {fourMonths[3].monthName})
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {fourMonths.map((m, idx) => {
+                      const isSelected = selectedMonthIdx === idx
+                      return (
+                        <button
+                          key={m.monthName + m.year}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMonthIdx(idx)
+                            setScheduleSuccess(false)
+                          }}
+                          className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-coral bg-coral text-white font-black shadow-sm'
+                              : 'border-border bg-muted/40 hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <span className="text-xs font-black">{m.monthName}</span>
+                          <span className="text-[9px] opacity-80">{m.year}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Date Selection (Days of Month) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-foreground">
+                      Step 2: Choose Scheduled Day in {fourMonths[selectedMonthIdx].fullMonth}
+                    </label>
+                    <span className="text-[10px] font-semibold text-coral">
+                      Day {selectedDay}
+                    </span>
+                  </div>
+                  {/* Quick Select Days + Day Chips */}
+                  <div className="grid grid-cols-6 gap-1.5 text-xs font-bold">
+                    {[3, 7, 10, 14, 18, 21, 24, 28].map((day) => {
+                      const isSelected = selectedDay === day
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDay(day)
+                            setScheduleSuccess(false)
+                          }}
+                          className={`py-2 rounded-xl border text-center transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-coral bg-coral text-white font-extrabold shadow-xs'
+                              : 'border-border bg-muted/30 hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          {day}th
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Time Slot Selection */}
+                <div>
+                  <label className="text-[11px] font-bold text-foreground mb-1.5 block flex items-center gap-1.5">
+                    <Clock className="size-3.5 text-coral" />
+                    Step 3: Select Clinical Transfusion Time
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                    {[
+                      { time: '08:30 AM', label: 'Morning Pre-Op Slot' },
+                      { time: '11:45 AM', label: 'Midday Transfusion Bay' },
+                      { time: '02:30 PM', label: 'Afternoon Infusion Bay' },
+                      { time: '05:15 PM', label: 'Evening Post-Op Reserve' },
+                    ].map((slot) => {
+                      const isSelected = selectedTimeSlot === slot.time
+                      return (
+                        <button
+                          key={slot.time}
+                          type="button"
+                          onClick={() => {
+                            setSelectedTimeSlot(slot.time)
+                            setScheduleSuccess(false)
+                          }}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-coral bg-coral/15 ring-2 ring-coral text-foreground'
+                              : 'border-border bg-muted/30 hover:bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          <span className="text-xs font-black text-foreground block">{slot.time}</span>
+                          <span className="text-[9px] text-muted-foreground">{slot.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Live Schedule Summary Banner */}
+                <div className="rounded-2xl border border-coral/30 bg-coral/5 p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-coral">🗓️ Scheduled Appointment Details:</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">4-Month Reserve</span>
+                  </div>
+                  <p className="text-sm font-extrabold text-foreground">
+                    {selectedDay} {fourMonths[selectedMonthIdx].fullMonth} {fourMonths[selectedMonthIdx].year} at {selectedTimeSlot}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Units pre-assigned under FEFO safety protocol. Automated cross-match triggered 24 hours prior.
+                  </p>
+                </div>
+
+                {/* Confirmation Button */}
+                <button
+                  type="button"
+                  onClick={handleConfirmSchedule}
+                  className="w-full py-3 rounded-xl bg-coral hover:bg-coral-strong text-white font-black text-xs shadow-md transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Check className="size-4" />
+                  <span>Confirm 4-Month Advance Transfusion Schedule</span>
+                </button>
+
+                {scheduleSuccess && (
+                  <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Confirmed: Appointment locked for {selectedDay} {fourMonths[selectedMonthIdx].fullMonth} {fourMonths[selectedMonthIdx].year} at {selectedTimeSlot}!
+                    </span>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* QUESTION 2: Blood Component Required */}
+            <section className="rounded-3xl border border-border bg-card p-4 shadow-xs space-y-2.5">
+              <span className="text-xs font-black text-foreground flex items-center gap-1.5">
+                <span className="grid size-5 place-items-center rounded-full bg-coral/15 text-coral text-[11px] font-bold">2</span>
+                Required Blood Component
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {[
+                  { id: 'PRBC', name: 'PRBC (Packed Red Cells)', sub: 'Adult surgical / trauma' },
+                  { id: 'Platelets', name: 'Single Donor Platelets (SDP)', sub: 'Thrombocytopenia / chemo' },
+                  { id: 'Plasma', name: 'Fresh Frozen Plasma (FFP)', sub: 'Coagulation correction' },
+                  { id: 'Whole Blood', name: 'Whole Blood (CPDA-1)', sub: 'Massive blood loss / MTP' },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setComponentType(c.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      componentType === c.id
+                        ? 'border-coral bg-coral/10 ring-2 ring-coral'
+                        : 'border-border bg-muted/30 hover:bg-muted'
+                    }`}
+                  >
+                    <span className="font-extrabold text-foreground block text-xs">{c.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{c.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* QUESTION 3: Clinical Diagnosis */}
+            <section className="rounded-3xl border border-border bg-card p-4 shadow-xs space-y-2.5">
+              <span className="text-xs font-black text-foreground flex items-center gap-1.5">
+                <span className="grid size-5 place-items-center rounded-full bg-coral/15 text-coral text-[11px] font-bold">3</span>
+                Primary Clinical Indication
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {[
+                  { id: 'cardio', label: 'Cardiovascular Surgery', sub: 'Bypass / Valve Replacement' },
+                  { id: 'trauma', label: 'Acute Polytrauma Bleed', sub: 'Road accident / ER resuscitation' },
+                  { id: 'maternal', label: 'Obstetric Care / PPH', sub: 'Post-partum hemorrhage' },
+                  { id: 'onco', label: 'Oncology / Hematology', sub: 'Bone marrow / Aplastic anemia' },
+                ].map((diag) => (
+                  <button
+                    key={diag.id}
+                    type="button"
+                    onClick={() => setClinicalDiagnosis(diag.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      clinicalDiagnosis === diag.id
+                        ? 'border-coral bg-coral/10 ring-2 ring-coral'
+                        : 'border-border bg-muted/30 hover:bg-muted'
+                    }`}
+                  >
+                    <span className="font-extrabold text-foreground block text-xs">{diag.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{diag.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* QUESTION 4: Destination Hospital (Chennai Regional Network) */}
+            <section className="rounded-3xl border border-border bg-card p-4 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-foreground flex items-center gap-1.5">
+                  <span className="grid size-5 place-items-center rounded-full bg-coral/15 text-coral text-[11px] font-bold">4</span>
+                  Destination Chennai Hospital
+                </span>
+                <span className="text-[10px] font-semibold text-coral bg-coral/10 px-2 py-0.5 rounded-full">
+                  {ICUS.length} Hospitals
+                </span>
+              </div>
+              <div className="relative">
+                <select
+                  value={selectedHospitalId}
+                  onChange={(e) => setSelectedHospitalId(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-border bg-background py-2.5 pl-3.5 pr-9 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-coral/40 cursor-pointer shadow-xs"
+                >
+                  {ICUS.map((hosp) => (
+                    <option key={hosp.id} value={hosp.id}>
+                      {hosp.name} {hosp.zone ? `• ${hosp.zone}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* SOS VIEW (When activeMode === 'sos') */}
+        {activeMode === 'sos' && (
+          <>
         {/* BIG RED SOS BUTTON */}
         <section aria-labelledby="sos-heading" className="rounded-3xl border border-red-500/40 bg-gradient-to-b from-red-500/15 via-red-500/5 to-transparent p-4">
           <h2 id="sos-heading" className="sr-only">{tIce('sosAlertButton')}</h2>
@@ -598,7 +1015,7 @@ export function IceDashboard() {
           </h3>
 
           <div className="space-y-2.5">
-            {ICUS.slice(0, 3).map((icu) => {
+            {ICUS.slice(0, 8).map((icu) => {
               const km = distanceKm(USER_LOCATION, icu.position).toFixed(1)
               return (
                 <div
@@ -626,6 +1043,8 @@ export function IceDashboard() {
             })}
           </div>
         </section>
+                </>
+        )}
       </main>
     </div>
   )
